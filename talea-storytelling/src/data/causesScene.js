@@ -14,7 +14,7 @@
 export const title = "Perché proprio qui?";
 
 export const aperture =
-  "Per capire perché il caldo si accumuli proprio in queste zone, dobbiamo guardare il territorio più da vicino.";
+  "Per capire perché il calore tende ad immagazzinarsi proprio in queste zone, dobbiamo guardare il territorio più da vicino.";
 
 /**
  * Il secondo blocco dell'apertura (06 § 6.1), a segmenti e non a stringa: due
@@ -30,7 +30,7 @@ export const aperture =
  * sopra le mappe. Le parole vere restano sempre dentro questo testo.
  */
 export const apertureCauseParts = [
-  { text: "Le cause sono diverse: tra le principali ci sono la presenza del " },
+  { text: "Le cause sono diverse: tra le principali ci sono la quantità del " },
   { text: "verde", kw: true, topic: "green" },
   { text: " e la capacità di " },
   { text: "assorbimento dei " },
@@ -50,12 +50,12 @@ export const apertureClose = "Analizziamole nel dettaglio.";
 
 // ── Indizi, legame, ingresso, confronto (DA VALIDARE) ───────────────────────
 export const clueGreen =
-  "Il verde, inteso come presenza e densità della vegetazione sul territorio, non offre solo ombra, ma rilascia umidità nell'aria contribuendo a mitigare la temperatura circostante.\n\nDove la vegetazione si dirada, il tessuto urbano perde questa naturale capacità di bilanciare il calore.";
+  "Il verde, inteso come presenza e densità della vegetazione sul territorio, non offre solo ombra, ma rilascia umidità nell'aria contribuendo a mitigare la temperatura circostante.\n\nDove alberi e piante si diradano, il tessuto urbano perde questa naturale capacità di bilanciare il calore.";
 
 // DA VALIDARE — riformulata per non ripetere la frase "asfalto/tetti/piazze" già
 // usata nella Sezione 1: qui si racconta solo il comportamento delle superfici.
 export const clueMaterials =
-  "I materiali da cui è composta la città, dall'asfalto delle strade al cemento degli edifici, rispondono al sole in base alle loro proprietà fisiche. \n\n Le superfici scure e compatte assorbono il calore per tutto il giorno e lo rilasciano lentamente, continuando a scaldare l'aria a lungo anche dopo il tramonto.";
+  "I materiali da cui è composta la città, dall'asfalto delle strade al cemento degli edifici, rispondono al sole in base alle loro proprietà fisiche. \n\n Le superfici scure e compatte raggiungono temperature più elevate e si raffreddano più lentamente, influenzando anche le condizioni dell’ambiente circostante.";
 
 // Le incise usano trattini lunghi (em dash) — punteggiatura corretta, non trattini
 // di sillabazione: a fine riga non si confondono con un "a-capo" spezzato.

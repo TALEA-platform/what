@@ -171,7 +171,7 @@ export const planBeats = [
         text: "Linee d'ombra",
         link: "https://www.comune.bologna.it/novita/comunicati-stampa/linee-dombra-itinerari-climatici-sotto-i-portici-approvato-giunta-il-progetto-che-guarda-ai-portici",
       },
-      { text: " studia come valorizzarli e collegarli ai rifugi climatici." },
+      { text: " studia come valorizzarli e connetterli ai rifugi climatici." },
     ],
   },
   {

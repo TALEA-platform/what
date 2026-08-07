@@ -1,0 +1,92 @@
+{
+  "note": "Direct MapLibre image overlays rendered from official HistorySUHI webapp rasters and shadow geometries. No narrative grid aggregation is applied.",
+  "layers": {
+    "green": {
+      "id": "green",
+      "url": "/data/physical-drivers/ndvi_2025_direct_overlay.png",
+      "source": "external/historysuhi/webapp/data/webapp_rasters/NDVI_2025_summer_30m.tif",
+      "coordinates": [
+        [
+          11.2307309,
+          44.5589713
+        ],
+        [
+          11.4355458,
+          44.554785
+        ],
+        [
+          11.4298825,
+          44.4186066
+        ],
+        [
+          11.2255429,
+          44.4227731
+        ]
+      ],
+      "width": 1628,
+      "height": 1514,
+      "valueRange": [
+        0.07,
+        0.89
+      ]
+    },
+    "absorbing": {
+      "id": "absorbing",
+      "url": "/data/physical-drivers/albedo_absorbing_2025_direct_overlay.png",
+      "source": "external/historysuhi/webapp/data/webapp_rasters/Albedo_2025_summer_30m.tif",
+      "coordinates": [
+        [
+          11.2307309,
+          44.5589713
+        ],
+        [
+          11.4356716,
+          44.5547823
+        ],
+        [
+          11.4300042,
+          44.418514
+        ],
+        [
+          11.2255395,
+          44.4226832
+        ]
+      ],
+      "width": 543,
+      "height": 505,
+      "valueRange": [
+        0.14,
+        0.22
+      ]
+    },
+    "shade": {
+      "id": "shade",
+      "url": "/data/physical-drivers/shadow_means_direct_overlay.png",
+      "source": "external/historysuhi/webapp/data/bologna_shadow_means/bologna_shadow_means.geojson",
+      "coordinates": [
+        [
+          11.2307309,
+          44.5589713
+        ],
+        [
+          11.4355458,
+          44.554785
+        ],
+        [
+          11.4298825,
+          44.4186066
+        ],
+        [
+          11.2255429,
+          44.4227731
+        ]
+      ],
+      "width": 1628,
+      "height": 1514,
+      "valueRange": [
+        0.0918632373213768,
+        0.6736178398132324
+      ]
+    }
+  }
+}

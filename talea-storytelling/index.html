@@ -1,0 +1,560 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      (function () {
+        var config = {
+          blockMaxWidth: 1023,
+          blockMaxHeight: 799,
+          resizeWidth: 1700,
+        };
+        var width = window.innerWidth || document.documentElement.clientWidth;
+        window.__taleaViewportConfig = config;
+        if (width > config.blockMaxWidth && width < config.resizeWidth && window.self === window.top) {
+          window.__taleaViewportFrameShell = true;
+          document.documentElement.dataset.taleaViewportFrameShell = String(config.resizeWidth);
+        }
+      })();
+    </script>
+    <title>talea-storytelling</title>
+
+    <!-- I titoli di capitolo sono in Newsreader e il corpo in Inter. Il foglio
+         di stile dei font sta QUI e non più in un @import dentro theme.css:
+         dentro il CSS la richiesta a Google partiva solo dopo che il bundle CSS
+         era arrivato, cioè in coda a tutto. Da qui parte con il documento. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap"
+    />
+
+    <!-- Il poster è il primo fotogramma garantito della storia: se il video non
+         fa in tempo, è quello che il lettore vede. Vale la precedenza. -->
+    <link rel="preload" as="image" href="/data/hero/bologna-poster.jpg" />
+
+    <!-- ── Schermata d'ingresso ────────────────────────────────────────────────
+         Sta qui, inline, e non in un componente React di proposito: un loader
+         montato da React può apparire solo DOPO che il bundle è stato scaricato
+         e interpretato, cioè coprirebbe la seconda metà dell'attesa lasciando
+         scoperta la prima — che è esattamente quella bianca e vuota. Inline
+         dipinge al primo frame utile, prima di qualsiasi CSS e di qualsiasi JS. -->
+    <style>
+      .talea-boot {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2.2rem;
+        /* --paper del tema, ripetuto a mano: theme.css qui non è ancora arrivato. */
+        background: #f6f4ee;
+        opacity: 1;
+        transition: opacity 520ms cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .talea-boot.is-leaving {
+        opacity: 0;
+        pointer-events: none;
+      }
+      .tb-locked,
+      .tb-locked body {
+        overflow: hidden;
+      }
+
+      .talea-resize-shell {
+        position: fixed;
+        inset: 0;
+        z-index: 1;
+        overflow: hidden;
+        background: #f6f4ee;
+      }
+      .talea-resize-frame {
+        position: absolute;
+        width: 1700px;
+        height: 100vh;
+        border: 0;
+        transform-origin: top left;
+        background: #f6f4ee;
+      }
+
+      .tb-logo {
+        width: min(46vw, 230px);
+        height: auto;
+        overflow: visible;
+      }
+
+      .tb-blue,
+      .tb-yellow,
+      .tb-branch,
+      .tb-vein {
+        fill: none;
+        /* pathLength="1" su ogni tratto: la lunghezza reale non conta più, il
+           disegno si anima con un solo valore per tutti. */
+        stroke-dasharray: 1;
+        stroke-dashoffset: 1;
+      }
+      .tb-blue {
+        stroke: #3673c0;
+        stroke-width: 15.524;
+        stroke-linecap: round;
+        stroke-linejoin: miter;
+        stroke-miterlimit: 10;
+      }
+      .tb-yellow {
+        stroke: #f7e91a;
+        stroke-width: 15.524;
+        stroke-linecap: butt;
+        stroke-linejoin: miter;
+        stroke-miterlimit: 10;
+      }
+      .tb-branch {
+        stroke: #38b850;
+        stroke-width: 15.524;
+        stroke-linecap: round;
+        stroke-linejoin: miter;
+        stroke-miterlimit: 10;
+      }
+      .tb-vein {
+        stroke: #38b850;
+        stroke-width: 7.772;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .tb-word {
+        fill: #17361c;
+      }
+      /* L'animazione sta sul GRUPPO, non sul path: una `transform` messa via CSS
+         sostituisce in blocco l'attributo `transform` dell'elemento, e la
+         scritta perderebbe il proprio translate finendo fuori dai cerchi.
+         Sul gruppo invece si compone, perché il gruppo non ne ha uno suo. */
+      .tb-word-g {
+        opacity: 0;
+        transform-box: fill-box;
+        transform-origin: center;
+      }
+      .tb-yellow-fill {
+        fill: #f7e91a;
+        opacity: 0;
+      }
+
+      @keyframes tb-draw {
+        to {
+          stroke-dashoffset: 0;
+        }
+      }
+      @keyframes tb-appear {
+        from {
+          opacity: 0;
+          /* Solo scala: una traslazione qui erediterebbe il flip verticale
+             della matrice di root e salirebbe dalla parte sbagliata. */
+          transform: scale(0.94);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+      @keyframes tb-fade {
+        to {
+          opacity: 1;
+        }
+      }
+      @keyframes tb-breathe {
+        0%,
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+        50% {
+          transform: scale(1.028);
+          opacity: 0.88;
+        }
+      }
+
+      /* ── La talea germoglia ──
+         Prima il ramo, poi le venature che spuntano, poi i due cerchi che si
+         chiudono attorno e la scritta che emerge. È il nome del progetto: una
+         talea è un ramo tagliato che mette radici. */
+      .tb-branch {
+        animation: tb-draw 460ms 40ms cubic-bezier(0.33, 0, 0.2, 1) forwards;
+      }
+      .tb-vein {
+        animation: tb-draw 240ms cubic-bezier(0.33, 0, 0.2, 1) forwards;
+      }
+      .tb-p3 { animation-delay: 380ms; }
+      .tb-p4 { animation-delay: 418ms; }
+      .tb-p5 { animation-delay: 456ms; }
+      .tb-p6 { animation-delay: 494ms; }
+      .tb-p7 { animation-delay: 532ms; }
+      .tb-p12 { animation-delay: 570ms; }
+      .tb-p13 { animation-delay: 608ms; }
+      .tb-word-g {
+        animation: tb-appear 380ms 560ms cubic-bezier(0.2, 0, 0.2, 1) forwards;
+      }
+      .tb-blue {
+        animation: tb-draw 700ms 620ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+      }
+      .tb-yellow {
+        animation: tb-draw 700ms 700ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+      }
+      .tb-yellow-fill {
+        animation: tb-fade 260ms 1180ms linear forwards;
+      }
+      /* Finito il disegno il logo non si ferma di colpo: respira, così un'attesa
+         lunga non sembra mai un blocco. */
+      .tb-logo {
+        animation: tb-breathe 3.2s 1500ms ease-in-out infinite;
+      }
+
+      /* ── Barra di avanzamento ──
+         Compare SOLO se l'attesa supera la soglia oltre la quale il lettore
+         inizia a chiedersi se si è rotto qualcosa. Sotto quella soglia il
+         respiro del logo basta, e una barra sarebbe rumore. */
+      .tb-bar {
+        width: 132px;
+        height: 2px;
+        border-radius: 2px;
+        background: rgba(27, 58, 41, 0.12);
+        overflow: hidden;
+        opacity: 0;
+        transition: opacity 400ms ease;
+      }
+      .talea-boot.is-slow .tb-bar {
+        opacity: 1;
+      }
+      .tb-bar-fill {
+        display: block;
+        width: 100%;
+        height: 100%;
+        background: #38b850;
+        transform: scaleX(0);
+        transform-origin: left center;
+        transition: transform 600ms cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .tb-sr {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+      }
+
+      /* ── Cancello schermi piccoli ────────────────────────────────────────
+         La storia è scroll-driven: mappe che si montano l'una sull'altra,
+         grafici che si scoprono per gradi, un video a tutta pagina. Dentro un
+         viewport piccolo non è "stretta", è rotta — e una pagina rotta
+         costa più di una porta chiusa con scritto sopra il perché.
+         Sta qui, inline, per la stessa ragione della schermata d'ingresso: si
+         dipinge al primo fotogramma utile, prima di qualunque bundle. Da
+         togliere quando la versione per schermi piccoli sarà pronta. */
+      .talea-gate {
+        position: fixed;
+        inset: 0;
+        z-index: 10000;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2rem;
+        padding: 2.5rem 1.75rem calc(2.5rem + env(safe-area-inset-bottom, 0px));
+        /* --paper e --ink del tema, ripetuti a mano: qui theme.css non arriva
+           mai, perché su schermi piccoli l'app non si monta affatto. */
+        background: #f6f4ee;
+        color: #1b3a29;
+        text-align: center;
+        /* Telefono basso e girato di lato: il testo scorre invece di uscire. */
+        overflow-y: auto;
+      }
+      .talea-gate[hidden] {
+        display: none;
+      }
+      /* Il marchio non è duplicato: è lo stesso nodo della schermata
+         d'ingresso, spostato qui dallo script. Una sola copia del disegno, e
+         l'animazione di germoglio se la porta dietro. */
+      .talea-gate .tb-logo {
+        width: min(58vw, 186px);
+      }
+
+      .tg-text {
+        max-width: 31ch;
+      }
+      .tg-title {
+        margin: 0;
+        font-family: "Newsreader", Georgia, serif;
+        font-weight: 400;
+        font-size: clamp(1.45rem, 6.2vw, 1.9rem);
+        line-height: 1.22;
+        letter-spacing: -0.01em;
+        color: #0b2a18;
+      }
+      .tg-body {
+        margin: 0.85rem 0 0;
+        font-family: "Inter", system-ui, sans-serif;
+        font-size: 1rem;
+        line-height: 1.55;
+        color: #55705f;
+      }
+
+      /* Telefono girato di lato: quattrocento pixel d'altezza non reggono il
+         respiro verticale del ritratto. Qui si stringe invece di scorrere. */
+      @media (max-height: 520px) {
+        .talea-gate {
+          gap: 1.1rem;
+          padding: 1.5rem 1.75rem calc(1.5rem + env(safe-area-inset-bottom, 0px));
+        }
+        .talea-gate .tb-logo {
+          width: min(24vw, 104px);
+        }
+        .tg-text {
+          max-width: 46ch;
+        }
+        .tg-title {
+          font-size: clamp(1.15rem, 3.1vw, 1.5rem);
+        }
+        .tg-body {
+          margin-top: 0.5rem;
+          font-size: 0.9rem;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .tb-logo,
+        .tb-logo path,
+        .tb-word-g {
+          animation: none !important;
+        }
+        .tb-blue,
+        .tb-yellow,
+        .tb-branch,
+        .tb-vein {
+          stroke-dashoffset: 0;
+        }
+        /* Niente `transform: none` sui path, per la stessa ragione di sopra. */
+        .tb-word-g,
+        .tb-yellow-fill {
+          opacity: 1;
+        }
+        .talea-boot {
+          animation: tb-fade 300ms linear;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="talea-boot" class="talea-boot" role="status" aria-live="polite">
+      <svg class="tb-logo" viewBox="0 0 680.3147 604.724" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Talea">
+      <g transform="matrix(1.3333333,0,0,-1.3333333,0,604.724)">
+        <path class="tb-blue tb-p0" pathLength="1" transform="translate(249.5695,438.511)" d="m 0,0 c -89,19.351 -192.986,-9.738 -228.765,-113.385 -50.63,-209.04 108.469,-245.217 145.851,-256.79"/>
+        <path class="tb-yellow tb-p1" pathLength="1" transform="translate(363.015,355.3655)" d="m 0,0 c 162.417,-24.5 134.432,-201.531 134.432,-201.531 0,0 -11.219,-69.697 -69.396,-109.456 -68.837,-47.25 -177.848,-49.251 -256.856,18.957"/>
+        <path class="tb-blue tb-p2" pathLength="1" transform="translate(363.5553,353.9207)" d="m 0,0 c 0,0 -33.669,66.267 -113.986,84.59 -89,19.352 -192.986,-9.737 -228.764,-113.384"/>
+        <path class="tb-vein tb-p3" pathLength="1" transform="translate(168.8589,74.45)" d="M 0,0 C 0,0 4.626,18.037 40.14,67.893"/>
+        <path class="tb-vein tb-p4" pathLength="1" transform="translate(308.3044,293.4781)" d="M 0,0 34.359,8.061"/>
+        <path class="tb-vein tb-p5" pathLength="1" transform="translate(180.2941,98.3387)" d="M 0,0 -27.277,55.296"/>
+        <path class="tb-vein tb-p6" pathLength="1" transform="translate(180.294,97.0287)" d="M 0,0 103.913,38.114"/>
+        <path class="tb-vein tb-p7" pathLength="1" transform="translate(281.6133,261.7339)" d="M 0,0 C 18.309,23.664 37.471,44.908 61.859,71.292"/>
+        <g class="tb-word-g"><path class="tb-word tb-p8" transform="translate(65.2252,256.2314)" d="M 0,0 H 34.938 V -89.029 H 57.816 V 0 H 92.931 V 19.863 H 0 Z m 156.381,-89.029 v 50.544 c 0,18.977 -12.237,30.504 -33.342,30.504 -18.089,0 -31.036,-10.995 -33.341,-25.361 h 20.927 c 1.773,4.612 5.498,7.449 11.705,7.449 8.867,0 12.946,-5.498 12.946,-12.237 v -5.852 c -3.192,2.305 -11.173,4.611 -18.089,4.611 -17.203,0 -30.682,-10.287 -30.682,-25.361 0,-16.494 13.479,-25.716 29.44,-25.716 8.69,0 16.671,3.015 19.331,5.675 v -4.256 z m -21.105,21.636 c -1.951,-4.256 -7.98,-6.916 -14.365,-6.916 -6.917,0 -14.011,2.837 -14.011,9.754 0,6.739 7.094,9.754 14.011,9.754 6.385,0 12.414,-2.66 14.365,-6.916 z m 57.239,93.641 H 170.524 V -89.029 h 21.991 z m 63.624,-89.384 c -1.773,-6.739 -7.271,-9.932 -14.72,-9.932 -9.754,0 -16.493,7.094 -17.203,18.977 h 52.85 v 6.739 c 0,23.233 -12.769,39.371 -36.001,39.371 -22.169,0 -38.13,-17.557 -38.13,-41.499 0,-24.474 15.429,-41.323 38.484,-41.323 19.863,0 32.278,10.819 35.115,27.667 z m -14.897,37.243 c 9.045,0 14.011,-6.562 14.188,-14.897 h -30.681 c 1.95,9.754 7.98,14.897 16.493,14.897 m 111.33,-63.136 v 50.544 c 0,18.977 -12.237,30.504 -33.342,30.504 -18.089,0 -31.036,-10.995 -33.341,-25.361 h 20.927 c 1.773,4.612 5.498,7.449 11.705,7.449 8.867,0 12.946,-5.498 12.946,-12.237 v -5.852 c -3.192,2.305 -11.173,4.611 -18.089,4.611 -17.203,0 -30.682,-10.287 -30.682,-25.361 0,-16.494 13.479,-25.716 29.44,-25.716 8.69,0 16.671,3.015 19.331,5.675 v -4.256 z m -21.105,21.636 c -1.951,-4.256 -7.98,-6.916 -14.365,-6.916 -6.917,0 -14.011,2.837 -14.011,9.754 0,6.739 7.094,9.754 14.011,9.754 6.385,0 12.414,-2.66 14.365,-6.916 z"/></g>
+        <path class="tb-branch tb-p9" pathLength="1" transform="translate(391.3435,273.1924)" d="M 0,0 C -1.506,20.692 -10.774,56.532 -28.729,82.473 -61.132,91.474 -224.688,99.975 -270.313,24.536"/>
+        <path class="tb-yellow-fill tb-p10" transform="translate(162.7085,61.4033)" d="m 0,0 -2.435,5.732 13.042,-3.281 -1.2,-4.88 c 0,0 -4.258,-3.342 -5.993,-1.531 C 1.68,-2.149 0,0 0,0"/>
+        <path class="tb-branch tb-p11" pathLength="1" transform="translate(112.2371,144.0049)" d="m 0,0 c 12.953,-31.365 21.334,-46.706 53.637,-75.109 146.252,-14.602 207.342,60.246 215.43,73.392"/>
+        <path class="tb-vein tb-p12" pathLength="1" transform="translate(308.3042,326.9795)" d="M 0,0 V -32.463"/>
+        <path class="tb-vein tb-p13" pathLength="1" transform="translate(212.8814,311.8008)" d="M 0,0 1.2,-28.836"/>
+      </g>
+    </svg>
+
+      <div class="tb-bar" aria-hidden="true"><span class="tb-bar-fill"></span></div>
+      <span class="tb-sr">Caricamento della storia in corso</span>
+    </div>
+
+    <!-- Il marchio qui dentro non c'è: se il cancello si apre, ci arriva
+         quello della schermata d'ingresso, spostato dallo script qui sotto. -->
+    <div id="talea-gate" class="talea-gate" role="dialog" aria-labelledby="tg-title" hidden>
+      <div class="tg-text">
+        <h1 class="tg-title" id="tg-title">TALEA, per ora, si guarda da uno schermo grande.</h1>
+        <p class="tg-body">
+          Stiamo costruendo la versione per schermi piccoli. Nel frattempo la
+          storia è pronta e ti aspetta su computer o schermi più grandi.
+        </p>
+      </div>
+    </div>
+
+    <script>
+      // ── Il cancello degli schermi piccoli ────────────────────────────────
+      // Gira PRIMA dello script della schermata d'ingresso, di proposito: se
+      // il cancello si chiude, il boot non deve nemmeno partire — aspetterebbe
+      // il montaggio di un'app che non si monterà.
+      (function () {
+        var gate = document.getElementById("talea-gate");
+        if (!gate) return;
+        if (window.__taleaViewportFrameShell) return;
+        var config = window.__taleaViewportConfig || {
+          blockMaxWidth: 1023,
+          blockMaxHeight: 799,
+        };
+        var width = window.innerWidth || document.documentElement.clientWidth;
+        var height = window.innerHeight || document.documentElement.clientHeight;
+        var coarsePointer = window.matchMedia("(pointer: coarse)").matches;
+
+        // Telefoni e tablet piccoli restano fuori. Serve il dito (pointer:
+        // coarse) E una larghezza sotto soglia; l'altezza resta una rete per i
+        // dispositivi bassi/girati, ma più stretta perché il problema vero è la
+        // colonna troppo corta in orizzontale. La soglia include anche iPad
+        // mini e iPad Air, che hanno ancora poco spazio per questa storia.
+        var smallTouchScreen =
+          coarsePointer && (width <= config.blockMaxWidth || height <= config.blockMaxHeight);
+        if (!smallTouchScreen) return;
+
+        // Bandiera letta da main.jsx: l'app non si monta proprio. Montarla
+        // dietro a un pannello opaco vorrebbe dire scaricare il video
+        // dell'hero, accendere le mappe e mettere in ascolto gli osservatori
+        // di scroll per una pagina che nessuno vedrà — sulla rete di un
+        // dispositivo piccolo, per giunta.
+        window.__taleaMobileGate = true;
+
+        gate.hidden = false;
+        document.documentElement.classList.add("tb-locked");
+
+        var boot = document.getElementById("talea-boot");
+        if (boot) {
+          var mark = boot.querySelector(".tb-logo");
+          if (mark) gate.insertBefore(mark, gate.firstChild);
+          if (boot.parentNode) boot.parentNode.removeChild(boot);
+        }
+
+      })();
+    </script>
+
+    <div id="root"></div>
+
+    <script>
+      // ── Il cancello d'ingresso ──────────────────────────────────────────────
+      // Regola d'ingaggio: si aspettano i font, il montaggio dell'app e il primo
+      // fotogramma dell'hero (video pronto, oppure poster, oppure errore). NON si
+      // aspetta il download completo del video: nessuno resta fermo davanti a uno
+      // spinner per venti secondi, e comunque il poster copre il caso peggiore.
+      //
+      // Sopra a tutto c'è un tetto duro: scaduto quello si entra comunque, anche
+      // se il bundle è esploso. Un loader senza via d'uscita è peggio del vuoto
+      // che dovrebbe coprire.
+      (function () {
+        var el = document.getElementById("talea-boot");
+        if (!el) return;
+
+        var MIN_MS = 900; // sotto questa soglia il loader lampeggerebbe e basta
+        var MAX_MS = 3000; // tetto duro
+        var SLOW_MS = 1600; // oltre questa compare la barra
+        var FADE_MS = 520; // deve combaciare con la transition del CSS
+
+        var t0 = Date.now();
+        // «poster» e «hero» sono due cose diverse e vanno tenute separate: il
+        // poster è l'immagine di riserva scaricata davvero, l'hero è il video
+        // che ce l'ha fatta (o che ha rinunciato). Se il video è lento si esce
+        // dal tetto duro, ma con la certezza che sotto c'è già un'immagine.
+        var gates = { fonts: false, app: false, poster: false, hero: false };
+        var names = ["fonts", "app", "poster", "hero"];
+        var leaving = false;
+        var fill = el.querySelector(".tb-bar-fill");
+
+        document.documentElement.classList.add("tb-locked");
+
+        function paint() {
+          var n = 0;
+          for (var i = 0; i < names.length; i++) if (gates[names[i]]) n++;
+          if (fill) fill.style.transform = "scaleX(" + n / names.length + ")";
+          return n;
+        }
+
+        function leave() {
+          if (leaving) return;
+          leaving = true;
+          if (fill) fill.style.transform = "scaleX(1)";
+          window.setTimeout(function () {
+            el.classList.add("is-leaving");
+            document.documentElement.classList.remove("tb-locked");
+            window.setTimeout(function () {
+              if (el.parentNode) el.parentNode.removeChild(el);
+            }, FADE_MS);
+          }, Math.max(0, MIN_MS - (Date.now() - t0)));
+        }
+
+        function ready(name) {
+          if (leaving || !(name in gates) || gates[name]) return;
+          gates[name] = true;
+          if (paint() === names.length) leave();
+        }
+
+        function mountResizeFrame() {
+          var config = window.__taleaViewportConfig || {
+            resizeWidth: 1700,
+          };
+          var virtualWidth = config.resizeWidth;
+          var shell = document.createElement("div");
+          var frame = document.createElement("iframe");
+          var url = new URL(window.location.href);
+
+          url.searchParams.set("talea-frame", String(virtualWidth));
+          shell.className = "talea-resize-shell";
+          frame.className = "talea-resize-frame";
+          frame.title = "TALEA storytelling";
+          frame.src = url.href;
+
+          function fitFrame() {
+            var scale = window.innerWidth / virtualWidth;
+            var virtualHeight = Math.ceil(window.innerHeight / scale);
+            frame.style.width = virtualWidth + "px";
+            frame.style.height = virtualHeight + "px";
+            frame.style.transform = "scale(" + scale + ")";
+            frame.style.left = "0";
+            frame.style.top = "0";
+          }
+
+          frame.addEventListener("load", function () {
+            fitFrame();
+            leave();
+          });
+          window.addEventListener("resize", fitFrame, { passive: true });
+          shell.appendChild(frame);
+          document.body.appendChild(shell);
+          fitFrame();
+        }
+
+        window.__taleaBoot = { ready: ready, skip: leave };
+
+        if (window.__taleaViewportFrameShell) {
+          mountResizeFrame();
+          return;
+        }
+
+        window.setTimeout(leave, MAX_MS);
+        window.setTimeout(function () {
+          if (!leaving) el.classList.add("is-slow");
+        }, SLOW_MS);
+
+        if (document.fonts && document.fonts.ready) {
+          document.fonts.ready.then(function () {
+            ready("fonts");
+          });
+        } else {
+          ready("fonts");
+        }
+
+        // Il poster è un background-image in CSS, che non emette eventi: lo si
+        // scarica qui in parallelo per sapere quando è davvero pronto. La
+        // richiesta è la stessa del <link rel="preload">, quindi non ne costa
+        // una seconda — arriva dalla cache.
+        var poster = new Image();
+        poster.onload = poster.onerror = function () {
+          ready("poster");
+        };
+        poster.src = "/data/hero/bologna-poster.jpg";
+      })();
+    </script>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

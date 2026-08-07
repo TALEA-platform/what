@@ -1,0 +1,591 @@
+{
+ "type": "FeatureCollection",
+ "metadata": {
+  "fonte": "Comune di Bologna · rete dei rifugi climatici",
+  "mappa": "https://sitmappe.comune.bologna.it/RifugiClimatici/",
+  "aggiornato": "2026-07-28",
+  "conteggio": 29
+ },
+ "features": [
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     11.343428,
+     44.492093
+    ]
+   },
+   "properties": {
+    "nome": "BIBLIOTECA COMUNALE DELL'ARCHIGINNASIO",
+    "quartiere": "Santo Stefano",
+    "tipo": "Biblioteca pubblica",
+    "ambiente": "interno",
+    "indirizzo": "Piazza Galvani, 1",
+    "acqua": "da servizi igienici, erogatore gratuito e distributori bevande situati all’esterno delle sale (area ristoro)",
+    "bagni": "gratuiti",
+    "orari": "https://www.archiginnasio.it/orari"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     11.334649,
+     44.502567
+    ]
+   },
+   "properties": {
+    "nome": "BIBLIOTECA DELLA FONDAZIONE CINETECA DI BOLOGNA",
+    "quartiere": "Porto - Saragozza",
+    "tipo": "Biblioteca",
+    "ambiente": "interno",
+    "indirizzo": "Piazzetta Pier Paolo Pasolini, 3/B, ingresso da via Azzo Gardino, 65",
+    "acqua": "da servizi igienici e distributori di bevande situati all'ingresso",
+    "bagni": "gratuiti",
+    "orari": "https://cinetecadibologna.it/biblioteca/contatti/"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     11.341802,
+     44.494736
+    ]
+   },
+   "properties": {
+    "nome": "BIBLIOTECA SALABORSA",
+    "quartiere": "Porto - Saragozza",
+    "tipo": "Biblioteca pubblica",
+    "ambiente": "interno",
+    "indirizzo": "Piazza del Nettuno, 3",
+    "acqua": "da servizi igienici, bar, erogatori gratuiti e distributori bevande",
+    "bagni": "gratuiti",
+    "orari": "https://www.bibliotecasalaborsa.it/orari"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     11.327074,
+     44.520666
+    ]
+   },
+   "properties": {
+    "nome": "CASA DI QUARTIERE CASA GIALLA",
+    "quartiere": "Navile",
+    "tipo": "Casa di quartiere",
+    "ambiente": "interno",
+    "indirizzo": "Piazza Giovanni da Verrazzano, 1/3",
+    "acqua": "da servizi igienici e bar",
+    "bagni": "gratuiti",
+    "orari": "https://maps.app.goo.gl/Kd1yqrJtM43r4nyX7"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     11.350528,
+     44.513242
+    ]
+   },
+   "properties": {
+    "nome": "CASA DI QUARTIERE CENTRO SOCIALE MONTANARI E PARCO DELLA ZUCCA",
+    "quartiere": "Navile",
+    "tipo": "Casa di quartiere e parco pubblico",
+    "ambiente": "interno",
+    "indirizzo": "Via di Saliceto, 3/21",
+    "acqua": "da servizi igienici e bar",
+    "bagni": "gratuiti",
+    "orari": "https://www.centrosocialemontanari.it/"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     11.352406,
+     44.534826
+    ]
+   },
+   "properties": {
+    "nome": "CASA DI QUARTIERE CROCE COPERTA",
+    "quartiere": "Navile",
+    "tipo": "Casa di quartiere",
+    "ambiente": "interno",
+    "indirizzo": "Via Giovanni Papini, 28",
+    "acqua": "da servizi igienici e bar",
+    "bagni": "gratuiti",
+    "orari": "https://www.comune.bologna.it/luoghi/casa-quartiere-croce-coperta"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     11.341973,
+     44.515403
+    ]
+   },
+   "properties": {
+    "nome": "CASA DI QUARTIERE FONDO COMINI",
+    "quartiere": "Navile",
+    "tipo": "Casa di quartiere",
+    "ambiente": "interno",
+    "indirizzo": "Via Aristotile Fioravanti, 68",
+    "acqua": "da servizi igienici e bar",
+    "bagni": "gratuiti",
+    "orari": "https://maps.app.goo.gl/RWvmExzZ5tSrKZwy9"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     11.285358,
+     44.510964
+    ]
+   },
+   "properties": {
+    "nome": "CASA DI QUARTIERE IL PARCO",
+    "quartiere": "Borgo Panigale - Reno",
+    "tipo": "Casa di quartiere",
+    "ambiente": "interno",
+    "indirizzo": "Via Edgar Allan Poe, 4",
+    "acqua": "da servizi igienici e bar",
+    "bagni": "gratuiti",
+    "orari": "https://www.comune.bologna.it/luoghi/casa-quartiere-parco"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     11.339854,
+     44.511288
+    ]
+   },
+   "properties": {
+    "nome": "CASA DI QUARTIERE KATIA BERTASI",
+    "quartiere": "Navile",
+    "tipo": "Casa di quartiere",
+    "ambiente": "interno",
+    "indirizzo": "Via Aristotile Fioravanti, 18/3",
+    "acqua": "da servizi igienici e bar",
+    "bagni": "gratuiti",
+    "orari": "https://www.casadiquartierekatiabertasi.it/chi-siamo/"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     11.374876,
+     44.477466
+    ]
+   },
+   "properties": {
+    "nome": "CASA DI QUARTIERE LUNETTA GAMBERINI E GIARDINO LUNETTA GAMBERINI",
+    "quartiere": "Santo Stefano",
+    "tipo": "Casa di quartiere e parco pubblico",
+    "ambiente": "interno",
+    "indirizzo": "Via degli Orti, 60",
+    "acqua": "da servizi igienici e bar",
+    "bagni": "gratuiti",
+    "orari": "https://www.comune.bologna.it/vivere-il-comune/luoghi/case-quartiere/casa-quartiere-lunetta-gamberini"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     11.305191,
+     44.507158
+    ]
+   },
+   "properties": {
+    "nome": "CASA DI QUARTIERE SANTA VIOLA",
+    "quartiere": "Borgo Panigale - Reno",
+    "tipo": "Casa di quartiere",
+    "ambiente": "interno",
+    "indirizzo": "Via Emilia Ponente, 131",
+    "acqua": "da servizi igienici e bar",
+    "bagni": "gratuiti",
+    "orari": "https://www.comune.bologna.it/luoghi/casa-quartiere-santa-viola"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     11.342164,
+     44.494072
+    ]
+   },
+   "properties": {
+    "nome": "CORTILE DI PALAZZO D'ACCURSIO",
+    "quartiere": "Porto - Saragozza",
+    "tipo": "Cortile interno",
+    "ambiente": "esterno",
+    "indirizzo": "Piazza Maggiore, 6",
+    "acqua": "erogatore gratuito",
+    "bagni": "primo piano di Palazzo d’Accursio, seguire le indicazioni per Sala d’Ercole (accesso dallo Scalone dei Cavalli o con ascensore); oppure bagni pubblici presidiati in via IV Novembre",
+    "orari": "https://www.comune.bologna.it/vivere-il-comune/luoghi/cortile-palazzo-accursio"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     11.352661,
+     44.482816
+    ]
+   },
+   "properties": {
+    "nome": "GIARDINI MARGHERITA",
+    "quartiere": "Santo Stefano",
+    "tipo": "Parco pubblico",
+    "ambiente": "esterno",
+    "indirizzo": "Viale Giovanni Gozzadini - via dei Sabbioni",
+    "acqua": "fontanelle pubbliche",
+    "bagni": "vespasiani gratuiti non accessibili ai disabili (Via dei Sabbioni) e bagni in struttura accessibili ai disabili (Viale Meliconi)",
+    "orari": "https://www.comune.bologna.it/luoghi/giardini-margherita"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     11.28556,
+     44.495165
+    ]
+   },
+   "properties": {
+    "nome": "GIARDINO DI PIAZZA GIOVANNI XXIII",
+    "quartiere": "Borgo Panigale - Reno",
+    "tipo": "Giardino pubblico",
+    "ambiente": "esterno",
+    "indirizzo": "Piazza Giovanni XXIII",
+    "acqua": "fontanella pubblica e distributore a pagamento",
+    "bagni": "vespasiani donne/uomini gratuiti non accessibili ai disabili",
+    "orari": "https://www.comune.bologna.it/vivere-il-comune/luoghi/parchi-giardini-aree-verdi/giardino-giovanni-xxiii"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     11.335501,
+     44.502103
+    ]
+   },
+   "properties": {
+    "nome": "GIARDINO JOHN KLEMLEN",
+    "quartiere": "Porto - Saragozza",
+    "tipo": "Giardino pubblico",
+    "ambiente": "esterno",
+    "indirizzo": "Via Azzo Gardino",
+    "acqua": "erogatore a pagamento all’ingresso del giardino",
+    "bagni": "bagni automatizzati a pagamento accessibili ai disabili",
+    "orari": "https://www.comune.bologna.it/luoghi/giardino-john-klemlen"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     11.35565,
+     44.487994
+    ]
+   },
+   "properties": {
+    "nome": "GIARDINO LAVINIA FONTANA",
+    "quartiere": "Santo Stefano",
+    "tipo": "Giardino pubblico",
+    "ambiente": "esterno",
+    "indirizzo": "Via del Piombo",
+    "acqua": "fontanella pubblica",
+    "bagni": "vespasiani donne/uomini gratuiti non accessibili ai disabili",
+    "orari": "https://www.comune.bologna.it/vivere-il-comune/luoghi/parchi-giardini-aree-verdi/giardino-lavinia-fontana"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     11.361158,
+     44.487516
+    ]
+   },
+   "properties": {
+    "nome": "GIARDINO PADRE ERNESTO CAROLI",
+    "quartiere": "Santo Stefano",
+    "tipo": "Giardino pubblico",
+    "ambiente": "esterno",
+    "indirizzo": "Piazza Trento e Trieste",
+    "acqua": "fontanella pubblica",
+    "bagni": "vespasiani donne/uomini gratuiti non accessibili ai disabili",
+    "orari": "https://www.comune.bologna.it/vivere-il-comune/luoghi/parchi-giardini-aree-verdi/giardino-padre-caroli"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     11.366424,
+     44.504301
+    ]
+   },
+   "properties": {
+    "nome": "GIARDINO RENATO BENTIVOGLI",
+    "quartiere": "San Donato - San Vitale",
+    "tipo": "Giardino pubblico",
+    "ambiente": "esterno",
+    "indirizzo": "Via San Donato - Piazza Giovanni Spadolini",
+    "acqua": "fontanelle pubbliche",
+    "bagni": "vespasiani donne/uomini gratuiti nel vicino Giardino Vittime della Miniera di Marcinelle (non accessibili ai disabili) oppure nella Casa di Quartiere GRAF attigua al parco negli orari di apertura",
+    "orari": "https://www.comune.bologna.it/vivere-il-comune/luoghi/parchi-giardini-aree-verdi/giardino-renato-bentivogli"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     11.336797,
+     44.50268
+    ]
+   },
+   "properties": {
+    "nome": "MAMBO - MUSEO DI ARTE MODERNA DI BOLOGNA",
+    "quartiere": "Porto - Saragozza",
+    "tipo": "Museo",
+    "ambiente": "interno",
+    "indirizzo": "Via Don Minzoni, 14",
+    "acqua": "da servizi igienici e distributore a pagamento",
+    "bagni": "gratuiti",
+    "orari": "https://www.museibologna.it/mambo/schede/ingresso-e-orari-952/"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     11.350208,
+     44.492883
+    ]
+   },
+   "properties": {
+    "nome": "MUSEO INTERNAZIONALE E BIBLIOTECA DELLA MUSICA",
+    "quartiere": "Santo Stefano",
+    "tipo": "Museo",
+    "ambiente": "interno",
+    "indirizzo": "Strada Maggiore, 34",
+    "acqua": "da servizi igienici",
+    "bagni": "gratuiti",
+    "orari": "https://www.museibologna.it/musica/categorie/info-e-orari-88/"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     11.346459,
+     44.49206
+    ]
+   },
+   "properties": {
+    "nome": "PALAZZO PEPOLI - MUSEO DELLA STORIA DI BOLOGNA",
+    "quartiere": "Santo Stefano",
+    "tipo": "Museo",
+    "ambiente": "interno",
+    "indirizzo": "Via Castiglione, 10",
+    "acqua": "da servizi igienici e bar",
+    "bagni": "gratuiti",
+    "orari": "https://palazzopepoli.it/museo-della-storia-di-bologna/"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     11.33653,
+     44.500019
+    ]
+   },
+   "properties": {
+    "nome": "PARCO 11 SETTEMBRE 2001",
+    "quartiere": "Porto - Saragozza",
+    "tipo": "Parco pubblico",
+    "ambiente": "esterno",
+    "indirizzo": "Via Azzo Gardino - via Riva di Reno",
+    "acqua": "fontanella pubblica",
+    "bagni": "bagni in struttura nel vicino Parcheggio via Riva Reno (solo per gli utenti del parcheggio) oppure bagni pubblici automatizzati a pagamento nel vicino Giardino Klemlen, entrambi accessibili ai disabili",
+    "orari": "https://www.comune.bologna.it/luoghi/parco-11-settembre-2001"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     11.397658,
+     44.470054
+    ]
+   },
+   "properties": {
+    "nome": "PARCO DEI CEDRI",
+    "quartiere": "Savena",
+    "tipo": "Parco pubblico",
+    "ambiente": "esterno",
+    "indirizzo": "Via Cracovia",
+    "acqua": "fontanella pubblica",
+    "bagni": "bagni chimici gratuiti e accessibili ai disabili",
+    "orari": "https://www.comune.bologna.it/luoghi/parco-dei-cedri-lungosavena"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     11.353362,
+     44.53969
+    ]
+   },
+   "properties": {
+    "nome": "PARCO DEI GIARDINI - CA' BURA",
+    "quartiere": "Navile",
+    "tipo": "Parco pubblico",
+    "ambiente": "esterno",
+    "indirizzo": "Via dei Giardini - via dell'Arcoveggio",
+    "acqua": "fontanelle pubbliche",
+    "bagni": "bagni in struttura gratuiti non accessibili ai disabili",
+    "orari": "https://www.comune.bologna.it/luoghi/parco-dei-giardini"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     11.346354,
+     44.50251
+    ]
+   },
+   "properties": {
+    "nome": "PARCO DELLA MONTAGNOLA",
+    "quartiere": "Santo Stefano",
+    "tipo": "Parco pubblico",
+    "ambiente": "esterno",
+    "indirizzo": "Via Irnerio",
+    "acqua": "fontanella pubblica",
+    "bagni": "bagni in struttura a pagamento accessibili ai disabili",
+    "orari": "https://www.comune.bologna.it/luoghi/parco-della-montagnola"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     11.392681,
+     44.513492
+    ]
+   },
+   "properties": {
+    "nome": "PARCO PIER PAOLO PASOLINI",
+    "quartiere": "San Donato - San Vitale",
+    "tipo": "Parco pubblico",
+    "ambiente": "esterno",
+    "indirizzo": "Via Ada Negri - via Emilio Salgari - via Luigi Pirandello",
+    "acqua": "fontanella pubblica (in prossimità dei bagni)",
+    "bagni": "vespasiani gratuiti non accessibili ai disabili",
+    "orari": "https://www.comune.bologna.it/luoghi/parco-pasolini"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     11.339963,
+     44.510826
+    ]
+   },
+   "properties": {
+    "nome": "PIAZZA LUCIO DALLA",
+    "quartiere": "Navile",
+    "tipo": "Piazza coperta",
+    "ambiente": "esterno",
+    "indirizzo": "Via Aristotile Fioravanti",
+    "acqua": "fontanella pubblica o da servizi igienici e bar della Casa di quartiere Katia Bertasi",
+    "bagni": "bagni in struttura gratuiti nella vicina Casa di quartiere Katia Bertasi",
+    "orari": "https://www.bolognawelcome.com/it/luoghi/piazze-vie-monumenti/piazza-lucio-dalla"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     11.343643,
+     44.492892
+    ]
+   },
+   "properties": {
+    "nome": "SALA MOSTRE DEL MUSEO CIVICO ARCHEOLOGICO",
+    "quartiere": "Santo Stefano",
+    "tipo": "Museo",
+    "ambiente": "interno",
+    "indirizzo": "Via dell'Archiginnasio, 2",
+    "acqua": "da servizi igienici",
+    "bagni": "gratuiti",
+    "orari": "https://www.museibologna.it/archeologico/schede/un-rifugio-climatico-presso-il-museo-civico-archeologico-5761/&preview=7855&lang=it"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     11.345189,
+     44.503414
+    ]
+   },
+   "properties": {
+    "nome": "VELOSTAZIONE - EX DYNAMO",
+    "quartiere": "Santo Stefano",
+    "tipo": "Luogo multifunzionale",
+    "ambiente": "interno",
+    "indirizzo": "Via dell'Indipendenza, 71/Z",
+    "acqua": "da servizi igienici, distributori gratuiti e bar",
+    "bagni": "gratuiti",
+    "orari": "https://www.instagram.com/ex.dynamo/"
+   }
+  }
+ ]
+}

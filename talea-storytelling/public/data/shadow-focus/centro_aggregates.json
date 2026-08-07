@@ -1,0 +1,43 @@
+{
+  "boundary": {
+    "label": "Il centro urbano di Bologna",
+    "members": [
+      "Marconi 1",
+      "Marconi 2",
+      "Malpighi 1",
+      "Galvani 1",
+      "Irnerio 1",
+      "Irnerio 2"
+    ],
+    "area_m2": 2837331.0371225816
+  },
+  "metrics": {
+    "shadow": {
+      "value_pct": 78.1,
+      "value_fmt": "78 %",
+      "bologna_pct": 41.6,
+      "bologna_fmt": "42 %"
+    },
+    "hotspot": {
+      "value_pct": 29.5,
+      "value_fmt": "29 %",
+      "bologna_pct": 7.2,
+      "bologna_fmt": "7 %",
+      "min_summers": 9
+    },
+    "ndvi": {
+      "value_pct": 13.3,
+      "value_fmt": "13 %",
+      "bologna_pct": 55.0,
+      "bologna_fmt": "55 %"
+    },
+    "albedo": {
+      "value_pct": 76.6,
+      "value_fmt": "77 %",
+      "bologna_pct": 38.6,
+      "bologna_fmt": "39 %"
+    }
+  },
+  "method": "Ogni percentuale è misurata dentro le sei zone centrali, escluse Galvani 2 e Malpighi 2 perché si estendono verso la collina, e rapportata alla sola superficie di quel perimetro. La media comunale usa gli stessi indicatori e le stesse soglie sull'intero territorio di Bologna: per gli hotspot è la quota di superficie comunale coperta; per vegetazione e albedo è la quota di pixel validi; per l'ombra è la media delle aree statistiche pesata per la loro superficie. Non è una media semplice delle zone. Gli indicatori non vanno sommati. Superfici molto calde: nel 10 % più caldo di Bologna in almeno 9 estati su 13; vegetazione: indice ≥ 0,45; superfici assorbenti: albedo < 0,17.",
+  "source": "Fonte: superfici osservate da satellite (estati dal 2013 al 2025); ombra dalle simulazioni del Comune di Bologna (estate 2025)."
+}

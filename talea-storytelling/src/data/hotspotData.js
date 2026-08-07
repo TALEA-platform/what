@@ -1,3 +1,5 @@
+import { assetUrl } from "../lib/assetUrl";
+
 export const HOTSPOT_DATA_VERSION = "top10pct-bologna-20260702";
 
 export const hotspotPersistenceThresholds = Array.from(
@@ -6,5 +8,5 @@ export const hotspotPersistenceThresholds = Array.from(
 );
 
 export function getHotspotGeojsonUrl(threshold) {
-  return `/data/hotspots/hotspots_ge_${threshold}.geojson?v=${HOTSPOT_DATA_VERSION}`;
+  return assetUrl(`/data/hotspots/hotspots_ge_${threshold}.geojson?v=${HOTSPOT_DATA_VERSION}`);
 }

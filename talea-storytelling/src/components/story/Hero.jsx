@@ -2,9 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { HeroBridgeSection } from "./HeroBridgeSection";
 import { CopySegments } from "./CopySegments";
 import { heroOpening } from "../../data/heroCopy";
+import { assetUrl } from "../../lib/assetUrl";
 
-const heroVideo = "/data/hero/bologna.mp4";
-const heroPoster = "/data/hero/bologna-poster.jpg";
+const heroVideo = assetUrl("/data/hero/bologna.mp4");
+const heroPoster = assetUrl("/data/hero/bologna-poster.jpg");
 
 // Scroll-progress → value keyframes (progress is 0..1 over the sticky wrapper).
 // The zoom keeps pushing in HARD to the very end while the bridge ("second

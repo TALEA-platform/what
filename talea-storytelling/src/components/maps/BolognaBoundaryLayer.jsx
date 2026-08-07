@@ -1,6 +1,7 @@
 import { useEffect } from "react";
+import { assetUrl } from "../../lib/assetUrl";
 
-const bolognaBoundaryUrl = "/data/vectors/bologna_boundary_outline.geojson";
+const bolognaBoundaryUrl = assetUrl("/data/vectors/bologna_boundary_outline.geojson");
 
 const sourceId = "bologna-boundary-outline-src";
 const casingLayerId = "bologna-boundary-outline-casing";

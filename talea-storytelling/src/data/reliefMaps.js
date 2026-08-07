@@ -15,13 +15,14 @@
 // is everything the refuge map and the pilot-zones map actually use.
 
 import maplibregl from "maplibre-gl";
+import { assetUrl } from "../lib/assetUrl";
 
 // Datasets served from public/data/, like the rest of the app's data. They were
 // vendored in from the CRAF and HistorySUHI repos so this repo builds on its own.
 // csi.geojson = green spaces scored by the Climate Shelter Index.
-const csiUrl = "/data/vectors/csi.geojson";
-const greenSpacesCsiUrl = "/data/vectors/green_spaces_csi.geojson";
-const bolognaBoundaryUrl = "/data/vectors/bologna_boundary_outline.geojson";
+const csiUrl = assetUrl("/data/vectors/csi.geojson");
+const greenSpacesCsiUrl = assetUrl("/data/vectors/green_spaces_csi.geojson");
+const bolognaBoundaryUrl = assetUrl("/data/vectors/bologna_boundary_outline.geojson");
 // The Comune's own list of recognised climate refuges (scripts/build_rifugi_ufficiali.mjs).
 import rifugiUfficialiUrl from "./rifugi_ufficiali.geojson?url";
 

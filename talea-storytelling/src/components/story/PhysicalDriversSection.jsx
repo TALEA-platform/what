@@ -2,6 +2,7 @@ import { Fragment, useEffect, useRef, useState, useCallback } from "react";
 import maplibregl from "maplibre-gl";
 import { MapLibreCanvas } from "../maps/MapLibreCanvas";
 import { SectionDivider } from "./SectionDivider";
+import { assetUrl } from "../../lib/assetUrl";
 import {
   title,
   aperture,
@@ -28,7 +29,7 @@ const transparentCauseMapStyle = {
     },
   ],
 };
-const overlayManifestUrl = "/data/physical-drivers/physical_driver_overlays.json";
+const overlayManifestUrl = assetUrl("/data/physical-drivers/physical_driver_overlays.json");
 
 // Camera held on the centro storico of Bologna for the whole scene. It only nudges
 // in slightly when the crop centres for the compare. The NDVI↔albedo crossfade
@@ -96,7 +97,7 @@ function ensureRasterLayers(map, manifest) {
     if (!map.getSource(rasterSourceId(id))) {
       map.addSource(rasterSourceId(id), {
         type: "image",
-        url: overlay.url,
+        url: assetUrl(overlay.url),
         coordinates: overlay.coordinates,
       });
     }
@@ -214,7 +215,7 @@ function preloadCompareAssets() {
       Object.values(manifest.layers ?? {}).forEach((layer) => {
         const image = new Image();
         image.decoding = "async";
-        image.src = layer.url;
+        image.src = assetUrl(layer.url);
         images.push(image);
       });
     })
@@ -425,7 +426,7 @@ function CausesCompareOverlay({ baseMap, sliderValue, onReadyChange }) {
     if (!overlayMap.getSource("cause-overlay-albedo-src")) {
       overlayMap.addSource("cause-overlay-albedo-src", {
         type: "image",
-        url: overlay.url,
+        url: assetUrl(overlay.url),
         coordinates: overlay.coordinates,
       });
     }

@@ -1,6 +1,7 @@
 import { footerContent } from "../../data/taleaProject";
+import { assetUrl } from "../../lib/assetUrl";
 
-const taleaLogoUrl = "/assets/talea-logo.svg";
+const taleaLogoUrl = assetUrl("/assets/talea-logo.svg");
 
 /**
  * Il footer, con le stesse informazioni di quello della piattaforma TALEA.

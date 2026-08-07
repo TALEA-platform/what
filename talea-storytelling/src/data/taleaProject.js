@@ -36,6 +36,8 @@
 // verifica («ecco dove»). Ora sta dopo la mappa, dove la domanda del lettore
 // smette di essere «dove?» e diventa «e io?».
 
+import { assetUrl } from "../lib/assetUrl";
+
 // Un solo indirizzo per la piattaforma: prima era ricopiato in cinque punti di
 // questo file, e cambiarne uno solo sarebbe passato inosservato.
 export const TALEA_PLATFORM = "https://talea.comune.bologna.it/";
@@ -171,16 +173,16 @@ export const taleaPartners = {
   title: "Partner",
   partnerListLabel: "Partner del progetto TALEA",
   partners: [
-    { name: "Comune di Bologna", href: "https://www.comune.bologna.it/", role: "capofila", logo: "/assets/partners/team-1.jpg" },
-    { name: "Università di Bologna", href: "https://www.unibo.it/it", role: "università", logo: "/assets/partners/team-2.jpg" },
-    { name: "Fondazione IU Rusconi Ghigi", href: "https://fondazioneiu.it/", role: "fondazione", logo: "/assets/partners/team-3.jpg" },
-    { name: "Fondazione Bruno Kessler", href: "https://www.fbk.eu/it/", role: "fondazione", logo: "/assets/partners/team-5.jpg" },
-    { name: "CINECA", href: "https://www.cineca.it/", role: "consorzio", logo: "/assets/partners/team-4.jpg" },
-    { name: "R2M Solutions", href: "https://www.r2msolution.com/", role: "impresa", logo: "/assets/partners/team-6.jpg" },
-    { name: "R3GIS", href: "https://www.r3gis.com/it/", role: "impresa", logo: "/assets/partners/team-7.jpg" },
-    { name: "Cluj Napoca", href: "https://primariaclujnapoca.ro/", role: "città di replica", logo: "/assets/partners/team-8.jpg" },
-    { name: "Marsiglia", href: "https://www.marseille.fr/", role: "città di replica", logo: "/assets/partners/team-9.jpg" },
-    { name: "Riga", href: "https://www.riga.lv/en", role: "città di replica", logo: "/assets/partners/team-10.jpg" },
+    { name: "Comune di Bologna", href: "https://www.comune.bologna.it/", role: "capofila", logo: assetUrl("/assets/partners/team-1.jpg") },
+    { name: "Università di Bologna", href: "https://www.unibo.it/it", role: "università", logo: assetUrl("/assets/partners/team-2.jpg") },
+    { name: "Fondazione IU Rusconi Ghigi", href: "https://fondazioneiu.it/", role: "fondazione", logo: assetUrl("/assets/partners/team-3.jpg") },
+    { name: "Fondazione Bruno Kessler", href: "https://www.fbk.eu/it/", role: "fondazione", logo: assetUrl("/assets/partners/team-5.jpg") },
+    { name: "CINECA", href: "https://www.cineca.it/", role: "consorzio", logo: assetUrl("/assets/partners/team-4.jpg") },
+    { name: "R2M Solutions", href: "https://www.r2msolution.com/", role: "impresa", logo: assetUrl("/assets/partners/team-6.jpg") },
+    { name: "R3GIS", href: "https://www.r3gis.com/it/", role: "impresa", logo: assetUrl("/assets/partners/team-7.jpg") },
+    { name: "Cluj Napoca", href: "https://primariaclujnapoca.ro/", role: "città di replica", logo: assetUrl("/assets/partners/team-8.jpg") },
+    { name: "Marsiglia", href: "https://www.marseille.fr/", role: "città di replica", logo: assetUrl("/assets/partners/team-9.jpg") },
+    { name: "Riga", href: "https://www.riga.lv/en", role: "città di replica", logo: assetUrl("/assets/partners/team-10.jpg") },
   ],
   funding: {
     text: "Cofinanziato dall'Unione Europea attraverso European Urban Initiative.",
@@ -368,7 +370,7 @@ export const footerContent = {
     // Initiative hanno una forma prescritta dal programma. (L'emblema
     // disegnato a mano, `EuEmblem`, resta dov'è: sotto i partner, dove serve
     // solo la bandiera e non il lockup completo.)
-    emblem: "/assets/eu/cofunded-eu.svg",
+    emblem: assetUrl("/assets/eu/cofunded-eu.svg"),
     emblemLabel: "Cofinanziato dall'Unione Europea",
     text:
       "Il progetto TALEA - Green cells leading the Green transition (EUI102-064) è cofinanziato dall'Unione Europea nell'ambito del programma European Urban Initiative - Innovative Actions (EUI-IA). Coinvolge il Comune di Bologna come Main Urban Authority, la Fondazione IU Rusconi Ghigi, l'Università di Bologna, la Fondazione Bruno Kessler, R2M Solutions, R3GIS e CINECA come partner italiani, e le città di Marsiglia, Riga e Cluj-Napoca come città di replica.",
@@ -378,7 +380,7 @@ export const footerContent = {
   eui: {
     label: "European Urban Initiative",
     href: "https://www.urban-initiative.eu/",
-    logo: "/assets/eu/eui.svg",
+    logo: assetUrl("/assets/eu/eui.svg"),
   },
   linksLabel: "Link utili",
   // I primi tre sono le tre voci del footer della piattaforma (Home, About,

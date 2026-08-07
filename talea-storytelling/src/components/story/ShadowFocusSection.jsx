@@ -16,8 +16,9 @@ import {
   shadowFinal,
 } from "../../data/shadowFocus";
 import { vicoloSvg } from "../../data/shadowVignette";
+import { assetUrl } from "../../lib/assetUrl";
 
-const bolognaBoundaryUrl = "/data/vectors/bologna_boundary_outline.geojson";
+const bolognaBoundaryUrl = assetUrl("/data/vectors/bologna_boundary_outline.geojson");
 
 // Identità stabile per l'HTML iniettato: scritto inline (`{{ __html: … }}`)
 // React lo confronta per identità, crea un oggetto nuovo a ogni render e
@@ -326,9 +327,9 @@ function ShadowTable({ values }) {
 // Slim shadow GeoJSON derived from the cloned SCI repo (peak-thermal, summer
 // mean). Streets and green areas share the schema { k: "s"|"g", s: 0..1 }.
 // Rebuild with: node scripts/build_sci_shadow.mjs
-const shadowLinesUrl = "/data/shadow-focus/bologna_shadow_lines.geojson";
-const centroBoundaryUrl = "/data/shadow-focus/centro_storico.geojson";
-const centroAggregatesUrl = "/data/shadow-focus/centro_aggregates.json";
+const shadowLinesUrl = assetUrl("/data/shadow-focus/bologna_shadow_lines.geojson");
+const centroBoundaryUrl = assetUrl("/data/shadow-focus/centro_storico.geojson");
+const centroAggregatesUrl = assetUrl("/data/shadow-focus/centro_aggregates.json");
 
 // Shadow fraction → colour. Warm (exposed) → blue (shaded), mirroring the SCI
 // RdYlBu reading: low shadow = sun/hot, high shadow = shade/cool.

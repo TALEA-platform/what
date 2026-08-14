@@ -1,13 +1,3 @@
-/* Ombra — la scena trasparente dietro il testo d'apertura.
-
-   Due facciate stringono il vicolo ai lati, lasciando libera la colonna
-   centrale per il testo in sovrimpressione. Le campiture sono lavate e il
-   disegno vive soprattutto sul tratto, così in `multiply` resta parte della
-   carta e non diventa un riquadro illustrato.
-
-   Gli id nei <defs> sono prefissati `sfv-` perché in pagina convivono più SVG.
-   Tutti i tratti animati hanno `pathLength="1"` e sono raggruppati in `.il`,
-   secondo la stessa meccanica delle altre vignette della storia. */
 
 export const vicoloSvg = `
 <svg viewBox="0 0 1600 800" role="img" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
@@ -29,14 +19,6 @@ export const vicoloSvg = `
     <stop offset="0" stop-color="#C2551F" stop-opacity=".30"/>
     <stop offset="1" stop-color="#C2551F" stop-opacity="0"/>
   </linearGradient>
-  <!-- ── IL CONTRASTO È IL SOGGETTO ─────────────────────────────────────────
-       Questa vignetta racconta una cosa sola: metà strada al sole, metà in
-       ombra. Se le due metà si somigliano non resta niente da guardare, ed è
-       quello che succedeva — il selciato illuminato partiva da 12 % di ambra e
-       l'ombra scendeva fino al 10 % di blu, cioè tutte e due quasi carta.
-       Il lato al sole si scalda un po' e il lato in ombra scende molto: non si
-       tratta di scurire il disegno (alzare l'opacità del gruppo impasta anche
-       le facciate), ma di allargare la forbice fra le due metà. -->
   <linearGradient id="sfv-street-light" x1="0" y1="0" x2="0" y2="1">
     <stop offset="0" stop-color="#D9AA70" stop-opacity=".16"/>
     <stop offset="1" stop-color="#D9AA70" stop-opacity=".38"/>
@@ -56,19 +38,11 @@ export const vicoloSvg = `
 <g mask="url(#sfv-mask)">
   <g class="scene" filter="url(#sfv-pencil)">
     <g class="color">
-      <!-- Un disco pieno e morbido: resta tutto dentro la vignetta e non
-           sembra un pittogramma appoggiato al bordo. -->
       <circle cx="430" cy="270" r="62" fill="url(#sfv-sun)"/>
       <circle cx="430" cy="270" r="36" fill="#E2A94A" opacity=".3"/>
 
-      <!-- Il contrasto rende leggibile l'azione: la strada riceve una luce
-           calda molto tenue, poi il palazzo di sinistra vi proietta sopra una
-           fascia fredda, lunga e diagonale. -->
       <path d="M330 438 C610 420 1000 420 1270 426 L1540 800 L60 800 Z" fill="url(#sfv-street-light)"/>
       <path d="M330 416 L330 800 L1370 800 L1040 646 L716 500 Z" fill="url(#sfv-cast-shadow)"/>
-      <!-- Il cuore dell'ombra, subito sotto lo spigolo che la proietta: è la
-           zona più fredda e più scura di tutto il disegno, ed è quella che dà
-           al resto la scala del buio. -->
       <path d="M330 416 L330 548 L560 566 L716 500 Z" fill="#173B55" opacity=".54"/>
       <path d="M330 536 L330 670 L940 800 L1160 800 L560 566 Z" fill="#203F59" opacity=".2"/>
 
@@ -111,8 +85,6 @@ export const vicoloSvg = `
         <path d="M1388 330 L1294 406 L1294 522 L1388 466 Z" pathLength="1"/>
         <path d="M1560 478 L1454 520 L1454 668 L1560 668 Z" pathLength="1"/>
       </g>
-      <!-- La linea del selciato dà un piano alla campitura: subito dopo, il
-           bordo freddo nasce esattamente dallo spigolo del palazzo. -->
       <g class="il paving" data-d="4">
         <path d="M330 438 C610 420 1000 420 1270 426" pathLength="1"/>
       </g>

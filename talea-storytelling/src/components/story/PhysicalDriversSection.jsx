@@ -1,23 +1,17 @@
-import { Fragment, useEffect, useRef, useState, useCallback } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import { MapLibreCanvas } from "../maps/MapLibreCanvas";
 import { SectionDivider } from "./SectionDivider";
 import { assetUrl } from "../../lib/assetUrl";
+import { useContent } from "../../content";
 import {
-  title,
-  aperture,
-  apertureCauseParts,
-  apertureClose,
-  causeStages,
-  handleHint,
-  lensLegends,
-  hotspotLegendLabel,
-  greenTopicWord,
-  materialsTopicWord,
+  causeStages as causeStageTechnical,
+  lensLegendBars,
 } from "../../data/causesScene";
 import { getHotspotGeojsonUrl } from "../../data/hotspotData";
 import { cameraEasing } from "../../lib/motion";
 
+// Overlay maps own only data layers; a second basemap would flicker while loading.
 const transparentCauseMapStyle = {
   version: 8,
   sources: {},
@@ -31,44 +25,15 @@ const transparentCauseMapStyle = {
 };
 const overlayManifestUrl = assetUrl("/data/physical-drivers/physical_driver_overlays.json");
 
-// Camera held on the centro storico of Bologna for the whole scene. It only nudges
-// in slightly when the crop centres for the compare. The NDVI↔albedo crossfade
-// happens WITHOUT moving the camera.
 const CAUSES_CENTER = [11.3438, 44.4949];
 const CAUSES_ZOOM = 12.5;
 const CAUSES_ZOOM_CLOSE = 13.0;
 
-/**
- * Il tempo del ritaglio — gemello JS di `--causes-crop-ms` in story.css.
- *
- * Chiude il punto lasciato aperto da 01 (deviazione 4). `01 § 1.5` porta tutte
- * le camere a `--dur-camera` (2000 ms), ma questa **non è una camera
- * narrativa**: è il ricentraggio che accompagna un riquadro che cambia misura
- * in CSS. Deve durare quanto la transizione del riquadro, non quanto un volo
- * sopra la città: a 2 s la scivolata sinistra↔destra, che è il gesto
- * caratteristico di questa scena, diventerebbe molle — e `06` chiede
- * esplicitamente che quel movimento resti invariato.
- *
- * Restano quindi agganciati fra loro tre valori: la transizione CSS del
- * riquadro, questa camera e il `setTimeout` che rimette a posto la mappa quando
- * il riquadro ha finito di animarsi. Se cambia uno, cambiano tutti e tre.
- */
 const CROP_MS = 900;
 const CROP_SETTLE_MS = CROP_MS + 60;
 
-/**
- * Rete di sicurezza per la comparsa del ritaglio (06 § 6.4).
- *
- * La mappa si dichiara pronta con l'evento `idle`, che però non arriva mai se
- * i tile non tornano — o se la scheda è in secondo piano, dove WebGL è
- * congelato. Dopo questo tempo il ritaglio si scopre comunque: meglio una mappa
- * che finisce di disegnarsi sotto gli occhi del lettore che una campitura
- * ferma per sempre.
- */
 const CROP_READY_FALLBACK_MS = 2600;
 
-// Hotspots are shown ONLY in the compare. Use the top-10% outline recurring in
-// at least 9 of 13 summers, so the split map highlights the strongest signal.
 const HOTSPOT_URL = getHotspotGeojsonUrl(9);
 const HOTSPOT_FILL = "#c1272d";
 
@@ -116,8 +81,6 @@ function ensureRasterLayers(map, manifest) {
   });
 }
 
-// Persistent-hotspot outline (≥9 estati). Added above basemap labels; opacity 0
-// by default and only lit in the compare.
 function ensureHotspotLayers(map) {
   if (!map.getSource("cause-hotspots-src")) {
     map.addSource("cause-hotspots-src", { type: "geojson", data: HOTSPOT_URL });
@@ -136,8 +99,6 @@ function ensureHotspotLayers(map) {
       },
     });
   }
-  // White CASING beneath the red outline → the borders stay legible on BOTH the
-  // green and the grey (albedo) halves of the split.
   if (!map.getLayer("cause-hotspots-casing")) {
     addLayerBeforeLabels(map, {
       id: "cause-hotspots-casing",
@@ -198,10 +159,6 @@ function cameraFromMap(map) {
   };
 }
 
-// Scalda **tutti** i raster del manifest, non solo quelli del confronto: il
-// verde della prima tappa è il primo che si vede, ed è quello che non deve far
-// aspettare (06 § 6.4). Parte al montaggio della sezione, cioè molte schermate
-// prima che la scena si agganci.
 function preloadCompareAssets() {
   if (typeof Image === "undefined") return () => {};
 
@@ -229,8 +186,6 @@ function preloadCompareAssets() {
   };
 }
 
-// Base crop map: NDVI + albedo overlays crossfading by `lens`, plus the hotspot
-// fill (shown only when `showHotspots`). The camera stays on the centro storico.
 function CausesCropMap({ lens, expanded, showHotspots, onBaseMapReady, onDrawnChange }) {
   const [map, setMap] = useState(null);
   const [manifest, setManifest] = useState(null);
@@ -263,11 +218,6 @@ function CausesCropMap({ lens, expanded, showHotspots, onBaseMapReady, onDrawnCh
     ensureHotspotLayers(map);
   }, [map, manifest]);
 
-  // «Il ritaglio non entra mai vuoto» (06 § 6.4). Il riquadro arriva subito con
-  // la sua campitura di carta; la mappa gli passa sopra in dissolvenza solo
-  // quando ha finito di disegnarsi. `idle` scatta dopo che i tile e l'immagine
-  // del raster sono a posto — è l'unico momento onesto per dire «pronta» — e il
-  // timer è la rete di sicurezza per quando quell'evento non arriva.
   useEffect(() => {
     if (!map || !manifest) return undefined;
     let done = false;
@@ -284,8 +234,6 @@ function CausesCropMap({ lens, expanded, showHotspots, onBaseMapReady, onDrawnCh
     };
   }, [map, manifest, onDrawnChange]);
 
-  // Crossfade by lens (camera does NOT move). compare keeps the green base lit;
-  // the albedo half is painted by the synced overlay map.
   useEffect(() => {
     if (!map || !manifest) return;
     const reduce = prefersReducedMotion();
@@ -304,15 +252,11 @@ function CausesCropMap({ lens, expanded, showHotspots, onBaseMapReady, onDrawnCh
     });
   }, [map, manifest, lens]);
 
-  // Hotspots only in the compare.
   useEffect(() => {
     if (!map || !manifest) return;
     setHotspotVisible(map, showHotspots);
   }, [map, manifest, showHotspots]);
 
-  // Keep Bologna centred on EVERY stage (not just the compare). The crop changes
-  // size in CSS; we resize during the transition and settle the camera once the
-  // frame has finished animating, so MapLibre never keeps a transient offset.
   useEffect(() => {
     if (!map) return;
     const reduce = prefersReducedMotion();
@@ -326,8 +270,6 @@ function CausesCropMap({ lens, expanded, showHotspots, onBaseMapReady, onDrawnCh
         center: CAUSES_CENTER,
         zoom,
         duration: reduce ? 0 : CROP_MS,
-        // `essential: true` o la camera non parte quando il sistema chiede meno
-        // movimento, e la scena sembra rotta invece che sobria (CONTESTO § 4.4).
         essential: true,
         easing: cameraEasing,
       });
@@ -342,7 +284,6 @@ function CausesCropMap({ lens, expanded, showHotspots, onBaseMapReady, onDrawnCh
     return () => clearTimeout(settleId);
   }, [map, expanded]);
 
-  // Keep the GL canvas sized to its (animating) frame.
   useEffect(() => {
     if (!map || !wrapRef.current) return;
     let frame = null;
@@ -376,9 +317,6 @@ function CausesCropMap({ lens, expanded, showHotspots, onBaseMapReady, onDrawnCh
   );
 }
 
-// Synchronized albedo overlay for the compare, clipped by the slider. Mirrors the
-// base camera and paints ONLY the grayscale albedo raster + hotspot fill. It uses
-// a transparent style so no second basemap/label stack can flicker during loading.
 function CausesCompareOverlay({ baseMap, sliderValue, onReadyChange }) {
   const containerRef = useRef(null);
   const [overlayMap, setOverlayMap] = useState(null);
@@ -459,10 +397,6 @@ function CausesCompareOverlay({ baseMap, sliderValue, onReadyChange }) {
     };
   }, [overlayMap, manifest, onReadyChange]);
 
-  // Lockstep with the base camera. Sync on "move" (fires every frame of any
-  // camera animation — pan/zoom/easeTo) and "moveend" for the settled position.
-  // NOT on "render" — that fires on every tile fade too and caused the overlay to
-  // jumpTo continuously → the flicker (§7).
   useEffect(() => {
     if (!overlayMap || !baseMap) return;
     let frame = null;
@@ -474,6 +408,7 @@ function CausesCompareOverlay({ baseMap, sliderValue, onReadyChange }) {
       });
     };
     syncToBase();
+    // `render` also fires during tile fades and would repeatedly reset this camera.
     baseMap.on("move", syncToBase);
     baseMap.on("moveend", syncToBase);
     return () => {
@@ -483,8 +418,6 @@ function CausesCompareOverlay({ baseMap, sliderValue, onReadyChange }) {
     };
   }, [overlayMap, baseMap]);
 
-  // Resize the overlay to match the (animating) crop, then re-sync to the base so
-  // the two halves stay perfectly aligned when shown (§6, §7).
   useEffect(() => {
     if (!overlayMap || !containerRef.current) return;
     let frame = null;
@@ -555,9 +488,6 @@ function CausesCompareBaseMap({ onBaseMapReady, onDrawnChange }) {
     setHotspotVisible(map, true);
   }, [map, manifest]);
 
-  // Stessa regola del ritaglio: il confronto sale solo quando **tutte e due** le
-  // sue mappe hanno finito di disegnarsi. Prima bastava che fosse pronto lo
-  // strato dell'albedo, e la metà di sinistra poteva arrivare in ritardo.
   useEffect(() => {
     if (!map || !manifest) return undefined;
     let done = false;
@@ -618,14 +548,15 @@ function CausesCompareMap({
   cropRef,
   demoPlayed,
   onDemoEnd,
+  hotspotLegendLabel,
+  comparisonAriaLabel,
+  handleHint,
 }) {
   const [baseMap, setBaseMap] = useState(null);
   const [overlayReady, setOverlayReady] = useState(false);
   const [baseDrawn, setBaseDrawn] = useState(false);
   const reveal = visible && overlayReady && baseDrawn && !exiting;
 
-  // Continuous upward motion: the map rises into place from just below as the
-  // description clears (reveal), then drifts further up + fades as it leaves (exit).
   let opacity = 0;
   let transform = "translate(-50%, calc(-50% + 30px)) scale(0.98)";
   if (exiting) {
@@ -654,15 +585,14 @@ function CausesCompareMap({
         onReadyChange={setOverlayReady}
       />
 
-      {/* `reveal` already means both maps have loaded AND the crop has been told
-          to come in, so mounting the slider here is the earliest honest moment
-          the intro can play against a complete map. */}
       {active && reveal && (
         <CompareSlider
           value={sliderValue}
           onChange={onSliderChange}
           autoDemo={!demoPlayed}
           onDemoEnd={onDemoEnd}
+          ariaLabel={comparisonAriaLabel}
+          hint={handleHint}
         />
       )}
 
@@ -676,8 +606,6 @@ function CausesCompareMap({
   );
 }
 
-// Un solo connettore vive alla volta, quindi un id fisso basta e non c'è da
-// generarne uno per istanza.
 const CONNECTOR_MASK_ID = "causes-connector-reveal-mask";
 
 function CausesConnector({
@@ -719,13 +647,6 @@ function CausesConnector({
         y: y - stageRect.top,
       });
 
-      // The line is anchored to the middle of the description's first line, on the
-      // edge that faces the map, so it reads as growing out of the text — then it
-      // curves to the near edge of the map crop. A node dot marks the text anchor.
-      // (Compare has no connector — the text leaves before the map appears.)
-      // Il filetto ambra che stava sopra la prima riga non c'è più: l'ha
-      // sostituito l'indice in alto (06 § 6.3, § 6.8), quindi l'attacco scende
-      // dall'altezza del filetto a quella della riga vera.
       const mapSide = activeStageId === "clue-materials" ? "right" : "left";
       const lineY = textRect.top + 14;
       if (textRect.top > mapRect.bottom - 12 || textRect.bottom < mapRect.top - 36) {
@@ -736,18 +657,15 @@ function CausesConnector({
       let start;
       let end;
       if (mapSide === "left") {
-        // verde: map LEFT, text RIGHT — leave the text's left edge, land on the map's right edge.
         start = toStage(textRect, textRect.left - 5, lineY);
         end = toStage(mapRect, mapRect.right - 13, mapRect.top + mapRect.height * 0.34);
       } else {
-        // materiali: map RIGHT, text LEFT — leave the text's right edge, land on the map's left edge.
         start = toStage(textRect, textRect.right + 5, lineY);
         end = toStage(mapRect, mapRect.left + 13, mapRect.top + mapRect.height * 0.34);
       }
 
       const dx = end.x - start.x;
       const dy = end.y - start.y;
-      // Ease out of the text horizontally, then curve down into the map.
       const c1 = { x: start.x + dx * 0.42, y: start.y + Math.max(10, dy * 0.06) };
       const c2 = { x: start.x + dx * 0.62, y: end.y - Math.max(20, dy * 0.34) };
 
@@ -803,12 +721,6 @@ function CausesConnector({
     >
       {geometry.path && (
         <g key={activeStageId}>
-          {/* Il tratteggio si disegna da sé, e le due cose insieme su un solo
-              elemento non si possono fare: il disegno progressivo È un
-              `stroke-dasharray`, e occuperebbe il posto del tratteggio. Quindi
-              il tratto visibile è tratteggiato e fermo, e a scoprirlo lungo la
-              stessa curva è una maschera — la stessa geometria, tirata spessa e
-              bianca, con il dashoffset che va da 1 a 0. */}
           <defs>
             <mask
               id={CONNECTOR_MASK_ID}
@@ -852,66 +764,135 @@ function CausesConnector({
   );
 }
 
-/**
- * Isola i due concetti nelle descrizioni senza cambiare le stringhe dei testi.
- * Se una frase viene riscritta e il termine non c'è più, il paragrafo resta
- * intatto: viene meno soltanto l'enfasi.
- */
-const greenEmphasis = (() => {
-  const body = causeStages.find((stage) => stage.id === "clue-green")?.body ?? "";
-  const at = body.indexOf(greenTopicWord);
-  if (at < 0) return null;
-  return {
-    before: body.slice(0, at),
-    after: body.slice(at + greenTopicWord.length),
-  };
-})();
-
 const TOPIC_FLIGHT_DURATION_MS = 920;
 const DESCRIPTION_FLIGHT_DELAY_MS = 140;
 const DESCRIPTION_FLIGHT_DURATION_MS = 780;
 const topicFlightEasing = (t) => 1 - Math.pow(1 - t, 3);
 
-const materialsEmphasis = (() => {
-  const body = causeStages.find((stage) => stage.id === "clue-materials")?.body ?? "";
-  const at = body.indexOf(materialsTopicWord);
-  if (at < 0) return null;
-  return {
-    before: body.slice(0, at),
-    after: body.slice(at + materialsTopicWord.length),
-  };
-})();
+function groupNarrativeSegments(segments) {
+  return segments.reduce((groups, segment) => {
+    const previous = groups.at(-1);
+    if (
+      segment.emphasisGroup &&
+      previous?.emphasisGroup === segment.emphasisGroup
+    ) {
+      previous.segments.push(segment);
+    } else {
+      groups.push({
+        id: segment.emphasisGroup ?? segment.id,
+        emphasisGroup: segment.emphasisGroup,
+        segments: [segment],
+      });
+    }
+    return groups;
+  }, []);
+}
 
-const compareMaterialsPhrase = `${materialsTopicWord} ad alto assorbimento`;
-const compareMaterialsSuffix = compareMaterialsPhrase.slice(
-  materialsTopicWord.length,
-);
-const compareGreenPhrase = `scarsa presenza di ${greenTopicWord}`;
-const compareGreenPrefix = compareGreenPhrase.slice(
-  0,
-  compareGreenPhrase.length - greenTopicWord.length,
-);
-const compareEmphasis = (() => {
-  const body = causeStages.find((stage) => stage.id === "compare")?.body ?? "";
-  const materialsAt = body.indexOf(compareMaterialsPhrase);
-  const greenAt = body.indexOf(compareGreenPhrase);
-  if (materialsAt < 0 || greenAt < 0 || materialsAt > greenAt) return null;
-  return {
-    before: body.slice(0, materialsAt),
-    between: body.slice(materialsAt + compareMaterialsPhrase.length, greenAt),
-    after: body.slice(greenAt + compareGreenPhrase.length),
-  };
-})();
+function NarrativeSegments({ segments, landedDescriptions, targetRefs }) {
+  const targetSpan = (segment, grouped) => (
+    <span
+      key={segment.id}
+      ref={(node) => {
+        targetRefs.current[segment.flightTarget] = node;
+      }}
+      className={`${grouped ? "kw " : ""}causes-description-topic-target${landedDescriptions[segment.flightTarget] ? "" : " is-waiting"}`}
+    >
+      {segment.text}
+    </span>
+  );
+
+  return groupNarrativeSegments(segments).map((group) => {
+    if (group.emphasisGroup) {
+      return (
+        <strong key={group.id} className="kw">
+          {group.segments.map((segment) =>
+            segment.flightTarget ? (
+              targetSpan(segment, true)
+            ) : (
+              <Fragment key={segment.id}>{segment.text}</Fragment>
+            ),
+          )}
+        </strong>
+      );
+    }
+
+    const [segment] = group.segments;
+    if (!segment.kw) {
+      return <Fragment key={segment.id}>{segment.text}</Fragment>;
+    }
+    if (segment.flightTarget === "green") {
+      return (
+        <strong
+          key={segment.id}
+          ref={(node) => {
+            targetRefs.current[segment.flightTarget] = node;
+          }}
+          className={`kw causes-description-topic-target${landedDescriptions[segment.flightTarget] ? "" : " is-waiting"}`}
+        >
+          {segment.text}
+        </strong>
+      );
+    }
+    return (
+      <strong key={segment.id} className="kw">
+        {segment.flightTarget ? targetSpan(segment, false) : segment.text}
+      </strong>
+    );
+  });
+}
 
 export function PhysicalDriversSection() {
-  const stages = causeStages;
+  const { content, locale } = useContent();
+  const physicalDrivers = content.physicalDrivers;
+  const {
+    aperture,
+    apertureCauseParts,
+    apertureClose,
+    comparisonAriaLabel,
+    greenTopicWord,
+    handleHint,
+    hotspotLegendLabel,
+    lensLegends,
+    materialsTopicWord,
+    stages,
+    title,
+  } = useMemo(() => {
+    const causeParts = physicalDrivers.intro.topicStatement.segments;
+    const topicWords = new Map(
+      causeParts
+        .filter((segment) => segment.topic)
+        .map((segment) => [segment.topic, segment.text]),
+    );
+    const stageCopy = new Map(
+      physicalDrivers.narrative.stages.map((stage) => [stage.id, stage]),
+    );
+    return {
+      title: physicalDrivers.intro.title,
+      aperture: physicalDrivers.intro.lead,
+      apertureCauseParts: causeParts,
+      apertureClose: physicalDrivers.intro.close.text,
+      handleHint: physicalDrivers.comparison.handleHint,
+      hotspotLegendLabel: physicalDrivers.legends.hotspot.label,
+      comparisonAriaLabel: physicalDrivers.comparison.ariaLabel,
+      greenTopicWord: topicWords.get("green"),
+      materialsTopicWord: topicWords.get("materials"),
+      stages: causeStageTechnical.map((stage) => ({
+        ...stage,
+        segments: stageCopy.get(stage.id).segments,
+      })),
+      lensLegends: Object.fromEntries(
+        physicalDrivers.legends.lenses.map((legend) => [
+          legend.id,
+          { ...legend, bar: lensLegendBars[legend.id] },
+        ]),
+      ),
+    };
+  }, [physicalDrivers]);
   const [activeStageId, setActiveStageId] = useState(stages[0].id);
   const [activeTextStageId, setActiveTextStageId] = useState(null);
   const [compareMapVisible, setCompareMapVisible] = useState(false);
   const [compareExiting, setCompareExiting] = useState(false);
   const [sliderValue, setSliderValue] = useState(50);
-  // Latches once the intro sweep has run (or the reader beat it to the handle),
-  // so it plays on first view only.
   const [compareDemoPlayed, setCompareDemoPlayed] = useState(false);
   const [sceneEntered, setSceneEntered] = useState(false);
   const [landedTopics, setLandedTopics] = useState(() => {
@@ -927,9 +908,6 @@ export function PhysicalDriversSection() {
       "compare-materials": landed,
     };
   });
-  // Il ritaglio non entra mai vuoto (06 § 6.4): finché la mappa non ha finito
-  // di disegnarsi, il riquadro è una campitura di carta e la mappa gli passa
-  // sopra in dissolvenza. Si arma una volta sola.
   const [lensDrawn, setLensDrawn] = useState(false);
   const panelRefs = useRef([]);
   const panelBodyRefs = useRef({});
@@ -955,10 +933,6 @@ export function PhysicalDriversSection() {
 
   useEffect(() => preloadCompareAssets(), []);
 
-  // Due copie dei termini annunciati nell'apertura raggiungono l'indice sticky.
-  // La partenza viene fotografata quando la scena entra; l'arrivo, invece, viene
-  // riletto a ogni frame, così resta preciso anche se il lettore continua a
-  // scorrere durante i 920 ms del volo.
   useEffect(() => {
     const sources = topicSourceRefs.current;
     const targets = topicTargetRefs.current;
@@ -1073,26 +1047,27 @@ export function PhysicalDriversSection() {
     };
   }, [sceneEntered]);
 
-  const descriptionFlights =
-    activeTextStageId === "clue-green"
-      ? [{ sourceKey: "green", targetKey: "green" }]
-      : activeTextStageId === "clue-materials"
-        ? [{ sourceKey: "materials", targetKey: "materials" }]
-        : activeTextStageId === "compare"
-          ? [
-              {
-                sourceKey: "materials",
-                targetKey: "compare-materials",
-              },
-              { sourceKey: "green", targetKey: "compare-green" },
-            ]
-          : [];
+  const descriptionFlights = useMemo(
+    () =>
+      activeTextStageId === "clue-green"
+        ? [{ sourceKey: "green", targetKey: "green" }]
+        : activeTextStageId === "clue-materials"
+          ? [{ sourceKey: "materials", targetKey: "materials" }]
+          : activeTextStageId === "compare"
+            ? [
+                {
+                  sourceKey: "materials",
+                  targetKey: "compare-materials",
+                },
+                { sourceKey: "green", targetKey: "compare-green" },
+              ]
+            : [],
+    [activeTextStageId],
+  );
   const activeTopicLanded =
     descriptionFlights.length > 0 &&
     descriptionFlights.every(({ sourceKey }) => landedTopics[sourceKey]);
 
-  // Secondo salto: quando una descrizione entra, una nuova copia parte
-  // dall'indice e raggiunge il termine in grassetto dentro il paragrafo.
   useEffect(() => {
     if (prefersReducedMotion() || !activeTopicLanded || descriptionFlights.length === 0) {
       return undefined;
@@ -1189,9 +1164,8 @@ export function PhysicalDriversSection() {
     return () => {
       cleanups.forEach((cleanup) => cleanup());
     };
-  }, [activeTextStageId, activeTopicLanded]);
+  }, [activeTextStageId, activeTopicLanded, descriptionFlights]);
 
-  // Reuse the project's reading-line scroll mechanism (0.52*vh + rAF + rects).
   useEffect(() => {
     let frame = null;
     let fallback = null;
@@ -1225,10 +1199,6 @@ export function PhysicalDriversSection() {
         const probe = panelBodyRefs.current[stage.id];
         if (!probe) return;
         const rect = probe.getBoundingClientRect();
-        // The compare caption activates higher up — around the lower-middle of the
-        // view — so it appears mid-screen and only needs a short rise before the
-        // comparison map reveals below it, instead of fading in at the very bottom
-        // and travelling almost a full screen. The two clue captions keep the low line.
         const activationLine = stage.id === "compare" ? vh * 0.64 : textLine;
         if (rect.bottom > 0 && rect.top <= activationLine && rect.top > nearestPassedTop) {
           nearestPassedTop = rect.top;
@@ -1248,8 +1218,6 @@ export function PhysicalDriversSection() {
       setActiveTextStageId(nextTextId);
 
       const sceneRect = sceneRef.current?.getBoundingClientRect();
-      // Entrance animation before the sticky stage is fully pinned: the first map
-      // is already present when the first text rises into view.
       if (!enteredRef.current && sceneRect && sceneRect.top < vh * 0.58 && sceneRect.bottom > 0) {
         enteredRef.current = true;
         setSceneEntered(true);
@@ -1276,13 +1244,6 @@ export function PhysicalDriversSection() {
     };
   }, [stages]);
 
-  // Compare choreography (prompt: the synthesis text must scroll bottom→top BEFORE
-  // the map appears, and the map must transition OUT before the next sector).
-  // Two scroll-driven booleans, smoothed by CSS transitions on the crop:
-  //  · compareMapVisible — the description has travelled up into the top band, so
-  //    the comparison map rises in and holds (slider usable).
-  //  · compareExiting    — the compare panel is nearly spent; the map drifts up and
-  //    fades out so the scene un-pins onto clean cream, never under the next section.
   useEffect(() => {
     let frame = null;
     let fallback = null;
@@ -1306,15 +1267,9 @@ export function PhysicalDriversSection() {
       const textRect = compareText.getBoundingClientRect();
       const panelRect = comparePanel.getBoundingClientRect();
 
-      // Reveal as soon as the description's bottom edge clears the TOP of the map crop
-      // (i.e. the instant they stop overlapping) — so the map comes out a little sooner,
-      // not only once the caption has fully settled. The map's resting top follows the
-      // CSS (top: 62%, height: min(54vh, 600px)).
       const mapHeight = Math.min(vh * 0.54, 600);
       const mapTop = vh * 0.62 - mapHeight / 2;
       const revealed = textRect.bottom <= mapTop + 8;
-      // The compare panel is almost spent (its bottom approaches the top of the
-      // viewport) → start the out transition with room to finish before the un-pin.
       const exiting = revealed && panelRect.bottom <= vh * 1.02;
 
       setCompareMapVisible(revealed && !exiting);
@@ -1341,13 +1296,7 @@ export function PhysicalDriversSection() {
 
   const activeStage = stages.find((s) => s.id === activeStageId) ?? stages[0];
   const compareTextActive = activeTextStageId === "compare";
-  // The map lens + side FOLLOW THE VISIBLE TEXT (not the earlier reading-line): the
-  // albedo lens never appears while the green description is still on screen, and the
-  // sides swap together with the copy (no stale overlap during the hand-off).
   const textStageId = activeTextStageId ?? activeStageId ?? stages[0].id;
-  // Keep the albedo (materials) lens parked on the right for the WHOLE compare
-  // approach — until the comparison map is revealed — so the "end of albedo" reads as
-  // a gentle fade, not a hard cut to an empty stage.
   const inCompareApproach = textStageId === "compare" && !compareMapVisible;
   const visualStage = inCompareApproach
     ? stages.find((stage) => stage.id === "clue-materials") ?? activeStage
@@ -1364,23 +1313,21 @@ export function PhysicalDriversSection() {
   const greenTopicActive = visualStage.lens === "green" || compareTopicsActive;
   const materialsTopicActive =
     visualStage.lens === "materials" || compareTopicsActive;
-  // The base lens crop fades away once the synthesis text rises (albedo "ends"),
-  // leaving a clean cream reading beat before the comparison map comes out.
   const baseCropLeaving = compareTextActive || isComparing;
   const connectorStage = stages.find((s) => s.id === activeTextStageId);
-  // The connector links the description to the map only for the two side lenses
-  // (verde / materiali). In the compare beat the caption sits above the map instead.
   const connectorVisible =
     Boolean(connectorStage) && activeTextStageId !== "compare" && !isComparing;
-  // Small rise from where the text scrolls in (NOT a big jump that makes it appear
-  // mid-screen) — the description "starts from the bottom" and rises with the scroll.
   const textMotionStyle = (isActive) => ({
     opacity: isActive ? 1 : 0,
     transform: isActive ? "translateY(0px)" : "translateY(34px)",
   });
 
   return (
-    <section id="causes" className="causes-section" aria-label="Perché il caldo resta proprio qui">
+    <section
+      id="causes"
+      className="causes-section"
+      aria-label={physicalDrivers.intro.ariaLabel}
+    >
       <span
         ref={(node) => {
           topicFlyerRefs.current.green = node;
@@ -1418,7 +1365,6 @@ export function PhysicalDriversSection() {
         {materialsTopicWord}
       </span>
 
-      {/* (1) Apertura: titolo + testo, colonna centrata, fondo avorio. */}
       <div className="causes-intro">
         <span className="causes-intro-leaf" aria-hidden="true" />
         <SectionDivider />
@@ -1426,12 +1372,12 @@ export function PhysicalDriversSection() {
           <h2 className="causes-title">{title}</h2>
           <p className="causes-aperture">{aperture}</p>
           <p className="causes-aperture causes-aperture--break">
-            {apertureCauseParts.map((part, index) => {
-              if (!part.kw) return <Fragment key={index}>{part.text}</Fragment>;
+            {apertureCauseParts.map((part) => {
+              if (!part.kw) return <Fragment key={part.id}>{part.text}</Fragment>;
               if (part.topic === "green" || part.topic === "materials") {
                 return (
                   <span
-                    key={index}
+                    key={part.id}
                     ref={(node) => {
                       topicSourceRefs.current[part.topic] = node;
                     }}
@@ -1442,7 +1388,7 @@ export function PhysicalDriversSection() {
                 );
               }
               return (
-                <span key={index} className="kw">
+                <span key={part.id} className="kw">
                   {part.text}
                 </span>
               );
@@ -1452,7 +1398,6 @@ export function PhysicalDriversSection() {
         </div>
       </div>
 
-      {/* (2–5) Scena: ritaglio sticky che scivola sx↔dx↔centro col testo a fianco. */}
       <div
         id="causes-scene"
         ref={sceneRef}
@@ -1505,9 +1450,6 @@ export function PhysicalDriversSection() {
             ref={lensCropRef}
             className={`causes-crop${lensDrawn ? " causes-crop--drawn" : ""}${baseCropLeaving ? " causes-crop--leaving" : ""}${isComparing ? " causes-crop--compare-hidden" : ""}`}
           >
-            {/* La campitura sotto la mappa. Ferma, senza luccichii: deve dire
-                «il riquadro è qui, l'immagine sta arrivando», non chiedere
-                attenzione. */}
             <div className="causes-crop-wash" aria-hidden="true" />
 
             <CausesCropMap
@@ -1540,13 +1482,14 @@ export function PhysicalDriversSection() {
             active={compareMapVisible}
             demoPlayed={compareDemoPlayed}
             onDemoEnd={markCompareDemoPlayed}
+            hotspotLegendLabel={hotspotLegendLabel}
+            comparisonAriaLabel={comparisonAriaLabel}
+            handleHint={handleHint}
           />
         </div>
 
-        <div className="causes-panels" lang="it">
+        <div className="causes-panels" lang={locale}>
           {stages.map((stage, index) => {
-            // The compare caption fades out together with the map during the exit
-            // transition (it must not linger when the next section arrives).
             const isTextActive =
               activeTextStageId === stage.id &&
               !(stage.id === "compare" && compareExiting);
@@ -1560,7 +1503,7 @@ export function PhysicalDriversSection() {
                 data-stage-id={stage.id}
                 className={`causes-panel causes-panel--${stage.id}${isTextActive ? " causes-panel--active" : ""}${index === stages.length - 1 ? " causes-panel--last" : ""}`}
               >
-                {stage.body && (
+                {stage.segments && (
                   <p
                     ref={(node) => {
                       panelBodyRefs.current[stage.id] = node;
@@ -1568,65 +1511,11 @@ export function PhysicalDriversSection() {
                     className={`causes-panel-body${isTextActive ? " causes-panel-body--active" : ""}`}
                     style={textMotionStyle(isTextActive)}
                   >
-                    {stage.id === "clue-green" && greenEmphasis ? (
-                      <>
-                        {greenEmphasis.before}
-                        <strong
-                          ref={(node) => {
-                            descriptionTargetRefs.current.green = node;
-                          }}
-                          className={`kw causes-description-topic-target${landedDescriptions.green ? "" : " is-waiting"}`}
-                        >
-                          {greenTopicWord}
-                        </strong>
-                        {greenEmphasis.after}
-                      </>
-                    ) : stage.id === "clue-materials" && materialsEmphasis ? (
-                      <>
-                        {materialsEmphasis.before}
-                        <strong className="kw">
-                          <span
-                            ref={(node) => {
-                              descriptionTargetRefs.current.materials = node;
-                            }}
-                            className={`causes-description-topic-target${landedDescriptions.materials ? "" : " is-waiting"}`}
-                          >
-                            {materialsTopicWord}
-                          </span>
-                        </strong>
-                        {materialsEmphasis.after}
-                      </>
-                    ) : stage.id === "compare" && compareEmphasis ? (
-                      <>
-                        {compareEmphasis.before}
-                        <strong className="kw">
-                          <span
-                            ref={(node) => {
-                              descriptionTargetRefs.current["compare-materials"] = node;
-                            }}
-                            className={`kw causes-description-topic-target${landedDescriptions["compare-materials"] ? "" : " is-waiting"}`}
-                          >
-                            {materialsTopicWord}
-                          </span>
-                          {compareMaterialsSuffix}
-                        </strong>
-                        {compareEmphasis.between}
-                          <strong className="kw">
-                          {compareGreenPrefix}
-                          <span
-                            ref={(node) => {
-                              descriptionTargetRefs.current["compare-green"] = node;
-                            }}
-                            className={`kw causes-description-topic-target${landedDescriptions["compare-green"] ? "" : " is-waiting"}`}
-                          >
-                            {greenTopicWord}
-                          </span>
-                        </strong>
-                        {compareEmphasis.after}
-                      </>
-                    ) : (
-                      stage.body
-                    )}
+                    <NarrativeSegments
+                      segments={stage.segments}
+                      landedDescriptions={landedDescriptions}
+                      targetRefs={descriptionTargetRefs}
+                    />
                   </p>
                 )}
               </div>
@@ -1635,35 +1524,18 @@ export function PhysicalDriversSection() {
         </div>
       </div>
 
-      {/* (6) Uscita: raccordo morbido verso la sezione ombra (nessun taglio). */}
       <div className="causes-exit" aria-hidden="true" />
     </section>
   );
 }
 
-// ── First-view intro: the handle demonstrates itself ────────────────────────
-// The compare map is the one view whose whole point is invisible until you drag
-// it, so the first time a reader gets there the handle sweeps right, left, and
-// back to centre on its own; only then does the "trascina" hint appear. The
-// motion shows WHAT to do, the word then names it.
-// La corsa era di ±30 punti (50 → 80 → 20 → 50): mostrava che la maniglia si
-// trascina, ma nel farlo sbandierava mezza mappa, e il lettore guardava il
-// movimento invece della differenza fra le due metà. A ±14 punti il gesto è
-// asciutto e resta quello che deve essere, un'indicazione (06 § 6.6).
 const DEMO_STOPS = [50, 64, 36, 50];
 const DEMO_LEG_MS = 760;
 const DEMO_MS = DEMO_LEG_MS * (DEMO_STOPS.length - 1);
-// The crop fades and rises into place over ~780ms (.causes-compare-crop), and it
-// only starts once BOTH the base map and the albedo overlay have loaded. Waiting
-// this out means the sweep begins on a still, fully-drawn map — the reader is
-// looking at the finished thing when the handle starts moving, which is the
-// whole point of the hint.
 const DEMO_SETTLE_MS = 900;
 
 const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
 
-// Position along the stop path at `elapsed` ms, eased per leg so it reads as a
-// hand moving the handle rather than a linear scrub.
 function demoValueAt(elapsed) {
   const clamped = Math.min(Math.max(elapsed, 0), DEMO_MS);
   const leg = Math.min(Math.floor(clamped / DEMO_LEG_MS), DEMO_STOPS.length - 2);
@@ -1671,21 +1543,13 @@ function demoValueAt(elapsed) {
   return DEMO_STOPS[leg] + (DEMO_STOPS[leg + 1] - DEMO_STOPS[leg]) * t;
 }
 
-// Draggable + keyboard-operable compare handle (prompt §9). The "trascina" hint
-// lives on the handle itself, never in the narrative copy.
-function CompareSlider({ value, onChange, autoDemo, onDemoEnd }) {
+function CompareSlider({ value, onChange, autoDemo, onDemoEnd, ariaLabel, hint }) {
   const trackRef = useRef(null);
   const [dragging, setDragging] = useState(false);
-  // Without the intro the hint is simply on, as it always was — and a reader who
-  // asked for less motion gets it up front instead of a moving handle, so the
-  // affordance still lands without the animation.
   const [hintOn, setHintOn] = useState(() => !autoDemo || prefersReducedMotion());
   const [demoing, setDemoing] = useState(false);
   const demoCancelRef = useRef(null);
 
-  // Ends the intro — either because it finished, or because the reader grabbed
-  // the handle mid-sweep. A real interaction always wins: we stop where they
-  // took it rather than fighting them back to centre.
   const endDemo = useCallback(() => {
     demoCancelRef.current?.();
     demoCancelRef.current = null;
@@ -1695,8 +1559,6 @@ function CompareSlider({ value, onChange, autoDemo, onDemoEnd }) {
   }, [onDemoEnd]);
 
   useEffect(() => {
-    // Under reduced motion `hintOn` already initialised true, so there is
-    // nothing to play and nothing to latch — bailing out here is idempotent.
     if (!autoDemo || prefersReducedMotion()) return undefined;
 
     let frame = null;
@@ -1717,8 +1579,6 @@ function CompareSlider({ value, onChange, autoDemo, onDemoEnd }) {
       if (frame) cancelAnimationFrame(frame);
     };
     demoCancelRef.current = cancel;
-    // Unmounting mid-sweep (the reader scrolled away before it played) leaves
-    // `autoDemo` true, so the intro is still owed to them next time round.
     return cancel;
   }, [autoDemo, onChange, onDemoEnd, endDemo]);
 
@@ -1785,7 +1645,7 @@ function CompareSlider({ value, onChange, autoDemo, onDemoEnd }) {
         onKeyDown={onKeyDown}
         role="slider"
         tabIndex={0}
-        aria-label="Confronta verde e superfici: trascina o usa le frecce"
+        aria-label={ariaLabel}
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={Math.round(value)}
@@ -1802,7 +1662,7 @@ function CompareSlider({ value, onChange, autoDemo, onDemoEnd }) {
           className={`causes-compare-handle-hint${hintOn ? " causes-compare-handle-hint--on" : ""}`}
           aria-hidden="true"
         >
-          {handleHint}
+          {hint}
         </span>
       </button>
     </div>

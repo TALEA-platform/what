@@ -9,38 +9,6 @@ const FOCUSABLE = [
   '[tabindex]:not([tabindex="-1"])',
 ].join(", ");
 
-/**
- * Il comportamento comune ai due pannelli che scorrono dentro dal bordo
- * destro — il glossario e «Metodo e fonti». Erano due dialoghi che si
- * comportavano in due modi diversi: quello del metodo si chiudeva con Esc,
- * quello del glossario no; nessuno dei due spostava il fuoco, quindi con la
- * tastiera si apriva un pannello e si continuava a tabulare nella pagina
- * dietro, che il pannello copre.
- *
- * Restituisce la ref da mettere sul pannello (che vuole `tabIndex={-1}`, per
- * poter ricevere il fuoco senza entrare nell'ordine di tabulazione):
- *
- *   Esc          chiude
- *   apertura     il fuoco entra nel pannello
- *   Tab          gira dentro il pannello finché è aperto
- *   chiusura     il fuoco torna alla parola, o al link, da cui si era partiti
- *
- * ── Il blocco dello scorrimento ─────────────────────────────────────────────
- * Con un pannello aperto la storia dietro sta ferma: la rotellina scorre solo
- * dentro il pannello, dove il testo può essere più alto della scheda. Senza,
- * leggere una definizione voleva dire far scorrere la storia sotto, e alla
- * chiusura ci si ritrovava in un altro punto del racconto.
- *
- * Il blocco sta su <html>, non sul <body>. `body { overflow: hidden }` è la
- * ricetta più diffusa ed è quella sbagliata qui: azzera l'altezza scorribile
- * del documento e il browser riporta la pagina in cima, cioè butta via il
- * punto della storia in cui si era. Su <html> l'overflow si propaga alla
- * finestra: lo scorrimento si spegne, la posizione resta, e nessun elemento
- * cambia di posto — le scene agganciate restano agganciate dove sono.
- *
- * Il `padding-right` compensa la barra di scorrimento che sparisce, altrimenti
- * all'apertura tutta la pagina scivolerebbe di una decina di pixel.
- */
 export function useDrawer({ open, onClose }) {
   const panelRef = useRef(null);
 
@@ -50,6 +18,7 @@ export function useDrawer({ open, onClose }) {
     const panel = panelRef.current;
     const returnTo = document.activeElement;
 
+    // Lock <html>, not <body>, to preserve the story's scroll position.
     const root = document.documentElement;
     const previous = {
       overflow: root.style.overflow,
@@ -59,8 +28,7 @@ export function useDrawer({ open, onClose }) {
     root.style.overflow = "hidden";
     if (scrollbar > 0) root.style.paddingRight = `${scrollbar}px`;
 
-    // Il fuoco entra sul pannello, non sul primo bottone: così il lettore di
-    // schermo annuncia il titolo del dialogo prima di «Chiudi».
+    // Focusing the panel makes its dialog title precede the close control for screen readers.
     panel?.focus?.({ preventScroll: true });
 
     const onKey = (event) => {
@@ -93,8 +61,7 @@ export function useDrawer({ open, onClose }) {
       window.removeEventListener("keydown", onKey);
       root.style.overflow = previous.overflow;
       root.style.paddingRight = previous.paddingRight;
-      // `isConnected`: se la parola da cui si era partiti è uscita dal DOM nel
-      // frattempo, rimetterle il fuoco lo manderebbe sul <body>.
+      // A trigger may have left the DOM while the drawer was open.
       if (returnTo?.isConnected) returnTo.focus?.({ preventScroll: true });
     };
   }, [open, onClose]);

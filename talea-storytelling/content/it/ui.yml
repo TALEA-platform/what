@@ -1,0 +1,56 @@
+schemaVersion: 1
+locale: it
+
+header:
+  id: global-header
+  menu:
+    id: global-menu
+    open: "Apri menu"
+    close: "Chiudi menu"
+  exploreData:
+    id: explore-data
+    label: "Esplora dati"
+
+progress:
+  id: reading-progress
+  ariaLabel: "Avanzamento lettura"
+  chapters:
+    - id: hero
+      label: "Bologna si scalda"
+    - id: trend
+      label: "Le estati"
+    - id: hotspot
+      label: "Gli hotspot"
+    - id: cause
+      label: "Le cause"
+    - id: ombra
+      label: "L'ombra"
+    - id: persone
+      label: "Le persone"
+    - id: sollievo
+      label: "Gli spazi verdi"
+    - id: rifugi
+      label: "I rifugi di Bologna"
+    - id: costruire
+      label: "Dove manca, si costruisce"
+    - id: talea
+      label: "Il progetto TALEA"
+    - id: aree
+      label: "Le aree pilota"
+    - id: chiusura
+      label: "Esplora i dati"
+
+glossary:
+  id: global-glossary
+  eyebrow: "Glossario"
+  definitionLabelTemplate: "Definizione: {term}"
+  dialogLabelTemplate: "Glossario: {term}"
+  closeLabel: "Chiudi glossario"
+  trailAriaLabel: "Parole già incontrate"
+  trailLabel: "Già incontrate"
+
+actions:
+  id: global-actions
+  close: "Chiudi"
+  previousItem: "Elemento precedente"
+  nextItem: "Elemento successivo"

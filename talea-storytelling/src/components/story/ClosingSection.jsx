@@ -1,8 +1,9 @@
 import { TitleSprig } from "../ui/TitleSprig";
-import { dataSources, closingFinal } from "../../data/taleaProject";
+import { useContent } from "../../content";
+import { resolveTaleaLink, taleaSourceSpecs } from "../../data/taleaProject";
 
-// Minimal line icons for the five public tools, drawn from what each shows:
-// the platform hub, heat, history, refuges and shadow.
+const sourceSpecById = new Map(taleaSourceSpecs.map((source) => [source.id, source]));
+
 const ICONS = {
   hub: (
     <>
@@ -62,41 +63,34 @@ function SourceIcon({ name }) {
   );
 }
 
-/**
- * The open-data close. Participation now belongs to TaleaProjectSection, where
- * it sits with the project that makes it possible.
- */
 export function ClosingSection() {
+  const { content, locale } = useContent();
+  const closingContent = content.talea.closing;
+  const sourceApps = closingContent.sources.apps.map((source) => ({
+    ...sourceSpecById.get(source.id),
+    ...source,
+    href: resolveTaleaLink(source.linkId),
+  }));
+
   return (
-    <section className="closing-chapter" aria-labelledby="sources-title" lang="it">
-      {/* ── La chiusura ──
-          Una schermata sola, su un fondo suo, con sopra la talea disegnata con
-          cui la storia si era aperta. Il perché sta in `.closing-final`
-          (story.css): qui basta sapere che questo blocco non è l'introduzione
-          della griglia che segue, è la fine del racconto. */}
+    <section className="closing-chapter" aria-labelledby="sources-title" lang={locale}>
       <div className="closing-final">
-        {/* Le due foglie ai lati sono lo stesso disegno che apre il capitolo
-            delle cause (`.causes-intro-leaf`): stesso file, stessa porzione
-            dello sprite, quella di destra specchiata. Là annunciava un
-            capitolo, qui ne chiude uno, e usare due volte la stessa figura è il
-            modo più economico che la pagina ha di dire che è la stessa mano. */}
         <span className="closing-final-leaf closing-final-leaf--left" aria-hidden="true" />
         <span className="closing-final-leaf closing-final-leaf--right" aria-hidden="true" />
         <div className="closing-final-inner">
           <TitleSprig className="closing-final-sprig" />
-          <p className="closing-final-standout">{closingFinal.standout}</p>
+          <p className="closing-final-standout">{closingContent.final.standout}</p>
         </div>
       </div>
 
-      {/* ── The open data behind every map ── */}
       <div className="sources-band">
         <div className="sources-inner">
           <div className="sources-head">
-            <h2 id="sources-title" className="sources-title">{dataSources.title}</h2>
-            <p className="sources-intro">{dataSources.intro}</p>
+            <h2 id="sources-title" className="sources-title">{closingContent.sources.title}</h2>
+            <p className="sources-intro">{closingContent.sources.intro}</p>
           </div>
           <div className="sources-grid">
-            {dataSources.apps.map((app) => (
+            {sourceApps.map((app) => (
               <a
                 key={app.id}
                 className={`source-card${app.feature ? " source-card--feature" : ""}`}
@@ -104,12 +98,6 @@ export function ClosingSection() {
                 target="_blank"
                 rel="noreferrer"
               >
-                {/* Il nome PRIMA della sigla. La sigla è il nome dello
-                    strumento sulla piattaforma (SCI, CRAF, HistorySUHI): serve
-                    a ritrovarlo, non a capire che cosa fa, e stampata sopra in
-                    maiuscoletto era la prima cosa che si leggeva su ogni
-                    scheda — quattro acronimi in fila prima di una sola parola
-                    di italiano. */}
                 <span className="source-card-head">
                   <span className="source-icon" aria-hidden="true">
                     <SourceIcon name={app.icon} />
@@ -119,15 +107,9 @@ export function ClosingSection() {
                     <span className="source-tag">{app.tag}</span>
                   </span>
                 </span>
-                <span className="source-desc">{app.desc}</span>
-                {/* L'invito si vede sempre. Stava in posizione assoluta
-                    nell'angolo e compariva solo al passaggio del mouse: su un
-                    telefono non compariva mai, e per non finirgli addosso la
-                    descrizione era tagliata a una riga con i puntini. Adesso
-                    sta in fondo alla colonna, la descrizione va a capo quanto
-                    le serve, e al mouse si muove solo la freccia. */}
+                <span className="source-desc">{app.description}</span>
                 <span className="source-open">
-                  {dataSources.openLabel}
+                  {closingContent.sources.openLabel}
                   <span className="source-open-arrow" aria-hidden="true">→</span>
                 </span>
               </a>

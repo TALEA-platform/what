@@ -30,30 +30,19 @@ const withLineBreaks = (text, breakAfterPeriod = false) => {
   });
 };
 
-// Renders copy declared as segments in src/data/*.js — il modo con cui i testi
-// portano la loro enfasi senza che finisca nel JSX:
-//   kw:       parola in evidenza (01 § 1.3)
-//   glossary: id di un termine del glossario (01 § 1.3, secondo livello)
-//   keep:     pezzo che non deve andare a capo
-// Tutto il resto è testo semplice, così il paragrafo va a capo normalmente.
-//
-// `kwClass` esiste per l'hero: lì il testo sta sopra un video e la `.kw` verde
-// scuro sarebbe illeggibile, quindi usa la sua variante chiara.
-//
-// `onGlossary` è l'handler che App.jsx passa per prop: senza, un segmento
-// `glossary` resta testo semplice invece di diventare un bottone morto.
 export function CopySegments({ parts, kwClass = "kw", onGlossary, breakAfterPeriod = false }) {
   return parts.map((part, index) => {
+    const key = part.id ?? index;
     if (part.kw) {
       return (
-        <span key={index} className={kwClass}>
+        <span key={key} className={kwClass}>
           {withLineBreaks(part.text, breakAfterPeriod)}
         </span>
       );
     }
     if (part.glossary && onGlossary) {
       return (
-        <GlossaryTerm key={index} id={part.glossary} onOpen={onGlossary}>
+        <GlossaryTerm key={key} id={part.glossary} onOpen={onGlossary}>
           {withLineBreaks(part.text, breakAfterPeriod)}
         </GlossaryTerm>
       );
@@ -61,7 +50,7 @@ export function CopySegments({ parts, kwClass = "kw", onGlossary, breakAfterPeri
     if (part.link) {
       return (
         <a
-          key={index}
+          key={key}
           href={part.link}
           className="copy-link"
           target="_blank"
@@ -73,11 +62,11 @@ export function CopySegments({ parts, kwClass = "kw", onGlossary, breakAfterPeri
     }
     if (part.keep) {
       return (
-        <span key={index} className="hero-subtitle-keep">
+        <span key={key} className="hero-subtitle-keep">
           {withLineBreaks(part.text, breakAfterPeriod)}
         </span>
       );
     }
-    return <Fragment key={index}>{withLineBreaks(part.text, breakAfterPeriod)}</Fragment>;
+    return <Fragment key={key}>{withLineBreaks(part.text, breakAfterPeriod)}</Fragment>;
   });
 }

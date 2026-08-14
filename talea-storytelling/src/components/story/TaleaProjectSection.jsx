@@ -1,17 +1,16 @@
 import { motion, useReducedMotion } from "framer-motion";
+import { useMemo } from "react";
 import { EuEmblem } from "../ui/EuEmblem";
-import { GlossaryTerm } from "../ui/GlossaryDrawer";
 import { ScrollCue } from "../ui/ScrollCue";
 import { TaleaLogoDraw } from "../ui/TaleaLogoDraw";
 import { TaleaGrowthBackdrop } from "./TaleaGrowthBackdrop";
+import { CopySegments } from "./CopySegments";
 import {
-  taleaHeader,
-  taleaMeaning,
-  taleaFacts,
-  taleaParticipation,
-  taleaPartners,
-  taleaBridge,
+  resolveTaleaLink,
+  taleaOtherPartnerCount,
+  taleaPartnerSpecs,
 } from "../../data/taleaProject";
+import { useContent } from "../../content";
 
 const TALEA_REVEAL = {
   hidden: {},
@@ -36,24 +35,25 @@ const TALEA_REVEAL_ITEM = {
   },
 };
 
-/**
- * Il capitolo TALEA.
- *
- * Colonna centrata: titolo, il nome del progetto (il logo che si disegna con la
- * stessa animazione della schermata d'ingresso), due righe sul perché di quel
- * nome, la scheda dei fatti, la riga che consegna alla mappa. Dietro a tutto,
- * la striscia di talee che crescono (`TaleaGrowthBackdrop`).
- *
- * Era una composizione a due colonne con una vignetta a destra: uno stelo in
- * tratto pieno, alto quanto la colonna di testo, che si guardava per primo e
- * diceva quello che il testo dice in una riga. Il disegno non è sparito, è
- * passato dietro: dà il tono senza chiedere di essere decifrato.
- */
 export function TaleaProjectSection({ onGlossary }) {
+  const { content, locale } = useContent();
+  const taleaProject = content.talea.project;
+  const taleaFacts = useMemo(
+    () => ({
+      ...taleaProject.facts,
+      items: taleaProject.facts.items.map((fact) => ({
+        ...fact,
+        note: fact.noteTemplate
+          ? fact.noteTemplate.replace("{n}", String(taleaOtherPartnerCount))
+          : fact.note,
+      })),
+    }),
+    [taleaProject],
+  );
   const reduceMotion = useReducedMotion();
 
   return (
-    <section className="talea-chapter" aria-labelledby="talea-title" lang="it">
+    <section className="talea-chapter" aria-labelledby="talea-title" lang={locale}>
       <TaleaGrowthBackdrop />
 
       <div className="talea-frame">
@@ -65,34 +65,27 @@ export function TaleaProjectSection({ onGlossary }) {
           viewport={{ once: true, amount: 0.12 }}
         >
           <motion.h2 id="talea-title" className="talea-title" variants={TALEA_REVEAL_ITEM}>
-            {taleaHeader.title}
+            {taleaProject.header.title}
           </motion.h2>
 
-          {/* Il nome, subito. Il logo è un link alla piattaforma: è l'unico
-              punto del capitolo in cui il lettore può andare a vedere il
-              progetto vero prima di aver letto altro. */}
           <motion.p className="talea-lockup" variants={TALEA_REVEAL_ITEM}>
-            <span className="talea-lockup-label">{taleaHeader.lockup}</span>
+            <span className="talea-lockup-label">{taleaProject.header.lockup}</span>
             <a
               className="talea-logo-link"
-              href={taleaHeader.platformHref}
+              href={resolveTaleaLink(taleaProject.header.logo.linkId)}
               target="_blank"
               rel="noreferrer"
             >
-              <TaleaLogoDraw title={taleaHeader.logoAlt} />
+              <TaleaLogoDraw title={taleaProject.header.logo.alt} />
             </a>
           </motion.p>
 
           <motion.div className="talea-meaning" variants={TALEA_REVEAL_ITEM}>
             <p className="talea-gloss">
-              {taleaMeaning.glossLead}
-              <GlossaryTerm id="progetto-talea" onOpen={onGlossary}>
-                {taleaMeaning.glossTerm}
-              </GlossaryTerm>
-              {taleaMeaning.glossRest}
+              <CopySegments parts={taleaProject.meaning.lead} onGlossary={onGlossary} />
             </p>
 
-            <p className="talea-body">{taleaMeaning.body}</p>
+            <p className="talea-body">{taleaProject.meaning.body}</p>
           </motion.div>
         </motion.div>
 
@@ -111,40 +104,23 @@ export function TaleaProjectSection({ onGlossary }) {
         </dl>
       </div>
 
-      {/* «Il lavoro comincia da qui» promette qualcosa che sta sotto, e sotto
-          c'è una mappa che prima di agganciarsi si prende quasi una schermata
-          di campo vuoto: proprio nel punto in cui il lettore non ha più niente
-          da leggere e non vede ancora niente da guardare. Il chevron dice in
-          che direzione sta la cosa promessa.
-
-          `loop` e non i due impulsi di default: questa non è la fine di una
-          sequenza automatica ma la chiusura di un capitolo che si legge con
-          calma, e chi si ferma sulla riga troverebbe una freccia già morta. È
-          la stessa scelta di `.vulnerability-chapter-cue` e `.sf-chapter-cue`,
-          che stanno nello stesso posto alla fine dei loro capitoli. */}
       <div className="talea-bridge-wrap">
-        <p className="talea-bridge">{taleaBridge.text}</p>
+        <p className="talea-bridge">{taleaProject.bridge.text}</p>
         <ScrollCue variant="light" loop className="talea-bridge-cue" />
       </div>
     </section>
   );
 }
 
-/**
- * La partecipazione, subito dopo la mappa.
- *
- * Un titolo che dice la cosa, una riga che dice come. Erano un titolo
- * indiretto («Prima di cambiare una strada, bisogna ascoltarla»), un occhiello e
- * due paragrafi di processo, impaginati in due colonne: quattro blocchi per una
- * informazione sola, ed è la sezione che il lettore incontra appena esce dalla
- * mappa, quando l'attenzione è al minimo.
- */
 export function TaleaParticipationSection() {
+  const { content, locale } = useContent();
+  const taleaParticipation = content.talea.participation;
+
   return (
     <section
       className="talea-participation"
       aria-labelledby="talea-participation-title"
-      lang="it"
+      lang={locale}
     >
       <div className="talea-say">
         <h2 id="talea-participation-title" className="talea-say-title">
@@ -156,42 +132,32 @@ export function TaleaParticipationSection() {
   );
 }
 
-/**
- * I partner.
- *
- * Il titolo era «Chi c'è dietro»: una domanda retorica, che promette di svelare
- * qualcosa. La parola è «Partner», che è quella che usa il progetto e quella che
- * il lettore cerca.
- *
- * Impaginazione presa dalla piattaforma TALEA: una griglia di schede con il nome
- * e una parola sul ruolo, le città di replica separate dai partner (non
- * finanziano e non realizzano: sono il posto dove il modello viene ripiantato) e
- * in fondo la dichiarazione di finanziamento con l'emblema europeo.
- *
- * Le schede sono la stessa famiglia di quelle degli strumenti in chiusura
- * (`.source-card`): stesso raggio, stesso bordo, stesso sollevamento al passaggio
- * del mouse. Prima erano righe da 0.86 rem in tre colonne, cioè crediti che
- * nessuno si sarebbe fermato a leggere.
- */
 export function TaleaPartnersSection() {
+  const { content, locale } = useContent();
+  const taleaPartnerContent = content.talea.partners;
+  const taleaPartners = useMemo(() => {
+    const partnerCopyById = new Map(
+      taleaPartnerContent.items.map((partner) => [partner.partnerId, partner]),
+    );
+    return taleaPartnerSpecs.map((spec) => ({
+      ...spec,
+      ...partnerCopyById.get(spec.id),
+    }));
+  }, [taleaPartnerContent]);
+
   return (
-    <section className="talea-partners" aria-labelledby="talea-partners-title" lang="it">
+    <section className="talea-partners" aria-labelledby="talea-partners-title" lang={locale}>
       <div className="talea-frame">
         <h2 id="talea-partners-title" className="talea-partners-title">
-          {taleaPartners.title}
+          {taleaPartnerContent.title}
         </h2>
 
-        {/* Il logo sta nel FONDO della scheda, ingrandito fino a coprirla e
-            portato a bassa opacità: serve a dare il colore dell'ente, non a
-            essere letto. Il nome resta l'oggetto della scheda, e sopra il logo
-            passa una velatura che gli tiene il contrasto. Il percorso arriva da
-            `--logo`, così la regola sta tutta nel CSS. */}
-        <ul className="talea-partner-grid" aria-label={taleaPartners.partnerListLabel}>
-          {taleaPartners.partners.map((partner) => (
-            <li key={partner.name}>
+        <ul className="talea-partner-grid" aria-label={taleaPartnerContent.ariaLabel}>
+          {taleaPartners.map((partner) => (
+            <li key={partner.id}>
               <a
                 className={`talea-partner-card${
-                  partner.role === "capofila" ? " talea-partner-card--lead" : ""
+                  partner.lead ? " talea-partner-card--lead" : ""
                 }`}
                 href={partner.href}
                 target="_blank"
@@ -209,12 +175,12 @@ export function TaleaPartnersSection() {
 
         <a
           className="talea-funding"
-          href={taleaPartners.funding.href}
+          href={resolveTaleaLink(taleaPartnerContent.funding.linkId)}
           target="_blank"
           rel="noreferrer"
         >
-          <EuEmblem label={taleaPartners.funding.emblemLabel} />
-          <span>{taleaPartners.funding.text}</span>
+          <EuEmblem label={taleaPartnerContent.funding.emblemLabel} />
+          <span>{taleaPartnerContent.funding.text}</span>
         </a>
       </div>
     </section>

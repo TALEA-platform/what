@@ -4,23 +4,25 @@ from pathlib import Path
 import numpy as np
 import rasterio
 from PIL import Image
-from rasterio.features import rasterize
-from rasterio.transform import from_bounds
-from rasterio.warp import transform
+from rasterio.features import geometry_mask
+from rasterio.warp import transform, transform_geom
+
+from lib.data_inputs import external_data_root, require_data_input, resolve_data_input
 
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT_DIR = ROOT / "public" / "data" / "physical-drivers"
-SHADOW_SOURCE = ROOT / "external" / "historysuhi" / "webapp" / "data" / "bologna_shadow_means" / "bologna_shadow_means.geojson"
+BOLOGNA_BOUNDARY = ROOT / "public" / "data" / "vectors" / "bologna_boundary_outline.geojson"
+NDVI_SOURCE = resolve_data_input("ndvi2025Raster")
+ALBEDO_SOURCE = resolve_data_input("albedo2025Raster")
 
 LAYERS = [
     {
         "id": "green",
-        "source": ROOT / "external" / "historysuhi" / "webapp" / "data" / "webapp_rasters" / "NDVI_2025_summer_30m.tif",
+        "source": NDVI_SOURCE,
         "output": "ndvi_2025_direct_overlay.png",
         "value_range": (0.07, 0.89),
         "transparent_below": -0.2,
-        # historysuhi "green" default palette: cream → light green → talea green → deep green.
         "colors": np.array(
             [
                 [245, 240, 208],
@@ -35,11 +37,11 @@ LAYERS = [
     },
     {
         "id": "absorbing",
-        "source": ROOT / "external" / "historysuhi" / "webapp" / "data" / "webapp_rasters" / "Albedo_2025_summer_30m.tif",
+        "source": ALBEDO_SOURCE,
         "output": "albedo_absorbing_2025_direct_overlay.png",
-        "value_range": (0.14, 0.22),
-        "transparent_below": 0.05,
-        # historysuhi "albedo" default palette: dark = assorbente → chiaro = riflettente.
+        "value_range": (0.12, 0.27),
+        "gamma": 1.15,
+        "clip_geometry": BOLOGNA_BOUNDARY,
         "colors": np.array(
             [
                 [17, 17, 17],
@@ -50,7 +52,7 @@ LAYERS = [
             ],
             dtype=np.float32,
         ),
-        "alpha": (245, 255),
+        "alpha": (255, 255),
     },
 ]
 
@@ -74,16 +76,27 @@ def interpolate_colors(values, colors):
     return np.stack([red, green, blue], axis=-1)
 
 
-def render_rgba(values, mask, value_range, colors, alpha_range, invert=False):
+def source_label(path):
+    for base, prefix in ((ROOT, ""), (external_data_root(), "external/")):
+        try:
+            relative = str(path.relative_to(base)).replace("\\", "/")
+            return f"{prefix}{relative}"
+        except ValueError:
+            continue
+    return str(path).replace("\\", "/")
+
+
+def render_rgba(values, mask, value_range, colors, alpha_range, invert=False, gamma=1.0):
     low, high = value_range
     normalized = np.clip((values - low) / (high - low), 0, 1)
     if invert:
         normalized = 1 - normalized
     normalized = np.where(mask, 0, normalized)
+    color_position = normalized ** gamma
 
-    rgb = interpolate_colors(normalized, colors)
+    rgb = interpolate_colors(color_position, colors)
     alpha_low, alpha_high = alpha_range
-    alpha = np.interp(normalized, [0, 1], [alpha_low, alpha_high])
+    alpha = np.interp(color_position, [0, 1], [alpha_low, alpha_high])
 
     rgba = np.zeros((*values.shape, 4), dtype=np.uint8)
     rgba[..., :3] = np.clip(rgb, 0, 255).astype(np.uint8)
@@ -98,6 +111,23 @@ def render_layer(layer):
         mask = np.ma.getmaskarray(raster) | ~np.isfinite(values)
         mask |= values < layer.get("transparent_below", -np.inf)
 
+        clip_geometry = layer.get("clip_geometry")
+        if clip_geometry:
+            with clip_geometry.open("r", encoding="utf8") as source_file:
+                clip_data = json.load(source_file)
+            projected_geometries = [
+                transform_geom("EPSG:4326", src.crs.to_string(), feature["geometry"])
+                for feature in clip_data.get("features", [])
+                if feature.get("geometry")
+            ]
+            inside_clip = geometry_mask(
+                projected_geometries,
+                out_shape=(src.height, src.width),
+                transform=src.transform,
+                invert=True,
+            )
+            mask |= ~inside_clip
+
         low, high = layer["value_range"]
         rgba = render_rgba(
             values,
@@ -106,6 +136,7 @@ def render_layer(layer):
             layer["colors"],
             layer["alpha"],
             invert=layer.get("invert", False),
+            gamma=layer.get("gamma", 1.0),
         )
 
         output_path = OUTPUT_DIR / layer["output"]
@@ -114,7 +145,7 @@ def render_layer(layer):
         return {
             "id": layer["id"],
             "url": f"/data/physical-drivers/{layer['output']}",
-            "source": str(layer["source"].relative_to(ROOT)).replace("\\", "/"),
+            "source": source_label(layer["source"]),
             "coordinates": layer_corners(src),
             "width": src.width,
             "height": src.height,
@@ -122,98 +153,13 @@ def render_layer(layer):
         }
 
 
-def shadow_value(properties):
-    street_count = float(properties.get("street_shadow_pixel_count") or 0)
-    roof_count = float(properties.get("roof_object_shadow_pixel_count") or 0)
-    total_count = street_count + roof_count
-    if total_count <= 0:
-        return None
-
-    street_mean = float(properties.get("street_shadow_mean") or 0)
-    roof_mean = float(properties.get("roof_object_shadow_mean") or 0)
-    return ((street_mean * street_count) + (roof_mean * roof_count)) / total_count
-
-
-def render_shadow_layer(reference_layer):
-    coordinates = reference_layer["coordinates"]
-    west = min(point[0] for point in coordinates)
-    east = max(point[0] for point in coordinates)
-    south = min(point[1] for point in coordinates)
-    north = max(point[1] for point in coordinates)
-    width = reference_layer["width"]
-    height = reference_layer["height"]
-    output_transform = from_bounds(west, south, east, north, width, height)
-
-    with SHADOW_SOURCE.open("r", encoding="utf8") as source_file:
-        shadow_data = json.load(source_file)
-
-    value_shapes = []
-    mask_shapes = []
-    for feature in shadow_data.get("features", []):
-        geometry = feature.get("geometry")
-        if not geometry:
-            continue
-        value = shadow_value(feature.get("properties", {}))
-        if value is None:
-            continue
-        value_shapes.append((geometry, value))
-        mask_shapes.append((geometry, 1))
-
-    values = rasterize(
-        value_shapes,
-        out_shape=(height, width),
-        transform=output_transform,
-        fill=0,
-        dtype="float32",
-    )
-    valid = rasterize(
-        mask_shapes,
-        out_shape=(height, width),
-        transform=output_transform,
-        fill=0,
-        dtype="uint8",
-    ).astype(bool)
-
-    if not valid.any():
-        raise RuntimeError("Shadow overlay is empty. Check the shadow GeoJSON CRS and bounds.")
-
-    value_range = tuple(float(value) for value in np.percentile(values[valid], [5, 95]))
-    rgba = render_rgba(
-        values,
-        ~valid,
-        value_range,
-        np.array(
-            [
-                [18, 114, 183],
-                [139, 220, 241],
-                [184, 241, 115],
-            ],
-            dtype=np.float32,
-        ),
-        (28, 214),
-    )
-
-    output = "shadow_means_direct_overlay.png"
-    output_path = OUTPUT_DIR / output
-    Image.fromarray(rgba, mode="RGBA").save(output_path, optimize=True)
-
-    return {
-        "id": "shade",
-        "url": f"/data/physical-drivers/{output}",
-        "source": str(SHADOW_SOURCE.relative_to(ROOT)).replace("\\", "/"),
-        "coordinates": coordinates,
-        "width": width,
-        "height": height,
-        "valueRange": list(value_range),
-    }
-
-
 def main():
+    require_data_input("ndvi2025Raster")
+    require_data_input("albedo2025Raster")
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     overlays = [render_layer(layer) for layer in LAYERS]
-    overlays.append(render_shadow_layer(overlays[0]))
     manifest = {
-        "note": "Direct MapLibre image overlays rendered from official HistorySUHI webapp rasters and shadow geometries. No narrative grid aggregation is applied.",
+        "note": "Direct MapLibre image overlays rendered from source rasters. The 10 m albedo is clipped to Bologna's municipal boundary; no narrative grid aggregation is applied.",
         "layers": {layer["id"]: layer for layer in overlays},
     }
     manifest_path = OUTPUT_DIR / "physical_driver_overlays.json"

@@ -26,10 +26,6 @@ function App() {
   const openMethod = () => setMethodOpen(true);
 
   return (
-    // Il provider tiene la scia del glossario: quali parole il lettore ha già
-    // incontrato scorrendo e quali ha già aperto. Serve al pannello, che le
-    // rimette in elenco, quindi deve stare sopra sia alla storia sia al
-    // pannello stesso.
     <GlossaryTrailProvider>
       <ScrollStem />
       <Header onOpenMethod={openMethod} />
@@ -38,18 +34,10 @@ function App() {
         <SummerTrendSection />
         <HotspotIntro onGlossary={setGlossaryId} />
         <HotspotMapScene />
-        {/* Section 2 (causes) starts here and contains the shadow sub-chapter. */}
         <PhysicalDriversSection onGlossary={setGlossaryId} />
         <ShadowFocusSection />
         <VulnerabilitySection />
-        {/* Closing chapter: rifugi climatici → NBS → corridoi → portici, as one
-            continuous flowing section (spec beats 7–10). */}
         <ClimateReliefSection onGlossary={setGlossaryId} />
-        {/* Closing arc: from the story's diagnosis to Bologna's real work.
-            L'ordine risponde alle domande del lettore nell'ordine in cui se le
-            fa: che cos'è questo progetto → dove agisce → come ci si entra →
-            chi lo firma. La partecipazione stava prima della mappa, cioè fra
-            la promessa e la sua verifica; ora la segue. */}
         <TaleaProjectSection onGlossary={setGlossaryId} />
         <ZonesMapScene />
         <TaleaParticipationSection />

@@ -5,17 +5,6 @@ import { BOLOGNA_CENTER, BOLOGNA_ZOOM } from "../../data/hotspotSteps";
 
 const DEFAULT_OPENFREEMAP_STYLE = "https://tiles.openfreemap.org/styles/positron";
 
-/**
- * Reusable MapLibre canvas.
- * Exposes the map instance via onMapReady callback.
- *
- * `hideLabels` spegne tutte le etichette dello stile di base appena è caricato.
- * Serve dove la base è scenografia e i dati sono i protagonisti (05 § 5.2): su
- * Positron restano accesi tutti i toponimi, e sopra la macchia calda della
- * mappa hotspot si leggevano Zola Predosa, Castenaso, Pianoro. I livelli
- * restano nello stile, solo invisibili: chi inserisce un livello «prima delle
- * etichette» continua a trovarle.
- */
 export function MapLibreCanvas({
   onMapReady,
   className = "",

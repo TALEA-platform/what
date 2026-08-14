@@ -6,11 +6,6 @@ import {
 } from "../../data/hotspotData";
 import { getHotspotPersistenceColor } from "../../data/hotspotPalette";
 
-/**
- * Manages the hotspot persistence stack for the narrative map.
- * The source files are cumulative, so drawing thresholds 1..13 in order keeps
- * highly persistent areas colored by their higher class even when threshold 1 is visible.
- */
 export function HotspotLayer({
   map,
   id,
@@ -45,8 +40,6 @@ export function HotspotLayer({
         }
 
         if (!map.getLayer(layer)) {
-          // Add at the TOP of the stack so hotspots sit above basemap labels
-          // (e.g. "Bologna") — otherwise the center polygons get covered.
           map.addLayer({
             id: layer,
             type: "fill",

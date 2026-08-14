@@ -1,27 +1,4 @@
-// LE PERSONE DEL PLASTICO — la geometria, staccata da chi la disegna.
-//
-// Stava dentro `rifugioModel3d.js`, ed era giusto finche' le persone servivano
-// a una scena sola. Ora servono a DUE: il plastico girevole del capitolo sul
-// rifugio e i tre primi piani di «dove manca, si costruisce». Copiarle avrebbe
-// voluto dire tenere allineate a mano due signore con lo stesso cappello.
-//
-// Qui non c'e' nessun render: ci sono i punti. Chi chiama passa il proprio
-// `addFace` e i propri contenitori, e ne fa quello che vuole —
-//   · il plastico li proietta a ogni fotogramma, con l'angolo del momento;
-//   · `scripts/build_cast_figures.mjs` li proietta UNA volta in assonometria,
-//     butta via tutto quello che non si vede e ne cuoce un disegno statico.
-//
-// ── `detail`: lo stesso corpo, meno faccette ─────────────────────────────
-// Nel plastico le persone si guardano da vicino e si girano, quindi la
-// tassellatura serve tutta. Nei primi piani sono alte ottanta pixel e non si
-// muovono: meta' dei meridiani di una testa non si distingue nemmeno. Il
-// moltiplicatore riduce i segmenti di TUTTE le primitive insieme, cosi' la
-// riduzione resta proporzionata e nessun pezzo diventa un poligono mentre i
-// vicini restano tondi. A 1 (il valore del plastico) i conti tornano identici
-// a prima: `Math.round(k * 1)` e' `k`.
 
-/** La tavolozza del cast: pelli, capelli, stoffe, e i pochi oggetti che le
- *  persone si portano dietro (bastone, cappello, carrozzina). */
 export const CAST = {
   skinLight: "#E9C6A0",
   skinWarm: "#B07A4E",
@@ -48,19 +25,6 @@ export const CAST = {
 
 const point = (x, y, z = 0) => ({ x, y, z });
 
-/**
- * Costruisce le primitive e le figure attorno al contesto di chi disegna.
- *
- * @param {object} ctx
- * @param {(target: any[], points: object[], fill: string, normal: object, options?: object) => void} ctx.addFace
- * @param {any[]} ctx.solids        dove finiscono i volumi
- * @param {any[]} ctx.contactFaces  dove finiscono le ombre di contatto
- * @param {string} ctx.ink          il nero del disegno
- * @param {number} ctx.personYaw    l'asse frontale predefinito
- * @param {() => object} [ctx.figureOptions] le opzioni correnti (cambiano a ogni persona)
- * @param {() => number} [ctx.benchSeatZ]    la quota della seduta, per chi si siede
- * @param {number} [ctx.detail]     moltiplicatore della tassellatura
- */
 export function createCastFigures({
   addFace,
   solids,
@@ -166,9 +130,7 @@ export function createCastFigures({
         const p0=make(a0,l0), p1=make(a0,l1), p2=make(a1,l1), p3=make(a1,l0);
         const am=(a0+a1)/2, lm=(l0+l1)/2;
         const normal=localNormal(Math.cos(am)*Math.cos(lm)/forwardRadius,Math.cos(am)*Math.sin(lm)/sideRadius,Math.sin(am)/zRadius,yaw);
-        // `softness` smorza la variazione di tono fra faccetta e faccetta.
-        // Sulle chiome serve: a piena forza i meridiani si vedevano tutti e
-        // l'albero leggeva come un ombrellone con le stecche.
+        // Softening keeps organic surfaces from exposing every mesh meridian.
         const toned=surfaceTone(fill,normal);
         const faceFill=opts.softness ? mixHex(toned,fill,opts.softness) : toned;
         addFace(target,[p0,p1,p2,p3],faceFill,normal,{...opts,stroke:faceFill});
@@ -274,15 +236,6 @@ export function createCastFigures({
     const headSide=sideRadius*1.16;
     const headZ=zRadius*1.12;
     addEllipsoid(solids,cx,cy,cz,headForward,headSide,headZ,skin,yaw);
-    // ── L'attaccatura dei capelli ────────────────────────────────────────
-    // La calotta stava arretrata di mezzo raggio e ne era larga 0,88: il suo
-    // bordo davanti arrivava a 0,38 del raggio della testa, cioe' a meta'
-    // cranio. Da davanti — che e' come si guardano quasi sempre — erano tutti
-    // stempiati fino alla sommita', con una fronte alta il doppio del normale.
-    // Ora la calotta e' arretrata appena (0,18) ed e' larga quanto la testa:
-    // il bordo cade a 0,80 del raggio, cioe' subito sopra le sopracciglia, che
-    // e' dove sta l'attaccatura in una faccia vera. Gli occhi restano davanti
-    // (stanno a 1,025) e non finiscono sotto la frangia.
     const hairCenter=localPoint(cx,cy,-headForward*.18,0,cz+headZ*.46,yaw);
     addEllipsoid(solids,hairCenter.x,hairCenter.y,hairCenter.z,headForward*.98,headSide*1.04,headZ*.56,hair,yaw);
     addFaceDetails(cx,cy,cz,skin,headForward,headSide,yaw);
@@ -331,15 +284,9 @@ export function createCastFigures({
     addRoundFrustum(solids,cx,cy,.4,.34,.3,.27,1.98,2.15,figureMaterial(CAST.hat,"#BCA979","#A99569","#E3D4AB"),yaw,16);
   }
 
-  // ── La stessa signora, seduta ──────────────────────────────────────────
-  // Quando arrivano le sedute lei si siede: e' il modo piu' diretto di dire
-  // che cosa serve una panchina. Non e' un personaggio nuovo, e' la stessa
-  // persona in un'altra posa, quindi la si riconosce.
   function addElderSeated3D(cx,cy,yaw=personYaw) {
     addContactShadow(cx,cy,.52,.46,yaw);
-    const seatZ = benchSeatZ() + .07;   // il corpo appoggia sopra le doghe
-    // Piedi a terra, ginocchia avanti: le cosce orizzontali sono cio' che
-    // fa leggere "seduta" e non "in piedi dietro una panchina".
+    const seatZ = benchSeatZ() + .07;
     for (const side of [-.15,.15]) {
       addShoe(cx,cy,side,.245,"#5E564A",yaw,.95,.44);
       const hip=localPoint(cx,cy,-.04,side,seatZ+.02,yaw);
@@ -362,7 +309,6 @@ export function createCastFigures({
     addRoundFrustum(solids,cx,cy,.4,.34,.3,.27,seatZ+1.07,seatZ+1.24,
       figureMaterial(CAST.hat,"#BCA979","#A99569","#E3D4AB"),yaw,16);
 
-    // Braccia appoggiate in grembo, e il bastone che riposa contro la seduta.
     for (const s of [-1,1]) {
       const shoulder=localPoint(cx,cy,0,s*.29,seatZ+.56,yaw);
       const elbow=localPoint(cx,cy,.14,s*.33,seatZ+.3,yaw);
@@ -423,12 +369,6 @@ export function createCastFigures({
     addHand(r1,CAST.skinLight,yaw,1,.78);
   }
 
-  // ── Le ruote restano SOLIDE ────────────────────────────────────────────
-  // Erano state ridotte a dischi piatti per risparmiare poligoni. Un disco
-  // ha una faccia sola: ruotando di la', il back-face culling lo toglie di
-  // scena e la ruota sparisce. Un toro e' chiuso, quindi da qualunque
-  // angolo c'e' sempre una faccia rivolta a chi guarda. Costa di piu' ed e'
-  // la scelta giusta: qui conta che ci sia tutto, non che sia rapido.
   function addWheel(cx,cy,forward,side,centerZ,radius,yaw=personYaw) {
     const segments=segCount(14,8);
     const ringPoints=Array.from({length:segments},(_,i)=>{
@@ -437,9 +377,6 @@ export function createCastFigures({
     });
     for (let i=0;i<segments;i++) addTube(solids,ringPoints[i],ringPoints[(i+1)%segments],.035,CAST.shoe,5);
     const hub=localPoint(cx,cy,forward,side,centerZ,yaw);
-    // I raggi sono uno ogni due settori: contarli cosi', invece che con una
-    // lista di indici fissi, li tiene proporzionati anche quando la ruota
-    // viene tassellata piu' fitta o piu' rada.
     for (let i=0;i<segments;i+=2) addTube(solids,hub,ringPoints[i],.013,CAST.metalHi,5);
     addEllipsoid(solids,hub.x,hub.y,hub.z,.055,.045,.055,CAST.metal,yaw,figureOptions(),8);
   }
@@ -567,9 +504,6 @@ export function createCastFigures({
   };
 }
 
-/** I personaggi che si possono chiedere per nome, con l'altezza in metri e
- *  l'impronta a terra (semilati, in metri) che serve a chi deve buttare
- *  un'ombra sotto ai piedi. */
 export const CAST_FIGURES = {
   elder:          { build: "addElder3D",         height: 2.15, footprint: [.30, .30] },
   elderSeated:    { build: "addElderSeated3D",   height: 1.76, footprint: [.42, .30] },

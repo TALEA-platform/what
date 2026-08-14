@@ -1,18 +1,31 @@
 import { useState, useEffect } from "react";
 import { BookOpen, ExternalLink, Menu, X } from "lucide-react";
+import {
+  siteConfig,
+  supportedLocales,
+  useContent,
+} from "../../content";
 
 const logoUrl = new URL("/assets/talea-logo.png", import.meta.url).href;
+const { platformUrl } = siteConfig;
 
-// Full-bleed, pinned map scenes (hotspot + shadow + the rifugi and pilot-zone
-// maps). While one of these covers the viewport the header slides away so it
-// stops stealing space over the map; it returns in the text sections. The causes
-// scene is an editorial framed crop, not a full map, so it deliberately keeps the
-// header.
 const MAP_SCENE_SELECTOR = ".hotspot-scene-map, .sf-scene-map, .relief-map-sticky";
 
 export function Header({ onOpenMethod }) {
+  const { locale, methodContent, setLocale, uiContent } = useContent();
   const [menuOpen, setMenuOpen] = useState(false);
   const [hidden, setHidden] = useState(false);
+
+  const changeLocale = (language) => {
+    const position = { x: window.scrollX, y: window.scrollY };
+    setLocale(language);
+    requestAnimationFrame(() => {
+      window.scrollTo({ left: position.x, top: position.y, behavior: "instant" });
+      requestAnimationFrame(() => {
+        window.scrollTo({ left: position.x, top: position.y, behavior: "instant" });
+      });
+    });
+  };
 
   useEffect(() => {
     let frame = null;
@@ -22,7 +35,6 @@ export function Header({ onOpenMethod }) {
       let onMap = false;
       document.querySelectorAll(MAP_SCENE_SELECTOR).forEach((el) => {
         const r = el.getBoundingClientRect();
-        // Pinned and covering most of the viewport from the top.
         if (r.top <= 4 && r.bottom > vh * 0.55) onMap = true;
       });
       setHidden(onMap);
@@ -43,7 +55,7 @@ export function Header({ onOpenMethod }) {
   }, []);
 
   return (
-    <header className={`header${hidden ? " header--hidden" : ""}`}>
+    <header className={`header${hidden ? " header--hidden" : ""}`} lang={locale}>
       <div className="header-inner">
         <div className="brand-left">
           <img className="brand-logo" src={logoUrl} alt="TALEA" />
@@ -55,13 +67,27 @@ export function Header({ onOpenMethod }) {
         <button
           className="mobile-menu-btn"
           type="button"
-          aria-label={menuOpen ? "Chiudi menu" : "Apri menu"}
+          aria-label={menuOpen ? uiContent.header.menu.close : uiContent.header.menu.open}
           onClick={() => setMenuOpen((v) => !v)}
         >
           {menuOpen ? <X size={22} /> : <Menu size={22} />}
         </button>
 
         <div className={`header-actions header-nav${menuOpen ? " open" : ""}`}>
+          <div className="lang-switch" role="group" aria-label="Lingua / Language">
+            {supportedLocales.map((language) => (
+              <button
+                key={language}
+                type="button"
+                className={language === locale ? "active" : undefined}
+                aria-pressed={language === locale}
+                lang={language}
+                onClick={() => changeLocale(language)}
+              >
+                {language.toUpperCase()}
+              </button>
+            ))}
+          </div>
           <button
             type="button"
             className="header-link"
@@ -71,16 +97,16 @@ export function Header({ onOpenMethod }) {
             }}
           >
             <BookOpen size={15} />
-            <span className="link-label">Metodo e fonti</span>
+            <span className="link-label">{methodContent.title}</span>
           </button>
           <a
             className="header-link"
-            href="https://talea.comune.bologna.it/"
+            href={platformUrl}
             target="_blank"
             rel="noopener noreferrer"
           >
             <ExternalLink size={15} />
-            <span className="link-label">Esplora dati</span>
+            <span className="link-label">{uiContent.header.exploreData.label}</span>
           </a>
         </div>
       </div>

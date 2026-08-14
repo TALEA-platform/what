@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { rifugiCopy } from "../../data/climateRelief";
+import { rifugiCounts } from "../../data/climateRelief";
+import { loadReliefSources } from "../../data/reliefData";
+import { editorialLinks, useContent } from "../../content";
 import { SearchSuggest } from "../ui/SearchSuggest";
 import {
   ADDRESS_ZOOM,
@@ -46,13 +48,8 @@ import {
 } from "../../data/reliefMaps";
 
 const FILL_OPACITY = 0.62;
+const EMPTY_FEATURE_COLLECTION = { type: "FeatureCollection", features: [] };
 
-// ── Quando la scena si scopre e quando si richiude, in altezze di schermata ──
-// `REVEAL_AT`: la mappa ha quasi preso lo schermo e il velo d'ingresso si
-// scioglie. Sotto questa soglia il campo di colore in arrivo fa da ponte.
-// `EXIT_FROM` / `EXIT_TO`: la dissolvenza d'uscita, legata allo scorrimento.
-// Comincia quando il pannello sticky si sgancia e finisce quando della mappa
-// resta l'ultimo quarto di schermo: vedi il commento nel ciclo di scorrimento.
 const REVEAL_AT = 0.18;
 const EXIT_FROM = 0.94;
 const EXIT_TO = 0.28;
@@ -60,21 +57,10 @@ const EXIT_TO = 0.28;
 const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
 const smoothstep = (t) => t * t * (3 - 2 * t);
 
-/**
- * Sticky ortophoto map of Bologna's climate refuges, on two tiers that must stay
- * legible as two: the deep-green PINS are the refuges the Comune has actually
- * recognised (a decision, with opening hours), the green SHAPES are the parks
- * and gardens the CRAF study finds big and leafy enough to do the same job (a
- * measurement). The city's small green — flower beds, verges — is deliberately
- * not drawn: it is not a refuge, and drawing it would say it is.
- *
- * The scene doesn't lift a veil like the hotspot and shadow maps do: the network
- * LIGHTS UP from the centre outwards (`10` § 10.2), because this is the first
- * good news of the story. Tapping any refuge eases the camera in and opens its
- * card; searching a street answers "e casa mia?" with the distance to the relief
- * nearest to it (`11` § 11.3). Scrolling on eases back out to the overview.
- */
 export function RifugiMapScene() {
+  const { content, locale } = useContent();
+  const reliefMapContent = content.climateRelief.refuges.map;
+  const reliefCards = reliefMapContent.cards;
   const sectionRef = useRef(null);
   const containerRef = useRef(null);
   const mapRef = useRef(null);
@@ -89,33 +75,39 @@ export function RifugiMapScene() {
   const revealTargetsRef = useRef(null);
   const controlsReadyTimerRef = useRef(null);
   const routeAbortRef = useRef(null);
-  // True only while a refuge DETAIL card is open (tap a refuge). A plain
-  // zoom-into-empty-ground focuses the camera but leaves this false, so refuges
-  // stay hoverable once zoomed in.
   const detailOpenRef = useRef(false);
-  // Key of the refuge whose detail card is open, so hovering a DIFFERENT refuge
-  // still previews it (only the selected one is skipped).
   const selectedKeyRef = useRef(null);
   const focusAtRef = useRef(0);
   const lastScrollRef = useRef(0);
   const scrollAnchorRef = useRef(0);
   const scrollResetUntilRef = useRef(0);
+  const reliefCardsRef = useRef(reliefCards);
+  const localeRef = useRef(locale);
+  const detailRefreshRef = useRef(null);
+  const popupRefreshRef = useRef(null);
 
-  // `revealed` è «il velo d'ingresso è sciolto»; `engaged` è «la scena sta
-  // recitando». Erano la stessa cosa, e all'uscita si pagava due volte: la
-  // scena si disingaggiava, il velo d'INGRESSO tornava opaco in 760 ms e sopra
-  // di lui saliva anche quello d'uscita. Due bianchi sovrapposti sulla stessa
-  // mappa. Il velo d'ingresso ora torna solo se il lettore risale sopra la
-  // scena; l'uscita la racconta il velo d'uscita, da solo.
   const [revealed, setRevealed] = useState(false);
   const [engaged, setEngaged] = useState(false);
   const [exiting, setExiting] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [csiUnavailable, setCsiUnavailable] = useState(false);
   const [focused, setFocused] = useState(false);
   const [controlsReady, setControlsReady] = useState(false);
   const [detail, setDetail] = useState("");
-  const [message, setMessage] = useState("");
-  const [searchPromptLead, searchPromptTail = ""] = rifugiCopy.searchPrompt.split(":");
+  const [messageKey, setMessageKey] = useState(null);
+  const message = messageKey ? reliefMapContent.search[messageKey] : "";
+
+  useEffect(() => {
+    reliefCardsRef.current = reliefCards;
+    localeRef.current = locale;
+  }, [locale, reliefCards]);
+
+  useEffect(() => {
+    const detailHtml = detailRefreshRef.current?.();
+    if (detailHtml) setDetail(detailHtml);
+    const popupHtml = popupRefreshRef.current?.();
+    if (popupHtml) popupRef.current?.setHTML(popupHtml);
+  }, [locale]);
 
   const sceneTop = useCallback(() => {
     const section = sectionRef.current;
@@ -131,8 +123,6 @@ export function RifugiMapScene() {
     window.scrollTo({ top: anchor, behavior: "auto" });
   }, [sceneTop]);
 
-  // The sticky map fills the viewport (is "full screen") only while the section
-  // is pinned — its top at/above the viewport top and its bottom below it.
   const isFullScreen = useCallback(() => {
     const section = sectionRef.current;
     if (!section) return true;
@@ -144,8 +134,6 @@ export function RifugiMapScene() {
   const setSearchMarker = useCallback((pt) => {
     markerRef.current?.remove();
     markerRef.current = null;
-    // Yellow means one thing on every map of this story: "this is the thing you
-    // asked about" (`01` § 1.1). A searched address qualifies; nothing else here does.
     if (pt && mapRef.current) {
       markerRef.current = new maplibregl.Marker({ color: "#FFE604" }).setLngLat(pt).addTo(mapRef.current);
     }
@@ -161,7 +149,7 @@ export function RifugiMapScene() {
   const clearHighlights = useCallback(() => {
     const map = mapRef.current;
     if (!map) return;
-    setRifugiFocus(map, "main", []);
+    setRifugiFocus(map, "main", [], reliefCardsRef.current.green.fallbackName);
     setRifugiHover(map, "main", null);
     setUfficialeFocus(map, "main", null);
     setWalkingRoutes(map, "main", []);
@@ -172,8 +160,6 @@ export function RifugiMapScene() {
     routeAbortRef.current = null;
   }, []);
 
-  // Tap an official refuge: the card carries the things only these places have —
-  // indoor cool, free toilets, drinking water, opening hours.
   const focusUfficiale = useCallback(
     (feature) => {
       const map = mapRef.current;
@@ -184,17 +170,15 @@ export function RifugiMapScene() {
       detailOpenRef.current = true;
       selectedKeyRef.current = null;
       setUfficialeFocus(map, "main", feature);
-      setDetail(ufficialeDetailHTML(feature));
-      setMessage("");
+      detailRefreshRef.current = () => ufficialeDetailHTML(feature, reliefCardsRef.current);
+      setDetail(detailRefreshRef.current());
+      setMessageKey(null);
       enterFocus();
       map.flyTo({ center: feature.geometry.coordinates, zoom: 15.4, duration: 1400, essential: true });
     },
     [cancelRouting, clearHighlights, enterFocus, setSearchMarker],
   );
 
-  // Tap a green refuge: the clicked shape is a tile-clipped fragment, so resolve
-  // it to the WHOLE park first — highlight, card and camera all describe the one
-  // place, with one continuous border.
   const focusRifugio = useCallback(
     (feature) => {
       const map = mapRef.current;
@@ -206,18 +190,17 @@ export function RifugiMapScene() {
       setSearchMarker(null);
       detailOpenRef.current = true;
       selectedKeyRef.current = rifugiHoverKey(primary);
-      setRifugiFocus(map, "main", full);
-      setDetail(rifugiDetailHTML(primary));
-      setMessage("");
+      setRifugiFocus(map, "main", full, reliefCardsRef.current.green.fallbackName);
+      detailRefreshRef.current = () =>
+        rifugiDetailHTML(primary, reliefCardsRef.current, localeRef.current);
+      setDetail(detailRefreshRef.current());
+      setMessageKey(null);
       enterFocus();
       flyToFeatures(map, full, { maxZoom: 16, padding: 120 });
     },
     [cancelRouting, clearHighlights, enterFocus, setSearchMarker],
   );
 
-  // Tap empty ground (no refuge under the point): nudge the camera in on that
-  // spot so the small refuges there grow and become easy to tap. Marked as a
-  // focus so scrolling on eases back out to the overview, like any other move.
   const zoomIntoPoint = useCallback(
     (pt) => {
       const map = mapRef.current;
@@ -226,6 +209,7 @@ export function RifugiMapScene() {
       clearHighlights();
       detailOpenRef.current = false;
       selectedKeyRef.current = null;
+      detailRefreshRef.current = null;
       setDetail("");
       enterFocus();
       const z = Math.min(map.getZoom() + 1.6, EXPLORE_ZOOM_LIMITS.maxZoom - 0.4);
@@ -234,9 +218,6 @@ export function RifugiMapScene() {
     [cancelRouting, clearHighlights, enterFocus],
   );
 
-  // "E casa mia?" — the moment the 3-30-300 block used to carry (`11` § 11.3).
-  // No index, no thresholds, nothing that can be wrong for lack of data: a place
-  // the reader knows, and how far the relief is from it.
   const focusPoint = useCallback(
     async (pt, label) => {
       const map = mapRef.current;
@@ -247,9 +228,10 @@ export function RifugiMapScene() {
       clearHighlights();
       detailOpenRef.current = false;
       selectedKeyRef.current = null;
+      detailRefreshRef.current = null;
       setSearchMarker(pt);
       setDetail("");
-      setMessage(rifugiCopy.routeLoading);
+      setMessageKey("routeLoading");
       enterFocus();
       flyToPoint(map, pt, { zoom: ADDRESS_ZOOM });
       try {
@@ -264,14 +246,25 @@ export function RifugiMapScene() {
             map,
             "main",
             verdi.flatMap((item) => fullRifugiFor(item.f)),
+            reliefCardsRef.current.green.fallbackName,
           );
         }
         setWalkingRoutes(map, "main", routes);
-        setDetail(nearbyCardHTML({ label, ufficiale, verdi }));
-        setMessage("");
+        detailRefreshRef.current = () =>
+          nearbyCardHTML({
+            label,
+            ufficiale,
+            verdi,
+            copy: reliefCardsRef.current,
+            locale: localeRef.current,
+          });
+        setDetail(detailRefreshRef.current());
+        setMessageKey(null);
         flyToWalkingRoutes(map, pt, routes);
       } catch (error) {
-        if (error?.name !== "AbortError") setMessage(rifugiCopy.routeError);
+        if (error?.name !== "AbortError") {
+          setMessageKey("routeError");
+        }
       } finally {
         if (routeAbortRef.current === controller) routeAbortRef.current = null;
       }
@@ -288,9 +281,10 @@ export function RifugiMapScene() {
       detailOpenRef.current = false;
       selectedKeyRef.current = null;
       hoverKeyRef.current = null;
+      detailRefreshRef.current = null;
       setFocused(false);
       setDetail("");
-      setMessage("");
+      setMessageKey(null);
       setSearchMarker(null);
       clearHighlights();
       frameOverview(map, 1200);
@@ -310,8 +304,6 @@ export function RifugiMapScene() {
   );
 
   const scrollSceneIntoView = useCallback(() => {
-    // `html { scroll-behavior: smooth }` is on: "instant" keeps the landing
-    // deterministic, which the pin/unpin maths below depends on.
     sectionRef.current?.scrollIntoView({ behavior: "instant", block: "start" });
   }, []);
 
@@ -321,13 +313,13 @@ export function RifugiMapScene() {
       if (!q) return;
       scrollSceneIntoView();
       await waitForReady();
-      setMessage("Cerco…");
+      setMessageKey("searching");
       try {
         const hit = await geocodeBologna(q);
         if (hit) await focusPoint(hit.pt, hit.label);
-        else setMessage(rifugiCopy.searchEmpty);
+        else setMessageKey("empty");
       } catch {
-        setMessage(rifugiCopy.searchEmpty);
+        setMessageKey("empty");
       }
     },
     [focusPoint, scrollSceneIntoView, waitForReady],
@@ -362,9 +354,6 @@ export function RifugiMapScene() {
       return;
     }
 
-    // The map itself speaks first. The information dock and invitation arrive
-    // once the green network is legible, while the Comune's pins finish settling:
-    // the controls explain the distinction without interrupting its entrance.
     cancelWaveRef.current = runRifugiWave(map, "main-rifugi-fill", FILL_OPACITY);
     fadeInPaint(map, "main-rifugi-line", "line-opacity", 0.9, 700, 1150);
     fadeInPaint(map, "main-rifugi-line-casing", "line-opacity", 0.85, 700, 1150);
@@ -378,7 +367,6 @@ export function RifugiMapScene() {
     }, 1760);
   }, []);
 
-  // Lazy-init the static map when the scene is near the viewport.
   useEffect(() => {
     const section = sectionRef.current;
     if (!section) return undefined;
@@ -401,19 +389,30 @@ export function RifugiMapScene() {
 
       map.on("load", async () => {
         addOrthophoto(map, { damped: true });
-        // The boundary is scenery, not a selection: no yellow (`01` § 1.1).
         addBolognaBoundary(map, "main", { color: "rgba(255,255,255,.72)", glowOpacity: 0.28, opacity: 0.7 });
         try {
-          const [parks, ufficiali] = await Promise.all([loadRifugiData(), loadRifugiUfficiali()]);
+          const sources = await loadReliefSources(loadRifugiData, loadRifugiUfficiali);
+          if (!sources.official) {
+            throw sources.errors.official || new Error("rifugi ufficiali non disponibili");
+          }
 
-          // The counter in the dock is hand-written copy; if the data moves under
-          // it, say so here rather than let the page publish a wrong number.
-          const realGreen = countRifugi(parks);
+          const parks = sources.csi || EMPTY_FEATURE_COLLECTION;
+          const ufficiali = sources.official;
+          if (sources.errors.csi) {
+            console.warn("csi.geojson non disponibile; i rifugi ufficiali restano attivi", sources.errors.csi);
+            setCsiUnavailable(true);
+            setFailed(true);
+          }
+
+          const realGreen = sources.csi ? countRifugi(parks) : null;
           const realOfficial = (ufficiali.features || []).length;
-          if (realGreen !== rifugiCopy.selectedCount || realOfficial !== rifugiCopy.officialCount) {
+          if (
+            (realGreen !== null && realGreen !== rifugiCounts.compatible) ||
+            realOfficial !== rifugiCounts.official
+          ) {
             console.warn(
-              `[rifugi] il contatore non corrisponde ai dati: ufficiali ${realOfficial} (testo ${rifugiCopy.officialCount}), ` +
-                `selezionati ${realGreen} (testo ${rifugiCopy.selectedCount}). Allinea rifugiCopy in src/data/climateRelief.js.`,
+              `[rifugi] il contatore non corrisponde ai dati: ufficiali ${realOfficial} (attesi ${rifugiCounts.official}), ` +
+                `selezionati ${realGreen ?? "non disponibili"} (attesi ${rifugiCounts.compatible}). Esegui npm run data:build.`,
             );
           }
 
@@ -437,7 +436,7 @@ export function RifugiMapScene() {
           map.setPaintProperty("main-ufficiali-dot", "circle-opacity", 0);
           map.setPaintProperty("main-ufficiali-dot", "circle-stroke-opacity", 0);
 
-          setOverviewFrame(map, parks, 46);
+          setOverviewFrame(map, sources.csi ? parks : ufficiali, 46);
           frameOverview(map, 0);
           readyRef.current = true;
           startNetworkReveal();
@@ -445,13 +444,10 @@ export function RifugiMapScene() {
           const clearHover = () => {
             if (hoverKeyRef.current == null) return;
             hoverKeyRef.current = null;
+            popupRefreshRef.current = null;
             setRifugiHover(map, "main", null);
             popupRef.current?.remove();
           };
-          // Pick the refuge nearest a screen point, searching a small padded box
-          // around it — a citizen can tap slightly off a tiny shape and still get
-          // it, instead of the exact-hit target the fill layer would require.
-          // The Comune's pins win ties: they are the better answer.
           const HIT = 8;
           const boxAt = (point) => [
             [point.x - HIT, point.y - HIT],
@@ -475,16 +471,9 @@ export function RifugiMapScene() {
             return best;
           };
           const ufficialeAt = (point) => nearestIn(point, ["main-ufficiali-dot"]);
-          // Il parco selezionato è tolto dal riempimento di base (si apre
-          // sull'ortofoto): resta però nel layer gemello, che va interrogato
-          // anche lui — altrimenti toccarne l'interno varrebbe «terreno vuoto»
-          // e la scheda appena aperta si chiuderebbe da sé.
           const rifugioAt = (point) => nearestIn(point, ["main-rifugi-fill", "main-rifugi-cutout"]);
 
           popupRef.current = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 16 });
-          // Anchor the hover popup to the refuge's centre and only rebuild it
-          // when the pointer moves to a DIFFERENT refuge — so it no longer trails
-          // and flickers under the cursor.
           map.on("mousemove", (e) => {
             const pin = ufficialeAt(e.point);
             if (pin) {
@@ -493,7 +482,12 @@ export function RifugiMapScene() {
               if (key === hoverKeyRef.current) return;
               hoverKeyRef.current = key;
               setRifugiHover(map, "main", null);
-              popupRef.current.setLngLat(pin.geometry.coordinates).setHTML(popupUfficialeHTML(pin)).addTo(map);
+              popupRefreshRef.current = () =>
+                popupUfficialeHTML(pin, reliefCardsRef.current);
+              popupRef.current
+                .setLngLat(pin.geometry.coordinates)
+                .setHTML(popupRefreshRef.current())
+                .addTo(map);
               return;
             }
             const raw = rifugioAt(e.point);
@@ -502,13 +496,9 @@ export function RifugiMapScene() {
               clearHover();
               return;
             }
-            // Resolve the clipped fragment to the whole park so the preview +
-            // outline are stable across the park and match what a click selects.
             const full = fullRifugiFor(raw);
             const f = full[0] || raw;
             const key = rifugiHoverKey(f);
-            // Skip only the refuge whose detail card is already open — hovering a
-            // DIFFERENT refuge still previews it, even while one is selected.
             if (detailOpenRef.current && key === selectedKeyRef.current) {
               clearHover();
               return;
@@ -516,12 +506,15 @@ export function RifugiMapScene() {
             if (key === hoverKeyRef.current) return;
             hoverKeyRef.current = key;
             setRifugiHover(map, "main", full);
-            popupRef.current.setLngLat(featureCenter(f)).setHTML(popupRifugioHTML(f)).addTo(map);
+            popupRefreshRef.current = () =>
+              popupRifugioHTML(f, reliefCardsRef.current);
+            popupRef.current
+              .setLngLat(featureCenter(f))
+              .setHTML(popupRefreshRef.current())
+              .addTo(map);
           });
           map.on("click", (e) => {
             clearHover();
-            // Pressing acts only against a full-screen map: if it isn't pinned
-            // yet, snap it to full screen first, then run the zoom / selection.
             if (!isFullScreen()) holdScrollAtSceneTop();
             const pin = ufficialeAt(e.point);
             if (pin) return focusUfficiale(pin);
@@ -550,12 +543,19 @@ export function RifugiMapScene() {
             detailOpenRef.current = false;
             selectedKeyRef.current = null;
             hoverKeyRef.current = null;
+            detailRefreshRef.current = null;
+            popupRefreshRef.current = null;
             setFocused(false);
             setDetail("");
-            setMessage("");
+            setMessageKey(null);
             setSearchMarker(null);
             if (mapRef.current) {
-              setRifugiFocus(mapRef.current, "main", []);
+              setRifugiFocus(
+                mapRef.current,
+                "main",
+                [],
+                reliefCardsRef.current.green.fallbackName,
+              );
               setRifugiHover(mapRef.current, "main", null);
               setUfficialeFocus(mapRef.current, "main", null);
               setWalkingRoutes(mapRef.current, "main", []);
@@ -591,7 +591,6 @@ export function RifugiMapScene() {
     startNetworkReveal,
   ]);
 
-  // Scroll-driven: veil reveal/conceal and de-zoom on scroll-on.
   useEffect(() => {
     let frame = null;
     const update = () => {
@@ -602,23 +601,11 @@ export function RifugiMapScene() {
       if (!rect) return;
       const inScene = rect.top < vh && rect.bottom > 0;
 
-      // ── L'uscita ─────────────────────────────────────────────────────────
-      // La dissolvenza d'uscita è LEGATA ALLO SCROLL, non a un cronometro.
-      // Prima era una classe che scattava a 0,82 schermate e faceva partire una
-      // dissolvenza di 760 ms: da lì il lettore aveva ancora l'82% di una
-      // schermata da percorrere con la mappa già coperta di bianco, e quel
-      // tratto era letteralmente uno schermo vuoto che non rispondeva a niente.
-      // Adesso comincia quando il pannello sticky si sgancia e finisce quando
-      // della mappa resta l'ultimo quarto di schermo, con sotto già il ponte
-      // verso la pianta: ogni pixel di scorrimento fa succedere qualcosa.
       const exitProgress = smoothstep(
         clamp01((vh * EXIT_FROM - rect.bottom) / (vh * (EXIT_FROM - EXIT_TO))),
       );
       section.style.setProperty("--map-exit", exitProgress.toFixed(3));
       const nextExiting = inScene && rect.bottom <= vh * EXIT_FROM;
-      // Wait until the map has nearly taken the screen before starting the
-      // network: the incoming field remains a calm colour bridge, then the map
-      // performs its reveal while the reader can actually see the whole city.
       const nextRevealed = inScene && rect.top <= vh * REVEAL_AT;
       const nextEngaged = nextRevealed && !nextExiting;
 
@@ -659,24 +646,18 @@ export function RifugiMapScene() {
     };
   }, [dezoomToOverview, startNetworkReveal]);
 
-  // I controlli vivono con la scena: entrano quando la mappa ha preso lo schermo
-  // e se ne vanno appena il lettore la lascia, in su come in giù. Prima uscivano
-  // soltanto verso il basso: tornando indietro il velo copriva la mappa ma il
-  // dock e la ricerca restavano appesi sopra un campo di colore vuoto.
   const controlsGone = exiting || !(engaged || focused);
 
   return (
     <section
       ref={sectionRef}
       className={`relief-map-section relief-map-section--rifugi${focused ? " relief-map-section--focused" : ""}`}
-      aria-label="Mappa dei rifugi climatici di Bologna"
+      aria-label={reliefMapContent.ariaLabel}
     >
       <div className="relief-map-sticky">
         <div ref={containerRef} className="map-canvas relief-map-canvas" aria-hidden="true" />
         <div className="relief-map-scrim" aria-hidden="true" />
         <div className={`relief-map-veil${revealed ? " relief-map-veil--hidden" : ""}`} aria-hidden="true" />
-        {/* Niente classe di stato: l'opacità è `--map-exit`, cioè la posizione
-            di scorrimento, scritta sulla sezione a ogni fotogramma. */}
         <div className="relief-map-veil-exit" aria-hidden="true" />
 
         <div
@@ -686,7 +667,7 @@ export function RifugiMapScene() {
           aria-hidden="true"
         >
           <span className="relief-map-hint-dot" />
-          {focused ? "Scorri per tornare alla città" : rifugiCopy.mapHint}
+          {focused ? reliefMapContent.hints.return : reliefMapContent.hints.invite}
         </div>
 
         {controlsReady && (
@@ -696,35 +677,36 @@ export function RifugiMapScene() {
                 <div className="relief-focus-card on" aria-live="polite" dangerouslySetInnerHTML={{ __html: detail }} />
               ) : (
                 <>
-                  {/* Un contatore, non una legenda (`10` § 10.3): la domanda che un
-                      cittadino si fa davanti a questa mappa è «quanti sono?». */}
                   <div className="relief-count">
-                    <span className="relief-count-num">{rifugiCopy.officialCount}</span>
+                    <span className="relief-count-num">{rifugiCounts.official}</span>
                     <span className="relief-count-label">
                       <span className="relief-count-dot relief-count-dot--ufficiale" aria-hidden="true" />
-                      {rifugiCopy.officialLabel}
+                      {reliefMapContent.counts.officialLabel}
                     </span>
-                    <span className="relief-count-sub">{rifugiCopy.officialSub}</span>
-                  </div>
-                  {/* Il link sta con ciò di cui parla: è la mappa DEL COMUNE, e
-                      va letto insieme ai rifugi che il Comune riconosce, non in
-                      fondo al blocco dove sembrava riguardare anche i 231 parchi. */}
-                  <a className="relief-map-link" href={rifugiCopy.link.href} target="_blank" rel="noopener noreferrer">
-                    {rifugiCopy.link.label} →
-                  </a>
-                  <div className="relief-count relief-count--second">
-                    <span className="relief-count-num">{rifugiCopy.selectedCount}</span>
-                    <span className="relief-count-label">
-                      <span className="relief-count-dot relief-count-dot--verde" aria-hidden="true" />
-                      {rifugiCopy.selectedLabel}
+                    <span className="relief-count-sub">
+                      {reliefMapContent.counts.officialSub}
                     </span>
                   </div>
-                  <a className="relief-map-link" href={rifugiCopy.selectedLink.href} target="_blank" rel="noopener noreferrer">
-                    {rifugiCopy.selectedLink.label} →
+                  <a className="relief-map-link" href={editorialLinks.climateRelief.municipalRefugesMap} target="_blank" rel="noopener noreferrer">
+                    {reliefMapContent.links.municipalLabel} →
                   </a>
+                  {!csiUnavailable && (
+                    <>
+                      <div className="relief-count relief-count--second">
+                        <span className="relief-count-num">{rifugiCounts.compatible}</span>
+                        <span className="relief-count-label">
+                          <span className="relief-count-dot relief-count-dot--verde" aria-hidden="true" />
+                          {reliefMapContent.counts.compatibleLabel}
+                        </span>
+                      </div>
+                      <a className="relief-map-link" href={editorialLinks.climateRelief.crafMap} target="_blank" rel="noopener noreferrer">
+                        {reliefMapContent.links.taleaLabel} →
+                      </a>
+                    </>
+                  )}
                   {failed && (
                     <p className="relief-map-note relief-map-note--error">
-                      Dati dei rifugi climatici non caricati al momento.
+                      {reliefMapContent.loadError}
                     </p>
                   )}
                 </>
@@ -733,19 +715,22 @@ export function RifugiMapScene() {
           </div>
         )}
 
-        {/* La domanda personale è un oggetto a sé, all'angolo opposto: dentro al
-            dock era la terza cosa incolonnata sotto i numeri e il link, e non si
-            capiva più dove finiva la spiegazione e dove cominciava l'azione. */}
         {controlsReady && (
           <div className={`relief-map-find relief-map-find--ready${controlsGone ? " relief-map-find--gone" : ""}`}>
             <p className="relief-map-find-prompt">
-              <strong className="relief-map-find-prompt-lead">{searchPromptLead}:</strong>{" "}
-              <span className="relief-map-find-prompt-tail">{searchPromptTail.trim()}</span>
+              <strong className="relief-map-find-prompt-lead">
+                {reliefMapContent.search.promptLead}:
+              </strong>{" "}
+              <span className="relief-map-find-prompt-tail">
+                {reliefMapContent.search.promptTail}
+              </span>
             </p>
             <SearchSuggest
               autoId="rifugi"
-              placeholder={rifugiCopy.searchPlaceholder}
-              ariaLabel="Cerca una via o un parco di Bologna"
+              placeholder={reliefMapContent.search.placeholder}
+              ariaLabel={reliefMapContent.search.ariaLabel}
+              submitLabel={reliefMapContent.search.submit}
+              suggestionLabels={reliefMapContent.search.suggestionLabels}
               onSubmit={runSearch}
               onPick={applyPick}
             />

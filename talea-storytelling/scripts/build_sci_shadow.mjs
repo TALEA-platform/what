@@ -1,38 +1,38 @@
-/**
- * build_sci_shadow.mjs — derive a slim shadow GeoJSON for the Shadow Focus map
- * from the cloned SCI repo (external/sci), instead of the older HistorySUHI
- * shadow-means used before.
- *
- * Source: SCI "third view" spatial aggregation, peak-thermal (12–15h) shadow
- * fraction per polygon, averaged over the three summer months (giugno, luglio,
- * agosto 2025). Streets and green areas are merged into one FeatureCollection
- * with the slim schema the map already understands:
- *     { k: "s" | "g", s: <0..1 mean shadow fraction> }
- *
- * Geometry is Douglas–Peucker simplified (~3 m) and rounded to 5 decimals, and
- * microscopic features are dropped, to keep the payload light.
- *
- * Run:  node scripts/build_sci_shadow.mjs
- */
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { feature } from "topojson-client";
 
+import { requireDataInput, resolveDataInput } from "./lib/data-inputs.mjs";
+
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const SCI = path.join(ROOT, "external/sci/webapp/public/shadow_third_view");
 const OUT = path.join(ROOT, "public/data/shadow-focus/bologna_shadow_lines.geojson");
 
 const MONTHS = ["202506", "202507", "202508"];
-const PERIOD = "peakthermal";
 const LAYERS = [
-  { kind: "g", folder: "green_areas", suffix: "green_areas" },
-  { kind: "s", folder: "street", suffix: "streets" },
+  {
+    kind: "g",
+    folder: "green_areas",
+    inputIds: {
+      "202506": "sciGreenAreas202506",
+      "202507": "sciGreenAreas202507",
+      "202508": "sciGreenAreas202508",
+    },
+  },
+  {
+    kind: "s",
+    folder: "street",
+    inputIds: {
+      "202506": "sciStreets202506",
+      "202507": "sciStreets202507",
+      "202508": "sciStreets202508",
+    },
+  },
 ];
+const SCI_INPUT_IDS = LAYERS.flatMap((layer) => Object.values(layer.inputIds));
 
-// Simplification / size controls (degrees; ~1e-5 ≈ 1.1 m at this latitude).
-const SIMPLIFY_TOL = 3e-5; // ~3 m
-const MIN_AREA = 4e-9; // drop polygons smaller than ~40 m² (visual noise)
+const SIMPLIFY_TOL = 3e-5;
+const MIN_AREA = 4e-9;
 const COORD_DP = 5;
 
 const roundc = (n) => Math.round(n * 10 ** COORD_DP) / 10 ** COORD_DP;
@@ -73,13 +73,12 @@ function ringArea(ring) {
   return Math.abs(a) / 2;
 }
 
-// Simplify + round one ring; returns null if it collapses below a triangle.
 function simplifyRing(ring) {
   let r = douglasPeucker(ring, SIMPLIFY_TOL).map(([x, y]) => [roundc(x), roundc(y)]);
   if (r.length < 4) return null;
   const [fx, fy] = r[0];
   const [lx, ly] = r[r.length - 1];
-  if (fx !== lx || fy !== ly) r.push([fx, fy]); // keep closed
+  if (fx !== lx || fy !== ly) r.push([fx, fy]);
   return r;
 }
 
@@ -114,17 +113,16 @@ function outerArea(geom) {
   return 0;
 }
 
-function loadMonth(folder, suffix, month) {
-  const file = path.join(SCI, folder, `${month}_${PERIOD}__${suffix}.topojson`);
+function loadMonth(inputIds, month) {
+  const file = resolveDataInput(inputIds[month]);
   const topo = JSON.parse(fs.readFileSync(file, "utf8"));
   return feature(topo, topo.objects.data).features;
 }
 
-function buildLayer({ kind, folder, suffix }) {
-  // Average `mean` across the three months, keyed by stable feature_idx.
+function buildLayer({ kind, folder, inputIds }) {
   const sums = new Map();
   for (const month of MONTHS) {
-    for (const f of loadMonth(folder, suffix, month)) {
+    for (const f of loadMonth(inputIds, month)) {
       const id = f.properties.feature_idx;
       const m = f.properties.mean;
       if (id == null || typeof m !== "number") continue;
@@ -135,7 +133,7 @@ function buildLayer({ kind, folder, suffix }) {
     }
   }
 
-  const base = loadMonth(folder, suffix, MONTHS[0]);
+  const base = loadMonth(inputIds, MONTHS[0]);
   const out = [];
   let dropped = 0;
   for (const f of base) {
@@ -162,6 +160,7 @@ function buildLayer({ kind, folder, suffix }) {
 }
 
 function main() {
+  for (const inputId of SCI_INPUT_IDS) requireDataInput(inputId);
   console.log("-> SCI shadow (peak thermal, summer mean) → slim GeoJSON");
   const features = [];
   for (const layer of LAYERS) features.push(...buildLayer(layer));

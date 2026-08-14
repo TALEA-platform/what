@@ -1,0 +1,308 @@
+schemaVersion: 1
+locale: it
+
+chapter:
+  id: climate-relief
+
+opening:
+  id: climate-relief-opening
+  title: "Gli spazi verdi sono la soluzione."
+  lead:
+    id: climate-relief-lead
+    before: "Un "
+    term:
+      id: climate-refuge-term
+      text: "rifugio climatico"
+      glossary: climate-refuge
+    after: " nasce quando più forme di sollievo si incontrano nello stesso luogo."
+  body:
+    - id: climate-relief-opening-body
+      text: "Questa combinazione trasforma uno spazio di passaggio in un luogo dove fermarsi, rinfrescarsi e riprendere fiato nelle ore più calde."
+  close: "Vediamo come una strada può diventarlo, un elemento alla volta."
+
+explainer:
+  id: climate-refuge-explainer
+  figure:
+    id: climate-refuge-figure
+    ariaLabel: "Una strada assolata di Bologna — sullo sfondo le Due Torri e i colli — si trasforma progressivamente in un rifugio climatico: compaiono ombra, strutture leggere, sedute, acqua, verde e suolo permeabile, una fermata dell’autobus a due passi. Il sole resta ma si fa più leggero, gli oggetti proiettano ombre e piccole etichette indicano la temperatura al sole e all’ombra. Le persone accaldate ritrovano il sorriso."
+    svgAriaLabel: "Cos'e' un rifugio climatico"
+  model:
+    id: climate-refuge-model
+    title: "Una piazza di quartiere prima della trasformazione climatica"
+    description: "Una piazza minerale e assolata, circondata da due edifici bolognesi e attraversata da alcune persone. Il modello può essere ruotato a 360 gradi."
+    temperature:
+      id: climate-refuge-temperature
+      legend: "TEMPERATURA DELL’ARIA"
+      locations:
+        - id: start
+          text: "al sole"
+        - id: natural-shade
+          text: "sotto gli alberi"
+        - id: continuous-shade
+          text: "al riparo"
+        - id: rest
+          text: "al riparo"
+        - id: water
+          text: "vicino all’acqua"
+        - id: living-ground
+          text: "vicino all’acqua"
+        - id: accessibility
+          text: "nel rifugio"
+        - id: complete
+          text: "nel rifugio"
+    controls:
+      id: climate-refuge-model-controls
+      panGroup: "Sposta la vista"
+      panUp: "Sposta la vista in alto"
+      panLeft: "Sposta la vista a sinistra"
+      panRight: "Sposta la vista a destra"
+      panDown: "Sposta la vista in basso"
+      zoomOut: "Allontana la vista"
+      zoomIn: "Avvicina la vista"
+      hint: "Trascina per girare la piazza · doppio clic per avvicinarti"
+  steps:
+    - id: start
+      added: "La trasformazione comincia"
+      paragraphs:
+        - "Una piazza spoglia e senza ripari."
+    - id: natural-shade
+      added: "Ombra naturale"
+      piece: "ombra"
+      paragraphs:
+        - "Le chiome filtrano il sole e offrono il primo riparo."
+    - id: continuous-shade
+      added: "Ombra continua"
+      piece: "riparo continuo"
+      paragraphs:
+        - "Pergole e tettoie proteggono anche dove gli alberi non arrivano."
+    - id: rest
+      added: "Sosta"
+      piece: "sosta"
+      paragraphs:
+        - "Una seduta all’ombra trasforma il passaggio in una pausa."
+    - id: water
+      added: "Acqua"
+      piece: "acqua"
+      paragraphs:
+        - "Avere acqua a disposizione per bere e rinfrescarsi aiuta ad abbassare la temperatura corporea."
+    - id: living-ground
+      added: "Suolo vivo"
+      piece: "verde e suolo vivo"
+      paragraphs:
+        - "Il verde a terra mitiga il calore e permette all'acqua piovana di infiltrarsi naturalmente nel terreno."
+    - id: accessibility
+      added: "Accessibilità"
+      piece: "accessibilità"
+      paragraphs:
+        - "Il rifugio funziona davvero se è inclusivo e facilmente raggiungibile da tutti."
+    - id: complete
+      added: "Il rifugio è completo"
+      paragraphs:
+        - "La stessa piazza, prima difficile da attraversare, ora accoglie chi ha bisogno di una pausa."
+        - "La vera differenza non è data da un singolo elemento, ma dal modo in cui assieme creano un microclima più fresco e confortevole."
+  recipeLabel: "Un rifugio climatico è fatto di"
+  sequence:
+    id: climate-refuge-sequence
+    playing: "Guarda la strada · il prossimo elemento sta arrivando"
+    done: "Scorri per continuare"
+
+refuges:
+  id: bologna-climate-refuges
+  intro:
+    id: bologna-climate-refuges-intro
+    title: "A Bologna questi luoghi esistono già."
+    body:
+      - id: bologna-climate-refuges-body
+        text: "Il Comune ne riconosce alcuni come rifugi climatici. Accanto a questi, altri parchi e giardini hanno caratteristiche compatibili."
+    mapInvitation: "Andiamo a scoprirli sulla mappa"
+  map:
+    id: bologna-climate-refuges-map
+    ariaLabel: "Mappa dei rifugi climatici di Bologna"
+    hints:
+      id: climate-refuges-map-hints
+      invite: "Seleziona un luogo per scoprirlo"
+      return: "Scorri per tornare alla città"
+    counts:
+      id: climate-refuges-counts
+      officialLabel: "riconosciuti dal Comune"
+      officialSub: "sedici al chiuso, tredici all’aperto"
+      compatibleLabel: "parchi e giardini con caratteristiche compatibili"
+    links:
+      id: climate-refuges-links
+      municipalLabel: "La mappa dei rifugi climatici del Comune"
+      taleaLabel: "La mappa dei rifugi climatici di Talea"
+    loadError: "Dati dei rifugi climatici non caricati al momento."
+    search:
+      id: climate-refuges-search
+      promptLead: "Parti da un luogo che conosci"
+      promptTail: "una via, anche con il civico."
+      placeholder: "Via, civico o parco"
+      ariaLabel: "Cerca una via o un parco di Bologna"
+      submit: "Cerca"
+      searching: "Cerco…"
+      empty: "Non ho trovato questo indirizzo a Bologna."
+      routeLoading: "Calcolo i percorsi a piedi sulla rete stradale…"
+      routeError: "Non riesco a calcolare i percorsi pedonali in questo momento. Riprova tra poco."
+      suggestionLabels:
+        address: "Indirizzo"
+        square: "Piazza"
+        street: "Via"
+        park: "Parco"
+        greenArea: "Area verde"
+        place: "Luogo"
+        zone: "Zona"
+        greenSpace: "Spazio verde"
+        municipalRefuge: "Rifugio del Comune"
+    cards:
+      id: climate-refuges-cards
+      tapForDetails: "tocca per i dettagli"
+      green:
+        id: green-refuge-card
+        fallbackName: "Spazio verde"
+        districtPrefix: "Quartiere"
+        areaTemplate: "{n} ettari"
+        typeLabels:
+          urbanPark: "Parco urbano"
+          park: "Parco"
+          neighborhoodGarden: "Giardino di quartiere"
+          schoolGreen: "Verde scolastico"
+          sportsGreen: "Verde sportivo"
+          greenSpace: "Spazio verde"
+        amenities:
+          fountain: "fontanella"
+          benches: "panchine"
+          picnicTables: "tavoli da picnic"
+        standout: "Uno dei grandi spazi verdi della città"
+        streetViewCta: "Guarda com’è su Street View"
+      official:
+        id: official-refuge-card
+        popupType: "Rifugio climatico del Comune"
+        badge: "Riconosciuto dal Comune"
+        indoor: "al chiuso"
+        outdoor: "all’aperto"
+        districtPrefix: "Quartiere"
+        typeLabels:
+          library: "Biblioteca"
+          publicLibrary: "Biblioteca pubblica"
+          communityCenter: "Casa di quartiere"
+          communityCenterAndPark: "Casa di quartiere e parco pubblico"
+          internalCourtyard: "Cortile interno"
+          publicGarden: "Giardino pubblico"
+          multifunctionalVenue: "Luogo multifunzionale"
+          museum: "Museo"
+          publicPark: "Parco pubblico"
+          coveredSquare: "Piazza coperta"
+        waterLabel: "Acqua"
+        toiletsLabel: "Bagni"
+        toiletsFree: "Gratuiti"
+        toiletsNotFree: "Non gratuiti"
+        toiletsUnknown: "Gratuità non indicata"
+        openingHours: "Orari di apertura"
+      nearby:
+        id: nearby-refuges-card
+        nearestOfficial: "Rifugio riconosciuto più vicino"
+        greenNearby: "Spazi verdi a portata"
+        searchedPointFallback: "Il punto cercato"
+        noneReachable: "Nessun rifugio raggiungibile trovato."
+        routeSource: "Percorsi pedonali calcolati sulla rete di strade e sentieri OpenStreetMap."
+        alreadyThere: "sei già lì"
+        kilometersTemplate: "{n} km"
+        metersTemplate: "{n} m"
+        walkMinutesTemplate: "{n} min a piedi"
+
+cityPlan:
+  id: climate-relief-city-plan
+  bridge:
+    id: climate-relief-city-plan-bridge
+    lead: "Dove non sono presenti, si possono costruire."
+  scene:
+    id: climate-relief-city-plan-scene
+    ariaLabel: "Dove manca, si costruisce: scenario illustrativo di un quartiere tipo in cui spazi verdi, percorsi ombreggiati e portici diventano una rete"
+    figureAriaLabel: "Scenario illustrativo, non una mappa dei cantieri. La pianta combina elementi riconoscibili di Bologna in un quartiere tipo: un viale, isolati a corte, strade porticate, palazzine, una piazza lastricata in parte usata per la sosta e il cortile asfaltato di una scuola. La piazza mantiene molto lastricato ma apre aiuole permeabili, acqua e ombra; altri spazi asfaltati diventano aree verdi. Una nuova fermata, filari di alberi e portici entrano nella stessa rete e un itinerario ombreggiato attraversa la mappa dal parco al giardino."
+    svgDescription: "Un pezzo di Bologna visto dall'alto: il viale di circonvallazione con l'aiuola alberata, il centro con piazze, palazzi a corte, fronti aperti e due strade porticate. Fuori, una periferia diversa per densita', con condomini, case a schiera, villini, laboratori, una piazza lastricata usata come parcheggio e il cortile d'asfalto di una scuola. Scorrendo, la piazza mantiene il suo centro lastricato ma apre aiuole permeabili, acqua e ombra, mentre il cortile diventa piu' verde. Una fermata, gruppi di alberi, pergolati e portici li uniscono in una fascia d'ombra continua che attraversa la mappa dal parco al giardino."
+    context:
+      id: climate-relief-city-plan-context
+      title: "Dove manca, si costruisce"
+      note: "Scenario illustrativo di un quartiere tipo, non una mappa dei cantieri"
+  beats:
+    - id: quartiere
+      lead: "I rifugi climatici non sono sempre vicini a tutti."
+      body:
+        - id: neighborhood-body
+          text: "In alcune aree, parchi e giardini restano lontano dai percorsi quotidiani."
+    - id: buco
+      lead: "La distanza fa la differenza."
+      body:
+        - id: distance-body
+          text: "È importante poterci arrivare con facilità."
+    - id: costruisce
+      lead: "Dove mancano, si possono costruire."
+      body:
+        - id: nature-before
+          text: "Le "
+        - id: nature-keyword
+          text: "soluzioni basate sulla natura"
+          kw: true
+        - id: nature-after
+          text: " si ispirano a processi naturali e possono aiutare gli spazi urbani ad affrontare meglio il caldo."
+    - id: nonuno
+      lead: "Un luogo solo non basta."
+      body:
+        - id: distributed-network-body
+          text: "Più spazi distribuiti nei quartieri creano una presenza diffusa, vicino alla vita di ogni giorno."
+    - id: corridoi
+      lead: "Il percorso conta quanto la meta."
+      body:
+        - id: corridor-before
+          text: "Collegare più punti della città lungo uno stesso itinerario dà forma a un "
+        - id: corridor-keyword
+          text: "corridoio climatico"
+          kw: true
+        - id: corridor-after
+          text: "."
+    - id: portici
+      lead: "Un pezzo di rete esiste già."
+      body:
+        - id: porticoes-before
+          text: "I "
+        - id: porticoes-keyword
+          text: "portici"
+          kw: true
+        - id: porticoes-middle
+          text: " attraversano Bologna formando percorsi continui e riparati. Il progetto comunale "
+        - id: shadow-lines-link
+          text: "Linee d'ombra"
+          linkId: shadow-lines-project
+        - id: porticoes-after
+          text: " studia come valorizzarli e connetterli ai rifugi climatici."
+    - id: rete
+      lead: "Quando i luoghi si collegano, cambia la città."
+      body:
+        - id: connected-network-body
+          text: "Nuovi spazi, corridoi climatici e portici possono lavorare insieme e formare un sistema continuo e accessibile."
+  annotations:
+    - id: parking
+      label: "parcheggio"
+    - id: new-relief
+      label: "nuovo rifugio climatico"
+    - id: corridor
+      label: "corridoio climatico"
+    - id: arcades
+      label: "portici"
+  legend:
+    id: climate-relief-city-plan-legend
+    label: "Per collegare i luoghi di sollievo"
+    items:
+      - id: new-green-spaces
+        label: "spazi verdi nuovi"
+      - id: climate-corridors
+        label: "corridoi climatici"
+      - id: porticoes
+        label: "portici"
+  vignetteDescriptions:
+    - id: costruire
+      text: "Una piazza lastricata ampia fra due palazzine, sul fronte di una strada, con quattro auto raccolte lungo stalli segnati su un solo bordo, una canaletta, lampioni, paracarri e rastrelliere. Arrivano le transenne e nella pavimentazione si aprono due grandi aiuole: sotto la pietra c'e' la terra nuda, poi il prato. Ci si piantano quattro alberi, si monta un pergolato con il rampicante, si scava un giardino della pioggia con la ghiaia e le pietre, e a filo del lastricato si accende una fontana a raso. Gran parte della pietra resta, con tre panche e le persone che ci stanno; sul marciapiede compare anche una fermata del bus con pensilina."
+    - id: corridoio
+      text: "Una strada lungo un fronte di palazzine. Il marciapiede resta all'ombra per tutta la sua lunghezza con quattro mezzi diversi, uno dopo l'altro: un tratto di portico con le sue arcate, una pergola con i travetti che getta un'ombra a righe, un filare di tre alberi e infine una siepe con un alberello. All'inizio l'ombra e' a chiazze staccate; alla fine e' una fascia continua, e le persone la percorrono da un capo all'altro senza mai un tratto al sole."
+    - id: portico
+      text: "Un portico bolognese visto di sbieco: tre campate con i piedritti sul filo strada, gli archi a tutto centro con la loro ghiera di conci e il concio di chiave, e le volte che vanno indietro fino al muro del palazzo, dove si vedono le vetrine e i portoni del piano terra. Sopra, tre piani di finestre con le persiane e un tetto a due falde con il comignolo. Sotto il passaggio corre un'ombra continua, e ci stanno una signora anziana con il bastone e una persona in carrozzina: il portico e' gia' un rifugio, e lo e' per chi ne ha piu' bisogno."

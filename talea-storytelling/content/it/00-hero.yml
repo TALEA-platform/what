@@ -1,0 +1,36 @@
+schemaVersion: 1
+locale: it
+
+opening:
+  id: hero-opening
+  ariaLabel: "Introduzione"
+  title: "Bologna si sta scaldando."
+  subtitle:
+    - id: opening-trend
+      text: "Negli ultimi anni le estati sono sempre più intense. "
+    - id: opening-daily-life
+      text: "Il caldo è entrato"
+      keep: true
+    - id: opening-consequence
+      text: " nella vita quotidiana, lasciando tracce sulla città e cambiando il modo in cui viene abitata."
+  scrollLabel: "Scorri per iniziare"
+
+bridge:
+  id: hero-bridge
+  body:
+    - id: bridge-intro
+      text: "Esplorare il "
+    - id: urban-microclimate
+      text: "microclima urbano"
+      kw: true
+    - id: bridge-exposure
+      text: " permette di individuare i "
+    - id: exposed-neighbourhoods
+      text: "quartieri più esposti"
+      kw: true
+    - id: bridge-actions
+      text: " alle ondate di calore, valorizzare i presidi di sollievo e pianificare soluzioni concrete per la vivibilità della città."
+  callout:
+    id: hero-bridge-callout
+    lead: "Non si tratta solo di osservare il cambiamento:"
+    pivot: "Bologna sta lavorando per adattarsi."

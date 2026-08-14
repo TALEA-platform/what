@@ -1,40 +1,3 @@
-// Cuoce le PERSONE del plastico (src/lib/castFigures.js) in disegni statici per i
-// tre primi piani di «dove manca, si costruisce». Emette `scripts/cast_figures.json`,
-// che `build_plan_vignettes.py` legge al posto della vecchia figurina di scatole.
-//
-//     node scripts/build_cast_figures.mjs
-//
-// ── Perche' cuocere ─────────────────────────────────────────────────────────
-// Nel plastico le persone si ruotano, quindi vanno riproiettate a ogni
-// fotogramma e ogni faccia deve esserci — anche quelle che adesso non si vedono,
-// perche' fra mezzo grado si vedranno. Nelle vignette il modello e' FERMO: la
-// proiezione e' una sola, l'assonometria e' quella del disegno, e tutto cio' che
-// resta dietro non tornera' mai utile. Da qui le tre potature, in quest'ordine:
-//
-//  1. BACK-FACE: via le facce che danno le spalle a chi guarda (~45%).
-//  2. OCCLUSIONE: si dipinge la figura in un buffer di indici e si tengono
-//     soltanto le facce che alla fine possiedono almeno un campione. E' la
-//     potatura che vale di piu' — dentro un corpo chiuso quasi nulla si vede —
-//     ed e' esatta a meno della risoluzione del buffer (4 campioni per unita',
-//     cioe' circa un quinto di pixel sullo schermo).
-//  3. FUSIONE: le facce contigue dello stesso tono diventano un solo <path> con
-//     piu' sottotracciati. I toni vengono quantizzati prima, perche' la
-//     variazione fra faccetta e faccetta e' del 3% e a quella distanza non si
-//     legge — ma decide se due facce si fondono o no.
-//
-// Il TRATTO (`.pv-l`, quello che corre quando la battuta arriva) non puo' essere
-// il contorno di ogni faccia: sarebbe una ragnatela. E' la SAGOMA, ricavata dal
-// medesimo buffer con un inseguimento di bordo, ammorbidita e semplificata. E' lo
-// stesso criterio dell'albero della vignetta, che si inchiostra col profilo della
-// chioma e non con le sue nove foglie.
-//
-// ── La scala ────────────────────────────────────────────────────────────────
-// Il cast del plastico e' disegnato un po' sopra la scala vera (e' il trucco
-// dell'illustratore, non un errore). Le vignette hanno invece un loro righello —
-// una persona alta 1,72, da cui si leggono finestre, panchine e portici — e va
-// rispettato quello, o le case si rimpiccioliscono attorno alla gente. Quindi si
-// misura l'adulto, lo si porta a 1,72 e lo STESSO fattore vale per tutti: il
-// bambino resta un bambino.
 
 import fs from "node:fs";
 import path from "node:path";
@@ -44,35 +7,28 @@ import { CAST_FIGURES, createCastFigures } from "../src/lib/castFigures.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
-// ── L'assonometria delle vignette ───────────────────────────────────────────
-// Identica a `iso()` in `build_plan_vignettes.py`: se cambia una, cambia l'altra.
+// Must match the isometric projection in build_plan_vignettes.py.
 const U = 46.0;
 const C30 = Math.cos(Math.PI / 6);
 const S30 = Math.sin(Math.PI / 6);
 const INK = "#3A352A";
 
-// Quanto vale un adulto sul righello del disegno.
+// One shared scale preserves the cast's relative proportions.
 const ADULT_HEIGHT = 1.72;
 
-// L'asse frontale approvato nel plastico (`PERSON_YAW`) piu' i 5 gradi
-// dell'inquadratura iniziale: e' l'orientamento con cui il cast e' stato
-// disegnato e guardato, quindi e' quello che si porta qui dentro.
+// Carries the approved model orientation into the static projection.
 const BASE_YAW = Math.PI / 4 - (316 * Math.PI) / 180 + (5 * Math.PI) / 180;
-// Un secondo verso, per chi cammina lungo la strada invece di stare nella piazza.
 const ALONG_X = BASE_YAW - Math.PI / 2;
 
-// Meno faccette: a ottanta pixel d'altezza e da fermi, i meridiani di una testa
-// sono piu' di quanti se ne possano distinguere.
+// Static 80px figures need fewer faces than the rotating model.
 const DETAIL = 0.7;
 
-// Campioni per unita' SVG nel buffer di occlusione e nel contorno.
+// Occlusion-buffer samples per SVG unit.
 const RES = 4;
 
-// Di quanto si arrotondano i toni prima di fondere le facce (per canale, su 255).
+// Quantization lets visually equivalent adjacent faces merge.
 const TONE_STEP = 5;
 
-// I personaggi da cuocere, e con quale verso. Ogni coppia (chi, verso) e' una
-// geometria a se': se ne aggiungono poche, e solo quando servono davvero.
 const RECIPES = [
   { name: "elder", figure: "elder", yaw: BASE_YAW },
   { name: "adult", figure: "adult", yaw: BASE_YAW },
@@ -82,9 +38,7 @@ const RECIPES = [
   { name: "wheelchair", figure: "wheelchair", yaw: BASE_YAW },
 ];
 
-// ════ GEOMETRIA ═════════════════════════════════════════════════════════════
 
-/** Costruisce una figura e restituisce le sue facce, in metri, attorno a (0,0). */
 function buildFigure(figureName, yaw) {
   const faces = [];
   const kit = createCastFigures({
@@ -92,8 +46,6 @@ function buildFigure(figureName, yaw) {
       target.push({ points, fill, normal, ...options });
     },
     solids: faces,
-    // L'ombra di contatto del plastico non serve: nelle vignette l'ombra la
-    // butta la luce del disegno, come per gli alberi e le panchine.
     contactFaces: [],
     ink: INK,
     personYaw: yaw,
@@ -105,9 +57,6 @@ function buildFigure(figureName, yaw) {
   return faces;
 }
 
-/** Porta i piedi a quota zero e riscala il corpo sul righello del disegno.
- *  Nel plastico il piano di calpestio sta a 0,24 (e' lo spessore del
- *  lastricato): qui il suolo e' a zero, quindi la gente va posata. */
 function groundAndScale(faces, scale) {
   let minZ = Infinity;
   let maxZ = -Infinity;
@@ -132,10 +81,6 @@ const iso = (p) => ({
   y: ((p.x + p.y) * S30 - p.z) * U,
 });
 
-// In questa assonometria l'occhio sta lungo (1,1,1): una faccia si vede se la
-// sua normale ha una componente positiva in quella direzione. La tolleranza
-// negativa tiene le facce quasi di taglio, che sono quelle che cuciono la
-// silhouette: toglierle aprirebbe fessure sul profilo.
 const facing = (n) => (n.x + n.y + n.z) / Math.sqrt(3);
 const depthOf = (points) => {
   let s = 0;
@@ -143,9 +88,7 @@ const depthOf = (points) => {
   return s / points.length;
 };
 
-// ════ RASTER: occlusione e sagoma ═══════════════════════════════════════════
 
-/** Riempie un poligono in un buffer di indici, con la regola pari-dispari. */
 function rasterize(buffer, width, height, poly, value) {
   let top = Infinity;
   let bottom = -Infinity;
@@ -176,7 +119,6 @@ function rasterize(buffer, width, height, poly, value) {
   }
 }
 
-/** Insegue il bordo della maschera e ne restituisce gli anelli, in celle. */
 function traceContours(mask, width, height) {
   const at = (i, j) => (i < 0 || j < 0 || i >= width || j >= height ? 0 : mask[j * width + i]);
   const edges = new Map();
@@ -189,9 +131,6 @@ function traceContours(mask, width, height) {
   for (let j = 0; j < height; j++) {
     for (let i = 0; i < width; i++) {
       if (!at(i, j)) continue;
-      // Il giro di ogni cella e' sempre nello stesso verso: cosi' gli anelli
-      // esterni e i buchi escono con orientamenti opposti senza doverli
-      // riconoscere, ed e' quello che serve alla regola di riempimento.
       if (!at(i - 1, j)) push(i, j + 1, i, j);
       if (!at(i, j - 1)) push(i, j, i + 1, j);
       if (!at(i + 1, j)) push(i + 1, j, i + 1, j + 1);
@@ -229,7 +168,6 @@ const ringArea = (ring) => {
   return Math.abs(a) / 2;
 };
 
-/** Chaikin: smussa la scaletta del raster senza inventare dettaglio. */
 function chaikin(ring) {
   const out = [];
   for (let i = 0; i < ring.length; i++) {
@@ -241,7 +179,6 @@ function chaikin(ring) {
   return out;
 }
 
-/** Douglas–Peucker su un anello chiuso. */
 function simplify(ring, eps) {
   const keep = new Array(ring.length).fill(false);
   keep[0] = true;
@@ -272,16 +209,7 @@ function simplify(ring, eps) {
   return ring.filter((_, i) => keep[i]);
 }
 
-// ════ USCITA ════════════════════════════════════════════════════════════════
 
-// ── Il tracciato va scritto CORTO ───────────────────────────────────────────
-// Ogni vignetta si porta dentro la propria gente: una figura scritta per esteso
-// («M-12.3 -45.6L-11.9 -44.2…») costa una dozzina di caratteri a vertice, e
-// dodici persone in tre disegni diventano un file da scaricare. In coordinate
-// RELATIVE gli scarti sono numeri di una o due cifre, e la stessa figura pesa
-// poco piu' della meta'. Il punto corrente viene ricalcolato dai valori GIA'
-// arrotondati: con gli scarti tondi ma la posizione esatta, l'errore si somma
-// vertice dopo vertice e alla fine il piede non torna sotto la testa.
 const n = (v) => {
   let s = v.toFixed(1);
   if (s.endsWith(".0")) s = s.slice(0, -2);
@@ -290,14 +218,12 @@ const n = (v) => {
   return s === "-0" ? "0" : s;
 };
 
-/** Due numeri di seguito: lo spazio serve solo se il secondo non ha il segno. */
 const pair = (a, b) => {
   const sa = n(a);
   const sb = n(b);
   return sb.startsWith("-") ? sa + sb : `${sa} ${sb}`;
 };
 
-/** Aggiunge un poligono al tracciato, in relativo, e riporta il punto corrente. */
 function appendPoly(parts, points, at) {
   const first = points[0];
   parts.push(at ? `m${pair(first[0] - at[0], first[1] - at[1])}`
@@ -316,7 +242,6 @@ function appendPoly(parts, points, at) {
   }
   if (steps.length) parts.push("l" + steps.join(" ").replace(/ -/g, "-"));
   parts.push("z");
-  // Dopo `z` il punto corrente torna all'inizio del sottotracciato.
   return start;
 }
 
@@ -331,8 +256,6 @@ const quantize = (hex) => {
   return `#${ch(16)}${ch(8)}${ch(0)}`;
 };
 
-/** Verso concorde per tutti i sottotracciati: fondendo piu' facce in un solo
- *  `<path>`, due contorni di verso opposto si bucherebbero a vicenda. */
 function orient(points) {
   let a = 0;
   for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
@@ -345,10 +268,6 @@ function bake(recipe, scale) {
   const faces = buildFigure(recipe.figure, recipe.yaw);
   const metres = groundAndScale(faces, scale);
 
-  // 1 — back-face culling e ordine del pittore (dal fondo verso l'osservatore).
-  //     Cadono anche le facce che in proiezione sono una scheggia: una
-  //     tassellatura fitta ne produce sempre qualcuna, non si vedono, e in un
-  //     disegno cotto pesano quanto una faccia vera.
   const kept = faces
     .filter((face) => facing(face.normal) > -0.03)
     .map((face) => {
@@ -387,7 +306,6 @@ function bake(recipe, scale) {
     }
   }
 
-  // 2 — occlusione: si dipinge tutto e si tiene chi possiede ancora un campione.
   const width = Math.ceil((x1 - x0) * RES) + 2;
   const height = Math.ceil((y1 - y0) * RES) + 2;
   const buffer = new Int32Array(width * height).fill(-1);
@@ -404,12 +322,6 @@ function bake(recipe, scale) {
   }
   const visible = kept.filter((_, i) => owns[i]);
 
-  // 3 — fusione. Due facce dello stesso tono possono finire nello stesso
-  //     tracciato anche se nell'ordine del pittore non sono contigue: basta che
-  //     nulla di quanto sta fra loro le SOVRAPPONGA, perche' solo in quel caso
-  //     anticipare la seconda cambierebbe cio' che si vede. Il confronto e' fra
-  //     rettangoli d'ingombro: si perde qualche fusione possibile e non se ne
-  //     fa mai una sbagliata.
   const paths = [];
   const hits = (a, b) => a[0] <= b[2] && b[0] <= a[2] && a[1] <= b[3] && b[1] <= a[3];
   const merge = (a, b) => [
@@ -437,9 +349,6 @@ function bake(recipe, scale) {
     }
   }
 
-  // Il TRATTO: la sagoma, dalla stessa maschera. Esce come elenco di vertici e
-  // non come tracciato gia' scritto, perche' chi la usa deve poterla posare
-  // dove vuole e `put()` vuole il tratto come un `d` solo.
   const ink = traceContours(mask, width, height)
     .filter((ring) => ringArea(ring) > 3 * RES * RES)
     .map((ring) => {
@@ -462,7 +371,6 @@ function bake(recipe, scale) {
   };
 }
 
-// ── L'adulto detta la scala di tutti ────────────────────────────────────────
 const probe = buildFigure("adult", BASE_YAW);
 let lowest = Infinity;
 let highest = -Infinity;
@@ -479,9 +387,6 @@ console.log(`scala del cast: ${SCALE.toFixed(4)} (adulto ${ADULT_HEIGHT} m)`);
 for (const recipe of RECIPES) {
   const baked = bake(recipe, SCALE);
   const metres = CAST_FIGURES[recipe.figure];
-  // L'impronta a terra serve all'ombra portata del disegno, che e' la stessa
-  // di alberi e panchine: quella della luce della vignetta, non quella del
-  // plastico. Si prende dalla dichiarazione del cast e si riscala.
   out[recipe.name] = {
     paths: baked.paths,
     ink: baked.ink,

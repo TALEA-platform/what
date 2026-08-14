@@ -1,0 +1,34 @@
+schemaVersion: 1
+locale: en
+
+terms:
+  - id: surface-temperature
+    term: "surface temperature"
+    trail: true
+    definition:
+      - "The heat recorded by satellites on urban surfaces: asphalt, roofs, squares, soil and green areas."
+      - "It is not the same as air temperature and cannot, on its own, describe the heat a person feels, but it helps show where the city accumulates heat."
+  - id: climate-hotspot
+    term: "climate hotspot"
+    trail: true
+    definition:
+      - "In this web app, it means an area that falls within the hottest 10 % of Bologna's surfaces in one or more of the summers observed. The data is based on surface temperature, not air temperature."
+      - "When a climate hotspot recurs several times between 2013 and 2025, it becomes a sign of recurring surface heat."
+  - id: climate-refuge
+    term: "climate refuge"
+    trail: true
+    definition:
+      - "A public space designed to provide relief during hot weather. Not simply a park, but a place that combines several elements: shade, water, seating, greenery, permeable ground and ease of access."
+      - "In Bologna, it is a network of green spaces recognised by the municipality and assessed for their ability to provide shelter on the hottest days."
+  - id: talea-project
+    term: "TALEA"
+    trail: true
+    definition:
+      - "TALEA, Green Cells leading the Green transition, is the project through which Comune di Bologna is addressing urban heat: it is supported by the European Union and runs until 2028."
+      - "In horticulture, a cutting is a small branch that takes root and grows into a new plant once it is planted: an image of an intervention that grows independently and spreads throughout the city."
+  - id: green-cell
+    term: "green cell"
+    trail: false
+    definition:
+      - "An area of the city, roughly the size of a block, where shade, water, greenery and permeable ground are brought together to turn a critical point into a refuge from the heat."
+      - "Each cell works on its own but is designed to connect with the others: side by side, they form a distributed network of cooler spaces."

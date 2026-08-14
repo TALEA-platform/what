@@ -1,0 +1,36 @@
+schemaVersion: 1
+locale: en
+
+opening:
+  id: hero-opening
+  ariaLabel: "Introduction"
+  title: "Bologna is heating up."
+  subtitle:
+    - id: opening-trend
+      text: "In recent years, summers have grown increasingly intense. "
+    - id: opening-daily-life
+      text: "Heat has become part of"
+      keep: true
+    - id: opening-consequence
+      text: " everyday life, leaving its mark on the city and changing the way it is inhabited."
+  scrollLabel: "Scroll to begin"
+
+bridge:
+  id: hero-bridge
+  body:
+    - id: bridge-intro
+      text: "Exploring the "
+    - id: urban-microclimate
+      text: "urban microclimate"
+      kw: true
+    - id: bridge-exposure
+      text: " makes it possible to identify the "
+    - id: exposed-neighbourhoods
+      text: "neighbourhoods most exposed"
+      kw: true
+    - id: bridge-actions
+      text: " to heatwaves, strengthen places that offer relief, and plan concrete solutions to make the city more liveable."
+  callout:
+    id: hero-bridge-callout
+    lead: "This is not just about observing change:"
+    pivot: "Bologna is working to adapt."

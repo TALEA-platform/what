@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "inputs": {
+    "hotspotPersistenceRaster": {
+      "path": "hotspot_10/hotspot_structural_persistence_2013_2025_top10pct.tif"
+    },
+    "ndvi2025Raster": {
+      "path": "historysuhi/webapp/data/webapp_rasters/NDVI_2025_summer_30m.tif"
+    },
+    "albedo2025Raster": {
+      "path": "albedo/Bologna_Albedo_2025_summer_JJA_mean_Sentinel2_10m.tif",
+      "sha256": "59a6a67749dc61b0b8cc2790388bee5b5f23080226f3310b002d486333bbe791"
+    },
+    "sciGreenAreas202506": {
+      "path": "sci/webapp/public/shadow_third_view/green_areas/202506_peakthermal__green_areas.topojson"
+    },
+    "sciStreets202506": {
+      "path": "sci/webapp/public/shadow_third_view/street/202506_peakthermal__streets.topojson"
+    },
+    "sciGreenAreas202507": {
+      "path": "sci/webapp/public/shadow_third_view/green_areas/202507_peakthermal__green_areas.topojson"
+    },
+    "sciStreets202507": {
+      "path": "sci/webapp/public/shadow_third_view/street/202507_peakthermal__streets.topojson"
+    },
+    "sciGreenAreas202508": {
+      "path": "sci/webapp/public/shadow_third_view/green_areas/202508_peakthermal__green_areas.topojson"
+    },
+    "sciStreets202508": {
+      "path": "sci/webapp/public/shadow_third_view/street/202508_peakthermal__streets.topojson"
+    }
+  }
+}

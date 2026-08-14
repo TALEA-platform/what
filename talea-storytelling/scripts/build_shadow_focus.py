@@ -1,23 +1,4 @@
-"""Preprocess data for the Shadow Focus section.
-
-Produces two artefacts under public/data/shadow-focus/:
-  - centro_storico.geojson   the dissolved boundary of the 6 selected stat zones
-  - centro_aggregates.json   real %s for NDVI / Albedo / Hotspot / Shadow
-
-(bologna_shadow_lines.geojson — the city-wide shadow fills shown on the map — is
-NOT written here: it is built from the cloned SCI repo by build_sci_shadow.mjs.
-This script must not clobber it.)
-
-Le sei zone statistiche del centro urbano, escludendo le due aree meridionali
-che si estendono maggiormente verso la collina:
-  - MARCONI-1  (30)
-  - MARCONI-2  (29)
-  - MALPIGHI-1 (78)
-  - GALVANI-1  (53)
-  - IRNERIO-1  (60)
-  - IRNERIO-2  (61)
-Il perché di questa scelta sta nel commento a CENTRO_STAT_CODES.
-"""
+"""Build the Shadow Focus boundary and aggregates documented in D09."""
 from __future__ import annotations
 
 import json
@@ -27,31 +8,16 @@ import numpy as np
 import rasterio
 from rasterio.features import geometry_mask
 from rasterio.warp import transform_geom
+from shapely import make_valid
 from shapely.geometry import shape, mapping
 from shapely.ops import unary_union
 
+from lib.data_inputs import require_data_input, resolve_data_input
+
 
 ROOT = Path(__file__).resolve().parents[1]
-EXTERNAL = ROOT / "external" / "historysuhi" / "webapp" / "data"
 OUTPUT_DIR = ROOT / "public" / "data" / "shadow-focus"
-OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-# Il centro urbano: i quattro nuclei (-1), più Marconi 2 e Irnerio 2. Restano
-# fuori Galvani 2 e Malpighi 2, le due zone meridionali che si estendono verso
-# la collina. Il perimetro risultante è continuo, riconoscibile e non è tagliato
-# seguendo la distribuzione degli hotspot.
-#
-# Con tutte e otto le zone il 19 % di hotspot persistenti era corretto, ma la
-# lunga estensione meridionale dominava il denominatore e non corrispondeva al
-# centro urbanizzato raccontato dal testo. I soli quattro nuclei, al contrario,
-# restringevano il soggetto fino a 0,89 km². Le sei zone mantengono la cintura
-# urbana a nord e a ovest, eliminando insieme le due propaggini collinari:
-# 2,84 km², di cui il 29,5 % è hotspot persistente.
-#
-# La tabella confronta questo perimetro con Bologna intera usando esattamente
-# gli stessi indicatori e le stesse soglie. Non si confrontano percentuali
-# costruite con denominatori diversi.
-CENTRO_STAT_CODES = {29, 30, 53, 60, 61, 78}
 CENTRO_MEMBERS = [
     "Marconi 1", "Marconi 2",
     "Malpighi 1",
@@ -59,38 +25,19 @@ CENTRO_MEMBERS = [
     "Irnerio 1", "Irnerio 2",
 ]
 
-STAT_ZONES_PATH = ROOT / "public" / "data" / "vectors" / "shadow_stat_zones_peak.geojson"
-BOLOGNA_BOUNDARY_PATH = EXTERNAL / "webapp_vectors" / "bologna_boundary_outline.geojson"
-NDVI_PATH = EXTERNAL / "webapp_rasters" / "NDVI_2025_summer_30m.tif"
-ALBEDO_PATH = EXTERNAL / "webapp_rasters" / "Albedo_2025_summer_30m.tif"
-# La soglia di ricorrenza degli hotspot (07 § 7.7). Era `hotspots_ge_1`, cioè
-# «almeno 1 estate su 13»: dava il 72 %, ma contraddiceva la definizione data
-# due schermate prima, dove gli hotspot sono le superfici che tornano fra le più
-# calde quasi ogni estate. Ora è la stessa soglia della narrazione.
-#
-# Verificato per tre strade prima di fidarsene, perché il numero sembrava basso:
-# contando i pixel del raster di persistenza, intersecando i poligoni del
-# GeoJSON, e — per escludere un off-by-one — risommando a mano i tredici raster
-# annuali, che danno il raster di persistenza con zero pixel di scarto.
-#
-# NOTA SULLA SORGENTE, da girare a chi produce `external/hotspot_10`: nelle
-# estati 2017 e 2021 tutti i pixel del nucleo hanno un valore valido e NESSUNO
-# rientra nel 10 % più caldo, mentre in cinque altre estati ce ne rientra il
-# 95-99 %. Un selciato non esce dalla classifica per un'estate intera e poi ci
-# rientra al 99 %: sono due annate da rifare. Toglierle non cambia però questo
-# numero (dentro il centro non contribuiscono a nessun pixel: «9 su 13» e «9 su
-# 11» danno lo stesso valore), quindi la tabella non le tratta in modo speciale.
+CENTRO_BOUNDARY_PATH = OUTPUT_DIR / "centro_storico.geojson"
+SHADOW_LINES_PATH = OUTPUT_DIR / "bologna_shadow_lines.geojson"
+BOLOGNA_BOUNDARY_PATH = ROOT / "public" / "data" / "vectors" / "bologna_boundary_outline.geojson"
+NDVI_PATH = resolve_data_input("ndvi2025Raster")
+ALBEDO_PATH = resolve_data_input("albedo2025Raster")
 HOTSPOT_MIN_SUMMERS = 9
 HOTSPOT_PATH = (
     ROOT / "public" / "data" / "hotspots" / f"hotspots_ge_{HOTSPOT_MIN_SUMMERS}.geojson"
 )
-STREETS_SHADOW_PATH = EXTERNAL / "bologna_shadow_means" / "streets_shadow_means.geojson"
-GREEN_SHADOW_PATH = EXTERNAL / "bologna_shadow_means" / "green_areas_shadow_means.geojson"
-
-# Thresholds for "above/below" percentages (chosen to be editorially meaningful
-# for the centro storico story — these are documented in centro_aggregates.json).
-NDVI_VEGETATED_THRESHOLD = 0.45   # source app: relatively strong vegetation
-ALBEDO_ABSORBING_THRESHOLD = 0.17  # albedo < 0.17 ≈ assorbente vs reflective
+NDVI_VEGETATED_THRESHOLD = 0.45
+ALBEDO_ABSORBING_THRESHOLD = 0.165
+SHADOW_SOURCE_CRS = "EPSG:4326"
+METRIC_CRS = "EPSG:32632"
 
 
 def load_geojson(path: Path):
@@ -103,63 +50,79 @@ def format_percent(value: float) -> str:
     return f"{int(np.floor(value + 0.5))} %"
 
 
-def write_geojson(path: Path, data) -> None:
-    with path.open("w", encoding="utf8") as fh:
-        json.dump(data, fh, separators=(",", ":"))
+def metric_geometry(geometry: dict, label: str):
+    try:
+        geom = shape(geometry)
+    except Exception as exc:
+        raise RuntimeError(f"{label}: unreadable geometry: {exc}") from exc
+    if geom.is_empty:
+        raise RuntimeError(f"{label}: empty geometry")
+    if not geom.is_valid:
+        geom = make_valid(geom)
+    if geom.is_empty or not geom.is_valid:
+        raise RuntimeError(f"{label}: geometry remains invalid after make_valid")
 
-
-def build_centro_boundary() -> dict:
-    data = load_geojson(STAT_ZONES_PATH)
-    members = [
-        f for f in data["features"]
-        if f["properties"].get("codice_area_statistica") in CENTRO_STAT_CODES
-    ]
-    if len(members) != len(CENTRO_STAT_CODES):
-        raise RuntimeError(
-            f"Expected {len(CENTRO_STAT_CODES)} centro zones, found {len(members)}"
+    metric = shape(
+        transform_geom(
+            SHADOW_SOURCE_CRS,
+            METRIC_CRS,
+            mapping(geom),
+            precision=-1,
         )
-    geoms = [shape(f["geometry"]) for f in members]
-    dissolved = unary_union(geoms).buffer(0)
-    feature = {
-        "type": "Feature",
-        "properties": {
-            "name": "Centro urbano di Bologna",
-            "members": sorted(CENTRO_STAT_CODES),
-            "area_m2": float(sum(f["properties"]["geometry_area_m2"] for f in members)),
-            "shadow_area_weighted_mean": float(
-                sum(
-                    f["properties"]["mean"] * f["properties"]["geometry_area_m2"]
-                    for f in members
-                )
-                / sum(f["properties"]["geometry_area_m2"] for f in members)
-            ),
-        },
-        "geometry": mapping(dissolved),
-    }
-    return {"type": "FeatureCollection", "features": [feature]}
-
-
-def shadow_area_weighted_percent(features: list[dict]) -> float:
-    """Area-weighted mean shadow fraction, expressed as a percentage."""
-    usable = [
-        f for f in features
-        if f["properties"].get("mean") is not None
-        and f["properties"].get("geometry_area_m2")
-    ]
-    total_area = sum(float(f["properties"]["geometry_area_m2"]) for f in usable)
-    if total_area <= 0:
-        return 0.0
-    weighted = sum(
-        float(f["properties"]["mean"]) * float(f["properties"]["geometry_area_m2"])
-        for f in usable
     )
-    return 100.0 * weighted / total_area
+    if not metric.is_valid:
+        metric = make_valid(metric)
+    if metric.is_empty or not metric.is_valid or metric.area <= 0:
+        raise RuntimeError(f"{label}: unusable metric geometry after make_valid")
+    return metric
+
+
+def shadow_area_weighted_percent(features: list[dict], boundary_geometry: dict) -> float:
+    """Area-weighted D07 street + green shadow fraction, expressed as a percentage."""
+    boundary = metric_geometry(boundary_geometry, "shadow boundary")
+    total_area = 0.0
+    weighted_shadow = 0.0
+
+    for index, feature in enumerate(features):
+        properties = feature.get("properties") or {}
+        if properties.get("k") not in {"s", "g"}:
+            raise RuntimeError(f"D07 feature {index}: expected k='s' or k='g'")
+        shadow = properties.get("s")
+        if (
+            isinstance(shadow, bool)
+            or not isinstance(shadow, (int, float))
+            or not np.isfinite(shadow)
+            or not 0 <= shadow <= 1
+        ):
+            raise RuntimeError(f"D07 feature {index}: invalid shadow fraction {shadow!r}")
+        geometry = feature.get("geometry")
+        if not geometry:
+            raise RuntimeError(f"D07 feature {index}: missing geometry")
+
+        feature_geometry = metric_geometry(geometry, f"D07 feature {index}")
+        try:
+            clipped = feature_geometry.intersection(boundary)
+        except Exception as exc:
+            raise RuntimeError(f"D07 feature {index}: clipping failed: {exc}") from exc
+        if clipped.is_empty or clipped.area <= 0:
+            continue
+        if not clipped.is_valid:
+            clipped = make_valid(clipped)
+        if clipped.is_empty or not clipped.is_valid or clipped.area <= 0:
+            raise RuntimeError(f"D07 feature {index}: unusable clipped geometry")
+
+        clipped_area = clipped.area
+        # Street/green overlaps intentionally retain both feature weights.
+        total_area += clipped_area
+        weighted_shadow += clipped_area * float(shadow)
+
+    if total_area <= 0:
+        raise RuntimeError("D07 shadow: no positive clipped feature area")
+    return 100.0 * weighted_shadow / total_area
 
 
 def raster_percent_above(raster_path: Path, centro_geom_geo, threshold: float, *, invert: bool = False) -> float:
-    """Return the percentage of finite pixels in `raster_path` clipped to
-    centro_geom_geo (in EPSG:4326) whose value is >= threshold (or < threshold
-    if invert=True)."""
+    """Measure finite clipped pixels above, or below when inverted, a threshold."""
     with rasterio.open(raster_path) as src:
         centro_reprojected = transform_geom("EPSG:4326", src.crs.to_string(), centro_geom_geo)
         mask = geometry_mask(
@@ -182,11 +145,7 @@ def raster_percent_above(raster_path: Path, centro_geom_geo, threshold: float, *
 
 
 def hotspot_coverage_percent(area_geom_geo) -> float:
-    """% dell'area coperta dagli hotspot a HOTSPOT_MIN_SUMMERS/13.
-
-    Il rapporto è calcolato in UTM 32N, non sui gradi di EPSG:4326, così centro
-    e territorio comunale usano vere aree metriche.
-    """
+    """Measure hotspot coverage in metric UTM 32N areas, not geographic degrees."""
     area_shape = shape(
         transform_geom("EPSG:4326", "EPSG:32632", area_geom_geo)
     )
@@ -213,66 +172,28 @@ def metric_with_bologna(value: float, bologna_value: float, **extra) -> dict:
     }
 
 
-def build_shadow_lines() -> dict:
-    """Merge streets + green areas shadow data into one slim FeatureCollection.
-
-    For each feature we keep only the fields needed for rendering:
-      - kind: "street" | "green"
-      - name: human-readable label
-      - shadow_mean: 0..1 mean shadow fraction (street_shadow_mean preferred,
-        falls back to roof_object_shadow_mean for green areas where street_shadow
-        is not meaningful)
-    Geometry is simplified (~3m tolerance) to keep the bundle small.
-    """
-    out_features = []
-    for path, kind in [(STREETS_SHADOW_PATH, "street"), (GREEN_SHADOW_PATH, "green")]:
-        data = load_geojson(path)
-        for f in data["features"]:
-            geom = f.get("geometry")
-            if not geom:
-                continue
-            props = f["properties"]
-            shadow = props.get("street_shadow_mean")
-            if shadow is None and kind == "green":
-                shadow = props.get("roof_object_shadow_mean")
-            if shadow is None:
-                continue
-            try:
-                g = shape(geom)
-            except Exception:
-                continue
-            if g.is_empty:
-                continue
-            # Drop microscopic features (visual noise at city scale)
-            if hasattr(g, "area") and g.area > 0 and g.area < 5e-9:
-                continue
-            if hasattr(g, "length") and g.area == 0 and g.length < 5e-5:
-                continue
-            # Aggressive simplification: ~10m tolerance is plenty at city scale.
-            simplified = g.simplify(9e-5, preserve_topology=True)
-            if simplified.is_empty:
-                continue
-            out_features.append({
-                "type": "Feature",
-                "properties": {
-                    "k": "s" if kind == "street" else "g",
-                    "s": round(float(shadow), 3),
-                },
-                "geometry": mapping(simplified),
-            })
-    return {"type": "FeatureCollection", "features": out_features}
-
-
 def main() -> None:
-    print("-> perimetro delle sei zone centrali…")
-    centro_fc = build_centro_boundary()
+    require_data_input("ndvi2025Raster")
+    require_data_input("albedo2025Raster")
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+    print("-> perimetro versionato delle sei zone centrali…")
+    centro_fc = load_geojson(CENTRO_BOUNDARY_PATH)
+    if len(centro_fc.get("features", [])) != 1:
+        raise RuntimeError("Expected one feature in centro_storico.geojson")
     centro_feature = centro_fc["features"][0]
     centro_geom_geo = centro_feature["geometry"]
-    write_geojson(OUTPUT_DIR / "centro_storico.geojson", centro_fc)
 
-    stat_zones = load_geojson(STAT_ZONES_PATH)["features"]
-    bologna_feature = load_geojson(BOLOGNA_BOUNDARY_PATH)["features"][0]
+    bologna_fc = load_geojson(BOLOGNA_BOUNDARY_PATH)
+    if len(bologna_fc.get("features", [])) != 1:
+        raise RuntimeError("Expected one feature in bologna_boundary_outline.geojson")
+    bologna_feature = bologna_fc["features"][0]
     bologna_geom_geo = bologna_feature["geometry"]
+
+    shadow_fc = load_geojson(SHADOW_LINES_PATH)
+    if shadow_fc.get("type") != "FeatureCollection":
+        raise RuntimeError("Expected a FeatureCollection in bologna_shadow_lines.geojson")
+    shadow_features = shadow_fc.get("features", [])
 
     print("-> aggregati centro / Bologna…")
     ndvi_pct = raster_percent_above(NDVI_PATH, centro_geom_geo, NDVI_VEGETATED_THRESHOLD)
@@ -280,7 +201,7 @@ def main() -> None:
         ALBEDO_PATH, centro_geom_geo, ALBEDO_ABSORBING_THRESHOLD, invert=True
     )
     hotspot_pct = hotspot_coverage_percent(centro_geom_geo)
-    shadow_pct = centro_feature["properties"]["shadow_area_weighted_mean"] * 100
+    shadow_pct = shadow_area_weighted_percent(shadow_features, centro_geom_geo)
 
     bologna_ndvi_pct = raster_percent_above(
         NDVI_PATH, bologna_geom_geo, NDVI_VEGETATED_THRESHOLD
@@ -289,12 +210,11 @@ def main() -> None:
         ALBEDO_PATH, bologna_geom_geo, ALBEDO_ABSORBING_THRESHOLD, invert=True
     )
     bologna_hotspot_pct = hotspot_coverage_percent(bologna_geom_geo)
-    bologna_shadow_pct = shadow_area_weighted_percent(stat_zones)
+    bologna_shadow_pct = shadow_area_weighted_percent(
+        shadow_features,
+        bologna_geom_geo,
+    )
 
-    # Solo numeri e provenienza. Le etichette che il lettore vede stanno in
-    # src/data/shadowFocus.js, come tutti gli altri testi della storia: chi
-    # tocca una frase apre un file di dati, non uno script di build (e non deve
-    # rigenerare un raster per cambiare una parola).
     aggregates = {
         "boundary": {
             "label": "Il centro urbano di Bologna",
@@ -323,7 +243,7 @@ def main() -> None:
             "indicatori non vanno sommati. "
             f"Superfici molto calde: nel 10 % più caldo di Bologna in almeno "
             f"{HOTSPOT_MIN_SUMMERS} estati su 13; vegetazione: indice ≥ 0,45; "
-            "superfici assorbenti: albedo < 0,17."
+            "superfici assorbenti: albedo < 0,165."
         ),
         "source": (
             "Fonte: superfici osservate da satellite (estati dal 2013 al 2025); "
@@ -333,8 +253,6 @@ def main() -> None:
     with (OUTPUT_DIR / "centro_aggregates.json").open("w", encoding="utf8") as fh:
         json.dump(aggregates, fh, indent=2, ensure_ascii=False)
 
-    # NB: bologna_shadow_lines.geojson (the map fills) is built by
-    # build_sci_shadow.mjs from the cloned SCI repo — do not overwrite it here.
 
     print()
     print("=== sei zone centrali / Bologna ===")
@@ -344,7 +262,7 @@ def main() -> None:
         f"{ndvi_pct:.1f} % / {bologna_ndvi_pct:.1f} %"
     )
     print(
-        f"  Albedo < {ALBEDO_ABSORBING_THRESHOLD:.2f}: "
+        f"  Albedo < {ALBEDO_ABSORBING_THRESHOLD:.3f}: "
         f"{albedo_pct:.1f} % / {bologna_albedo_pct:.1f} %"
     )
     print(

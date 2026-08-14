@@ -1,49 +1,3 @@
-// Vignetta d'apertura del capitolo «sollievo climatico»: una strada assolata che
-// diventa un rifugio, un elemento alla volta. È l'unica rimasta delle quattro che
-// c'erano; le altre tre (nbsSvg, corridoiSvg, porticiSvg) illustravano i beat
-// NBS / corridoi / portici, sostituiti dalla scena illustrata di `12`, il cui
-// disegno è generato e sta in src/data/cityPlan.js.
-//
-// Iniettata via dangerouslySetInnerHTML (stesso schema di VulnerabilitySection).
-// L'HTML parser normalizza gli attributi SVG in minuscolo: qui sono già scritti
-// così (`pathlength`, `viewbox`), non è una svista.
-//
-// ── ALLINEATA ALLE ALTRE VIGNETTE (agosto 2026) ──────────────────────────────
-// Questo disegno arrivava da un'altra sorgente e si vedeva: aveva una sua
-// tavolozza (verdi saturi e freddi, grigi lavanda), le persone in una versione
-// precedente a quella di «fragilità», e un rettangolo con tre bordi netti che lo
-// faceva leggere come una figurina incollata sulla pagina. Tre cose sistemate
-// insieme, perché sono la stessa cosa vista da tre lati:
-//
-//   1. LE PERSONE sono quelle di VulnerabilitySection, prese di peso. Non è una
-//      somiglianza: è lo stesso sistema di coordinate (linea di terra a y 330,
-//      teste a 145 / 300 / 338 / 510 / 628), e questa scena si limita a
-//      spostarle in x con i translate che aveva già. Chi ritocca il cast di
-//      «fragilità» deve ritoccare anche questo file, o le stesse cinque persone
-//      tornano a essere disegnate da due mani diverse.
-//      Le facce restano in `.fx-g` e non nell'inchiostro: qui devono poter
-//      passare da bocca dritta a sorriso mentre il rifugio si costruisce
-//      (story.css, .fx--flat / .fx--smile), e una faccia dentro `.i` non può.
-//
-//   2. LA TAVOLOZZA è quella di «fragilità» e della vignetta hotspot: selciato
-//      #DFCFB2 con il lavaggio di calore #C2551F che sale dal basso, chiome
-//      #7E9C63, murature calde #DDC49E con le volte in ombra a #B09877, legni
-//      #9A7B58 / #8E7250. Sono spariti i grigi lavanda (#A6A0AA sugli archi,
-//      #6E7A82 sulla fontana), i verdi da poster (#A6C58C sul prato, #6E9A5C
-//      sulle chiome) e le panche verde scuro (#4E5C48), che erano l'oggetto più
-//      saturo della scena per una cosa su cui ci si siede e basta.
-//      Le sole cose rimaste fredde sono l'acqua della fontana e il sudore: sono
-//      fredde perché quello è il loro significato.
-//
-//   3. IL BORDO. Il cielo di questa vignetta è trasparente — è lo sfondo della
-//      sezione a farlo (story.css, .relief-explainer) — quindi in alto il
-//      disegno era già fuso con la pagina. A tradirlo erano il suolo, che era
-//      una fascia piena da bordo a bordo, e l'alone del sole, che era
-//      un'ellisse piena: un'ellisse ha un contorno, e un contorno attorno a una
-//      luce dice «macchia disegnata». Adesso il suolo sborda oltre la cornice e
-//      si dissolve nella maschera `rifugio-edge`, e la luce è un gradiente
-//      radiale che si spegne prima di qualunque bordo — quindi tinge lo sfondo
-//      della pagina invece di finirci contro.
 
 export const rifugioSvg = `
 <svg role="img" viewbox="0 0 1040 430" aria-label="Cos'e' un rifugio climatico" xmlns="http://www.w3.org/2000/svg">
@@ -51,44 +5,13 @@ export const rifugioSvg = `
 <feturbulence basefrequency="0.014" numoctaves="2" result="n" seed="7" type="fractalNoise"></feturbulence>
 <fedisplacementmap in="SourceGraphic" in2="n" scale="1.4"></fedisplacementmap></filter>
 
-<!-- DOV'E' FINITA LA LUCE DEL SOLE.
-     Qui c'era prima <ellipse rx=460 ry=170 fill=#F4CE84 opacity=.42>, cioe' una
-     campitura piena con un contorno visibile; poi un gradiente radiale, sempre
-     dentro il disegno. Il gradiente aveva tolto il contorno ma non il problema
-     vero: una luce disegnata dentro il riquadro finisce dove finisce il
-     riquadro, e il giallo restava incastrato nei bordi invece di allargarsi.
-     Adesso la luce e' la CARTA: .relief-figure::before in story.css, ancorata a
-     questo stesso sole (cx 540, cy 70) ma grande due volte e mezzo la figura,
-     quindi senza bordi da nessuna parte. E' la stessa tecnica di
-     .vulnerability-vignette::before e di .hotspot-intro-panel::before.
-     Se il sole si sposta, va rispostato anche quell'ancoraggio. -->
 
-<!-- Il calore trattenuto dal selciato: sale dal bordo basso e si spegne
-     all'orizzonte. Stesso lavaggio, stesso colore e stessa direzione delle altre
-     due vignette (hsi-a-heat, frg-heat). In userSpaceOnUse perche' il selciato
-     esce dal riquadro: in objectBoundingBox il lavaggio lo seguirebbe fuori e il
-     punto piu' caldo si sposterebbe. -->
 <lineargradient gradientunits="userSpaceOnUse" id="rif-heat" x1="0" x2="0" y1="510" y2="330">
   <stop offset="0" stop-color="#C2551F" stop-opacity=".30"></stop>
   <stop offset=".55" stop-color="#C2551F" stop-opacity=".16"></stop>
   <stop offset="1" stop-color="#C2551F" stop-opacity=".06"></stop>
 </lineargradient>
 
-<!-- ── IL BORDO ──────────────────────────────────────────────────────────────
-     Un rettangolo bianco sfocato: dove e' bianco il disegno c'e' tutto, dove
-     sfuma si dissolve nella carta.
-     E VA APPLICATA SOLO A CIO' CHE SBORDA. Sfumare vuol dire TOGLIERE: su un
-     oggetto tutto interno al quadro non produce dissolvenza ma amputazione — e
-     qui gli alberi di layer 1 arrivano a filo dei due lati, il chiosco di
-     layer 6 pure. Quindi la maschera veste solo il SUOLO (il selciato di .base e
-     il prato di layer 5), che e' l'unica cosa che si leggeva come una fascia con
-     tre bordi netti, e quel suolo e' stato allungato oltre la cornice apposta.
-     Il lato alto sta fuori quadro (y = -120) perche' lassu' il cielo e' gia'
-     trasparente e non c'e' niente da sfumare.
-     La REGIONE della maschera e' esattamente il riquadro (0 0 1040 430), come in
-     frg-edge: fuori di li' l'alfa e' zero, quindi il suolo disegnato oltre la
-     cornice non finisce mai fuori dal riquadro nonostante overflow: visible.
-     Serve solo ad avere materia da dissolvere. -->
 <filter height="160%" id="rifugio-soft" width="160%" x="-30%" y="-30%">
 <fegaussianblur stddeviation="24"></fegaussianblur></filter>
 <mask height="430" id="rifugio-edge" maskunits="userSpaceOnUse" width="1040" x="0" y="0">
@@ -97,40 +20,12 @@ export const rifugioSvg = `
 </defs>
 <g class="scene" filter="url(#rifugio-pz)">
 <g class="hotsun">
-<!-- Solo il disco e i raggi, come nelle altre due vignette. La luce sta nella
-     carta (vedi la nota in testa ai defs). -->
 <circle cx="540" cy="70" fill="#E8A23C" r="38"></circle>
 <g opacity=".55" stroke="#F1B345" stroke-linecap="round" stroke-width="4">
 <path d="M586 70 L610 70"></path><path d="M494 70 L470 70"></path><path d="M540 116 L540 140"></path><path d="M540 24 L540 0"></path>
 <path d="M573 103 L589 119"></path><path d="M507 37 L491 21"></path><path d="M507 103 L491 119"></path><path d="M573 37 L589 21"></path>
 </g>
 </g>
-<!-- ── IL FONDALE È QUELLO DI «FRAGILITÀ» ───────────────────────────────────
-     Qui c'erano due colline piatte e una coppia di torri disegnate male: due
-     rettangoli con un cappello, piantati in mezzo al quadro dietro la testa di
-     chi e' in carrozzina. Non dicevano Bologna, dicevano «pali».
-     Adesso e' il fondale di VulnerabilitySection, preso di peso: Due Torri,
-     colli, e un tratto di portico. Stesse unita' di disegno (le due vignette
-     condividono la linea di terra a y 330 e la scala del cast), quindi i
-     percorsi sono quelli, solo traslati in x.
-
-     ── LA REGOLA DA NON ROMPERE: I TRE PEZZI NON SI TOCCANO ──
-     E' scritta anche di la' e vale piu' che mai qui. Il fondale e' tutto
-     semitrasparente — colli al 16 %, murature al 26-30 % — quindi NIENTE copre
-     niente: se il crinale passa dietro il portico non ci sparisce sotto, ci si
-     vede attraverso, e il portico smette di leggersi come un edificio. L'unico
-     rimedio e' non farli sovrapporre affatto. Da cui la spartitura della
-     larghezza, che va rifatta se si sposta un pezzo:
-         torri 34-113  |  colli 130-700  |  portico 730-906
-     Le torri stanno alle coordinate esatte di «fragilita'», non traslate: li'
-     finiscono a 113 e l'anziana comincia a 113, cioe' si sfiorano senza toccarsi.
-     Spostate anche solo di venti unita' la seconda torre le finisce dietro la
-     schiena e sparisce — provato.
-     I colli sono l'unico percorso riscalato (x 125-540 di la', 415 unita',
-     stirate a 570): il riquadro qui e' 280 unita' piu' largo e un crinale che
-     non arriva al portico lascia un buco in mezzo al cielo.
-     Sopra ci passeranno l'albero, il pergolato, l'edificio col portico e il
-     chiosco: e' giusto cosi', un fondale sta dietro. -->
 <g class="bolo">
 <path class="bolo-hills" d="M130 330 Q189 272 267 280 Q349 248 431 272 Q521 244 596 266 Q655 276 700 330 Z" fill="#9CAF88" opacity=".18"></path>
 <g class="bolo-torri">
@@ -146,10 +41,6 @@ export const rifugioSvg = `
 <path d="M826 328 V278 Q826 254 848 254 Q870 254 870 278 V328"></path>
 <path d="M872 328 V278 Q872 254 894 254 Q906 254 906 278 V328"></path>
 </g>
-<!-- Il tratto del fondale. Non sta in un gruppo di classe "i" apposta: quelli
-     vivono dentro .base / .layer e si disegnano a tappe, mentre questo deve
-     comparire e arretrare insieme alla propria campitura. Lo stile (piu'
-     sottile e piu' chiaro dell'inchiostro di scena) sta in story.css. -->
 <g class="bolo-ink">
 <path d="M34 330 L42 176 L70 171 L79 330"></path>
 <path d="M44 176 L68 171 L67 162 L46 166 Z"></path>
@@ -165,12 +56,6 @@ export const rifugioSvg = `
 <path d="M872 328 V278 Q872 254 894 254 Q906 254 906 278 V328"></path>
 </g>
 </g>
-<!-- IL SELCIATO. Era <rect x=0 y=330 width=1040 height=100 fill=#CFC2A6>: una
-     fascia piena da bordo a bordo, cioe' esattamente il rettangolo che faceva
-     leggere il disegno come incollato sulla pagina. Adesso va da -100 a 1140 e
-     scende fino a 510 — oltre la cornice su tre lati — e la maschera lo dissolve
-     prima che il bordo arrivi. Il lavaggio di calore e i giunti lo seguono
-     fuori quadro: e' quello a farlo leggere come una strada che continua. -->
 <g class="base"><g class="c"><g mask="url(#rifugio-edge)">
 <rect fill="#DFCFB2" height="180" width="1240" x="-100" y="330"></rect>
 <rect fill="url(#rif-heat)" height="180" width="1240" x="-100" y="330"></rect>
@@ -185,10 +70,6 @@ export const rifugioSvg = `
 <path d="M560 408 L562 458"></path><path d="M760 408 L768 458"></path><path d="M960 408 L972 458"></path>
 </g>
 </g></g><g class="i"><g mask="url(#rifugio-edge)"><path d="M-100 330 L1140 330" pathlength="1"></path></g></g></g>
-<!-- SUOLO VIVO (tappa 5). Il prato era #A6C58C su tutta la fascia bassa, con gli
-     stessi tre bordi netti del selciato: un verde da poster e un secondo
-     rettangolo sopra il primo. Stessa maschera, stesso sbordo, e un verde di
-     matita colorata invece che di stampante. -->
 <g class="layer" data-layer="5"><g class="c">
 <g mask="url(#rifugio-edge)">
 <path d="M-100 330 L1140 330 L1140 510 L-100 510 Z" fill="#BCD1A2"></path>
@@ -219,10 +100,6 @@ export const rifugioSvg = `
 <circle cx="588" cy="298" fill="#BFE0EA" r="2.4"></circle><circle cx="600" cy="286" fill="#BFE0EA" r="2.6"></circle><circle cx="612" cy="300" fill="#BFE0EA" r="2.4"></circle>
 </g></g><g class="i"><path d="M478 252 L478 330 M483 252 L483 330" pathlength="1"></path><circle cx="480" cy="250" pathlength="1" r="5"></circle><g transform="translate(-40,0)"><path d="M536 292 L536 322 L548 322 L548 292 Z" pathlength="1"></path><path d="M533 290 L551 290" pathlength="1"></path>
 <path d="M548 300 Q558 300 558 306" pathlength="1"></path><path d="M556 307 Q556 314 556 320" pathlength="1"></path></g><path d="M574 330 Q600 326 626 330" pathlength="1"></path></g></g>
-<!-- SOSTA (tappa 3). Le panche erano quattro verdi scuri e saturi (#748468,
-     #647258, #4E5C48, #5A6A54): l'oggetto piu' scuro e piu' colorato della
-     scena, per una cosa su cui ci si siede e basta. Legno e ferro, come la
-     panchina della vignetta hotspot. -->
 <g class="layer" data-layer="3"><g class="c"><ellipse class="shad" cx="160" cy="333" fill="#4a4234" opacity=".12" rx="62" ry="5"></ellipse><ellipse class="shad" cx="378" cy="334" fill="#4a4234" opacity=".12" rx="56" ry="5"></ellipse><path d="M104 272 L214 272 L214 278 L104 278 Z" fill="#A0855F"></path>
 <path d="M104 300 L214 300 L214 307 L104 307 Z" fill="#8E7250"></path>
 <path d="M110 307 L110 330 L116 330 L116 307 Z" fill="#6F6A55"></path><path d="M202 307 L202 330 L208 330 L208 307 Z" fill="#6F6A55"></path>
@@ -230,13 +107,9 @@ export const rifugioSvg = `
 <path d="M110 307 L110 330" pathlength="1"></path><path d="M116 307 L116 330" pathlength="1"></path><path d="M202 307 L202 330" pathlength="1"></path><path d="M208 307 L208 330" pathlength="1"></path>
 <path d="M112 278 L112 300" pathlength="1"></path><path d="M206 278 L206 300" pathlength="1"></path><path d="M334 314 L420 314 L420 322 L334 322 Z" pathlength="1"></path><path d="M328 322 L426 322 L426 330 L328 330 Z" pathlength="1"></path></g></g>
 
-<!-- ── LE PERSONE ────────────────────────────────────────────────────────────
-     Sono il cast di VulnerabilitySection, stesse coordinate. Non toccare qui
-     senza toccare anche là: vedi la nota in testa al file. -->
 <g class="layer" data-layer="0"><g class="c">
 <g class="shad"><ellipse cx="149" cy="332" fill="#4a4234" opacity=".13" rx="28" ry="4"></ellipse><ellipse cx="352" cy="334" fill="#4a4234" opacity=".13" rx="30" ry="4.5"></ellipse><ellipse cx="390" cy="331" fill="#4a4234" opacity=".12" rx="14" ry="3"></ellipse><ellipse cx="520" cy="334" fill="#4a4234" opacity=".13" rx="38" ry="5"></ellipse><ellipse cx="712" cy="333" fill="#4a4234" opacity=".13" rx="24" ry="4"></ellipse></g>
 
-<!-- FIG1 anziana col cappello + bastone -->
 <g class="eld-stand" transform="translate(0,8)">
 <g transform="translate(145,195) scale(0.9) translate(-145,-195)">
 <ellipse cx="145" cy="166" fill="#D9C79B" rx="27" ry="7"></ellipse>
@@ -261,7 +134,6 @@ export const rifugioSvg = `
 <path d="M171 256 L162 258 Q161 266 167 268 Q173 266 173 261 Z" fill="#E9C6A0"></path>
 </g>
 
-<!-- FIG2 adulto + bambino -->
 <g transform="translate(50,0)">
 <g transform="translate(300,194) scale(0.84) translate(-300,-194)">
 <path d="M288 176 Q289 160 300 159 Q311 160 312 176 Q306 168 300 168 Q294 168 288 176 Z" fill="#3A2B22"></path>
@@ -301,7 +173,6 @@ export const rifugioSvg = `
 <path d="M340 322 L340 328 L348 328 L347 322 Z" fill="#42403A"></path>
 </g>
 
-<!-- FIG3 persona in carrozzina (si spinge da se') -->
 <g transform="translate(40,0)">
 <circle cx="478" cy="300" fill="none" r="29" stroke="#46423B" stroke-width="5"></circle>
 <circle cx="478" cy="300" fill="none" r="26" stroke="#AEB4B8" stroke-width="2"></circle>
@@ -323,7 +194,6 @@ export const rifugioSvg = `
 <path d="M490 274 L499 276 Q500 284 494 286 Q488 284 488 279 Z" fill="#C68F62"></path>
 </g>
 
-<!-- FIG4 donna in gravidanza -->
 <g transform="translate(82,0)">
 <g transform="translate(628,194) scale(0.8) translate(-628,-194)">
 <ellipse cx="615" cy="166" fill="#2A2620" rx="6" ry="7"></ellipse>
@@ -457,9 +327,6 @@ export const rifugioSvg = `
 </g>
 </g></g>
 
-<!-- L'anziana seduta prende il posto di quella in piedi alla tappa «sosta».
-     Non ha un corrispettivo in «fragilita'» — la' nessuno si siede — quindi
-     resta il disegno di questa vignetta, riportato pero' sui colori del cast. -->
 <g class="eld-seat"><g class="c"><ellipse cx="150" cy="226" fill="#D9C79B" rx="24" ry="6"></ellipse>
 <path d="M137 226 Q138 212 150 211 Q162 212 163 226 Z" fill="#D9C79B"></path>
 <path d="M145 238 L144 250 L156 250 L155 238 Z" fill="#E9C6A0"></path>

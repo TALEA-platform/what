@@ -12,12 +12,8 @@ import {
   summerTrendData,
   summerTrendFull,
   summerTrendMean,
-  summerTrendMeanLabel,
-  summerTrendMeanPeriod,
-  summerTrendSource,
-  summerTrendZoomInvite,
-  summerTrendChartMeta,
 } from "../../data/summerTrend";
+import { useContent } from "../../content";
 
 const chartHeight = 340;
 const chartMargin = { top: 22, right: 24, bottom: 8, left: -4 };
@@ -28,32 +24,13 @@ const lineAnimationBegin = 350;
 const trendAnimationDuration = 1300;
 const interactionReadyDelay = lineAnimationBegin + trendAnimationDuration + 120;
 
-// 03 § 3.2 proponeva di legare il disegno della curva allo scroll. Provato e
-// scartato: la curva che si disegna da sola all'ingresso è più bella, e chi si
-// fermava a metà scroll si trovava davanti un grafico monco. Resta l'animazione
-// di recharts, quella di sempre.
 
 const SWAP_FADE_MS = 180;
-
-const tempFormatter = new Intl.NumberFormat("it-IT", {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
-
-const deltaFormatter = new Intl.NumberFormat("it-IT", {
-  minimumFractionDigits: 1,
-  maximumFractionDigits: 1,
-});
-
-function formatTemp(value) {
-  return `${tempFormatter.format(value)} °C`;
-}
 
 function getTooltipPlacement(y) {
   return y < 72 ? "below" : "above";
 }
 
-// Sparse decade ticks for the full 1961-2025 view (every year would be unreadable).
 function decadeTicks(data) {
   const first = data[0].year;
   const last = data.at(-1).year;
@@ -65,7 +42,7 @@ function decadeTicks(data) {
   return ticks;
 }
 
-function TrendPointTooltip({ point }) {
+function TrendPointTooltip({ point, chartContent, formatTemp, deltaFormatter }) {
   if (!point?.data) return null;
   const d = point.data;
   const delta = d.temp - summerTrendMean;
@@ -80,13 +57,36 @@ function TrendPointTooltip({ point }) {
       <strong>{d.year}</strong>
       <span className="trend-tooltip-value">{formatTemp(d.temp)}</span>
       <span className="trend-tooltip-delta">
-        {delta > 0 ? "+" : ""}{deltaFormatter.format(delta)}° vs media
+        {delta > 0 ? "+" : ""}{deltaFormatter.format(delta)}°{" "}
+        {chartContent.tooltip.versusMean}
       </span>
     </div>
   );
 }
 
 export function SummerTrendChart() {
+  const { content, locale } = useContent();
+  const summerTrendChart = content.summerTrend.chart;
+  const tempFormatter = useMemo(
+    () =>
+      new Intl.NumberFormat(locale, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }),
+    [locale],
+  );
+  const deltaFormatter = useMemo(
+    () =>
+      new Intl.NumberFormat(locale, {
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1,
+      }),
+    [locale],
+  );
+  const formatTemp = useCallback(
+    (value) => `${tempFormatter.format(value)} °C`,
+    [tempFormatter],
+  );
   const ref = useRef(null);
   const plotRef = useRef(null);
   const [chartWidth, setChartWidth] = useState(0);
@@ -159,15 +159,12 @@ export function SummerTrendChart() {
     return () => observer.disconnect();
   }, []);
 
-  // The mean reference settles in just before the line draws over it.
   useEffect(() => {
     if (!visible) return;
     const timer = setTimeout(() => setMeanVisible(true), reduceMotion ? 0 : 200);
     return () => clearTimeout(timer);
   }, [visible, reduceMotion]);
 
-  // Enable hover/keyboard once the initial draw has finished. Toggling the view
-  // later keeps interactivity on (the delay only guards the first reveal).
   useEffect(() => {
     if (!visible || interactionReady) return undefined;
     const timer = setTimeout(
@@ -191,12 +188,11 @@ export function SummerTrendChart() {
     return { data, maxTemp, minTemp, yMin, yMax, ticks };
   }, [expanded]);
 
-  // Animate the line/area DRAW (recharts built-in). Keying on `visible` +
-  // `expanded` remounts the series so the draw replays on scroll-in and on each
-  // zoom toggle; the axes + tick numbers always paint with the chart structure.
   const drawAnim = visible && !reduceMotion;
   const activeYear = activePoint?.data?.year;
-  const invite = expanded ? summerTrendZoomInvite.expanded : summerTrendZoomInvite.collapsed;
+  const invite = expanded
+    ? summerTrendChart.zoomInvite.expanded
+    : summerTrendChart.zoomInvite.collapsed;
   const dense = expanded;
 
   const points = useMemo(() => {
@@ -243,9 +239,6 @@ export function SummerTrendChart() {
     setActivePoint((current) => (current ? null : current));
   }, []);
 
-  // Cambio di vista: il grafico sfuma, cambia i dati, torna. Senza la sfumata i
-  // 13 punti saltano nelle posizioni dei 65 e sembra un errore di rendering.
-  // Il tooltip aperto va chiuso: il suo anno non esiste più nella nuova scala.
   const toggleExpanded = useCallback(() => {
     setActivePoint(null);
     setSwapping(true);
@@ -264,10 +257,10 @@ export function SummerTrendChart() {
       <div className="trend-chart-head">
         <div className="trend-chart-meta">
           <span className="trend-chart-meta-kicker">
-            {expanded ? summerTrendChartMeta.expanded : summerTrendChartMeta.collapsed}
+            {expanded ? summerTrendChart.meta.expanded : summerTrendChart.meta.collapsed}
           </span>
-          <span className="trend-chart-meta-value">{summerTrendChartMeta.value}</span>
-          <span className="trend-chart-meta-unit">{summerTrendChartMeta.unit}</span>
+          <span className="trend-chart-meta-value">{summerTrendChart.meta.value}</span>
+          <span className="trend-chart-meta-unit">{summerTrendChart.meta.unit}</span>
         </div>
       </div>
 
@@ -308,8 +301,6 @@ export function SummerTrendChart() {
               tickFormatter={(v) => `${v}°`}
               width={38}
             />
-            {/* 03 § 3.4 — la media era azzurra, un colore che nel resto della
-                storia non significa niente. È una nota, non un dato. */}
             {meanVisible && (
               <ReferenceLine
                 y={summerTrendMean}
@@ -318,8 +309,7 @@ export function SummerTrendChart() {
                 strokeWidth={1.6}
                 className="trend-reference-line"
                 label={{
-                  /* Virgola decimale: il resto del grafico usa già it-IT. */
-                  value: `media ${summerTrendMeanPeriod} · ${deltaFormatter.format(summerTrendMean)}°`,
+                  value: `${summerTrendChart.reference.label} · ${deltaFormatter.format(summerTrendMean)}°`,
                   position: "insideTopRight",
                   fill: "var(--ink-soft)",
                   fontSize: 10.5,
@@ -385,11 +375,14 @@ export function SummerTrendChart() {
             </button>
           ))}
         </div>
-        <TrendPointTooltip point={activePoint} />
+        <TrendPointTooltip
+          point={activePoint}
+          chartContent={summerTrendChart}
+          formatTemp={formatTemp}
+          deltaFormatter={deltaFormatter}
+        />
       </div>
 
-      {/* 03 § 3.3 — l'invito sta SOTTO l'asse x, dove l'occhio arriva dopo aver
-          letto la curva: è lì che si forma la domanda «e prima?». */}
       <p className="trend-zoom-invite">
         <span className="trend-zoom-invite-lead">{invite.lead}</span>{" "}
         <button
@@ -406,7 +399,8 @@ export function SummerTrendChart() {
       </p>
 
       <p className="trend-source">
-        Fonte: {summerTrendSource.label} · {summerTrendMeanLabel}
+        {summerTrendChart.source.prefix} {summerTrendChart.source.label} ·{" "}
+        {summerTrendChart.source.meanLabel}
       </p>
     </div>
   );

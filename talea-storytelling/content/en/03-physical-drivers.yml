@@ -1,0 +1,105 @@
+schemaVersion: 1
+locale: en
+
+chapter:
+  id: physical-drivers
+
+intro:
+  id: physical-drivers-intro
+  ariaLabel: "Why heat lingers in these particular areas"
+  title: "Why here in particular?"
+  lead: "To understand why heat tends to accumulate in these particular areas, we need to take a closer look at the city."
+  topicStatement:
+    id: physical-drivers-topics
+    segments:
+      - id: topic-statement-intro
+        text: "Several factors are at work: key among them are the amount of "
+      - id: topic-green
+        text: "greenery"
+        kw: true
+        topic: green
+      - id: topic-statement-bridge
+        text: " and the "
+      - id: topic-absorption
+        text: "heat-absorption capacity of "
+      - id: topic-materials
+        text: "materials"
+        kw: true
+        topic: materials
+      - id: topic-statement-end
+        text: "."
+  close:
+    id: physical-drivers-intro-close
+    text: "Let's examine them in detail."
+
+narrative:
+  id: physical-drivers-narrative
+  stages:
+    - id: clue-green
+      segments:
+        - id: green-intro
+          text: "The "
+        - id: green-topic
+          text: "greenery"
+          kw: true
+          topic: green
+          flightTarget: green
+        - id: green-body
+          text: ", understood as the presence and density of vegetation across the area, not only provides shade but also releases moisture into the air, helping to moderate the surrounding temperature.\n\nWhere trees and plants thin out, the urban fabric loses this natural ability to keep heat in balance."
+    - id: clue-materials
+      segments:
+        - id: materials-intro
+          text: "The "
+        - id: materials-topic
+          text: "materials"
+          kw: true
+          topic: materials
+          flightTarget: materials
+        - id: materials-body
+          text: " that make up the city, from the asphalt on its streets to the concrete in its buildings, respond to sunlight according to their physical properties. \n\n Dark, compact surfaces reach higher temperatures and cool more slowly, also affecting conditions in the surrounding environment."
+    - id: compare
+      segments:
+        - id: compare-intro
+          text: "When "
+        - id: compare-materials-topic
+          text: "materials"
+          kw: true
+          topic: materials
+          flightTarget: compare-materials
+          emphasisGroup: compare-materials
+        - id: compare-materials-detail
+          text: " that absorb large amounts of heat"
+          kw: true
+          emphasisGroup: compare-materials
+        - id: compare-bridge
+          text: " and "
+        - id: compare-green-detail
+          text: "limited "
+          kw: true
+          emphasisGroup: compare-green
+        - id: compare-green-topic
+          text: "greenery"
+          kw: true
+          topic: green
+          flightTarget: compare-green
+          emphasisGroup: compare-green
+        - id: compare-end
+          text: " coexist in the same area, heat has the conditions it needs to persist for longer."
+
+legends:
+  id: physical-drivers-legends
+  lenses:
+    - id: green
+      from: "less vegetation"
+      to: "more vegetation"
+    - id: materials
+      from: "absorbs sunlight"
+      to: "reflects sunlight"
+  hotspot:
+    id: physical-drivers-hotspot-legend
+    label: "Hotspot 10% ≥ 9/13"
+
+comparison:
+  id: physical-drivers-comparison
+  handleHint: "drag"
+  ariaLabel: "Compare greenery and surfaces: drag or use the arrow keys"

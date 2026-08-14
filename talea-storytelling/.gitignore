@@ -15,6 +15,11 @@ dist
 dist-ssr
 *.local
 
+# Recreated by npm run dev and npm run build.
+src/generated/content.json
+src/generated/summer-trend.json
+src/generated/climate-relief-stats.json
+
 
 .env
 .env.*
@@ -31,6 +36,7 @@ dist-ssr
 .media-src/
 .data/
 
+docs/
 external/
 
 

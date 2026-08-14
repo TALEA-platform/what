@@ -1,0 +1,308 @@
+schemaVersion: 1
+locale: en
+
+chapter:
+  id: climate-relief
+
+opening:
+  id: climate-relief-opening
+  title: "Green spaces are the solution."
+  lead:
+    id: climate-relief-lead
+    before: "A "
+    term:
+      id: climate-refuge-term
+      text: "climate refuge"
+      glossary: climate-refuge
+    after: " comes into being when several forms of relief come together in the same place."
+  body:
+    - id: climate-relief-opening-body
+      text: "This combination turns a place people simply pass through into somewhere to stop, cool down and catch their breath during the hottest hours."
+  close: "Let’s see how a street can become one, one element at a time."
+
+explainer:
+  id: climate-refuge-explainer
+  figure:
+    id: climate-refuge-figure
+    ariaLabel: "A sun-baked street in Bologna — with the Two Towers and the hills in the background — gradually becomes a climate refuge: shade, lightweight structures, seating, water, greenery and permeable ground appear, with a bus stop just a short walk away. The sun remains but feels gentler, objects cast shadows and small labels show the temperature in the sun and in the shade. The overheated people begin to smile again."
+    svgAriaLabel: "What is a climate refuge?"
+  model:
+    id: climate-refuge-model
+    title: "A neighbourhood square before its climate transformation"
+    description: "A paved, sun-baked square surrounded by two Bolognese buildings and crossed by several people. The model can be rotated through 360 degrees."
+    temperature:
+      id: climate-refuge-temperature
+      legend: "AIR TEMPERATURE"
+      locations:
+        - id: start
+          text: "in the sun"
+        - id: natural-shade
+          text: "under the trees"
+        - id: continuous-shade
+          text: "under shelter"
+        - id: rest
+          text: "under shelter"
+        - id: water
+          text: "near the water"
+        - id: living-ground
+          text: "near the water"
+        - id: accessibility
+          text: "inside the refuge"
+        - id: complete
+          text: "inside the refuge"
+    controls:
+      id: climate-refuge-model-controls
+      panGroup: "Move the view"
+      panUp: "Move the view up"
+      panLeft: "Move the view left"
+      panRight: "Move the view right"
+      panDown: "Move the view down"
+      zoomOut: "Zoom out"
+      zoomIn: "Zoom in"
+      hint: "Drag to rotate the square · double-click to zoom in"
+  steps:
+    - id: start
+      added: "The transformation begins"
+      paragraphs:
+        - "A bare square with no shelter."
+    - id: natural-shade
+      added: "Natural shade"
+      piece: "shade"
+      paragraphs:
+        - "Tree canopies filter the sun and provide the first shelter."
+    - id: continuous-shade
+      added: "Continuous shade"
+      piece: "continuous shelter"
+      paragraphs:
+        - "Pergolas and canopies provide protection even where trees cannot reach."
+    - id: rest
+      added: "A place to rest"
+      piece: "places to rest"
+      paragraphs:
+        - "A seat in the shade turns passing through into taking a break."
+    - id: water
+      added: "Water"
+      piece: "water"
+      paragraphs:
+        - "Having water available to drink and cool down helps lower body temperature."
+    - id: living-ground
+      added: "Living ground"
+      piece: "greenery and living ground"
+      paragraphs:
+        - "Ground-level greenery mitigates heat and allows rainwater to soak naturally into the soil."
+    - id: accessibility
+      added: "Accessibility"
+      piece: "accessibility"
+      paragraphs:
+        - "A refuge truly works when it is inclusive and easy for everyone to reach."
+    - id: complete
+      added: "The refuge is complete"
+      paragraphs:
+        - "The same square, once difficult to cross, now welcomes anyone who needs a break."
+        - "The real difference does not come from any one element, but from the way they work together to create a cooler, more comfortable microclimate."
+  recipeLabel: "A climate refuge is made of"
+  sequence:
+    id: climate-refuge-sequence
+    playing: "Watch the street · the next element is on its way"
+    done: "Scroll to continue"
+
+refuges:
+  id: bologna-climate-refuges
+  intro:
+    id: bologna-climate-refuges-intro
+    title: "These places already exist in Bologna."
+    body:
+      - id: bologna-climate-refuges-body
+        text: "The Municipality officially recognises some of them as climate refuges. Alongside them, other parks and gardens have compatible characteristics."
+    mapInvitation: "Let’s find them on the map"
+  map:
+    id: bologna-climate-refuges-map
+    ariaLabel: "Map of Bologna’s climate refuges"
+    hints:
+      id: climate-refuges-map-hints
+      invite: "Select a place to explore it"
+      return: "Scroll to return to the city"
+    counts:
+      id: climate-refuges-counts
+      officialLabel: "officially recognised by the Municipality"
+      officialSub: "sixteen indoors, thirteen outdoors"
+      compatibleLabel: "parks and gardens with compatible characteristics"
+    links:
+      id: climate-refuges-links
+      municipalLabel: "The Municipality’s climate refuge map"
+      taleaLabel: "TALEA’s climate refuge map"
+    loadError: "Climate refuge data is currently unavailable."
+    search:
+      id: climate-refuges-search
+      promptLead: "Start with a place you know"
+      promptTail: "a street, including the street number."
+      placeholder: "Street, number or park"
+      ariaLabel: "Search for a street or park in Bologna"
+      submit: "Search"
+      searching: "Searching…"
+      empty: "I couldn’t find this address in Bologna."
+      routeLoading: "Calculating walking routes on the street network…"
+      routeError: "Walking routes cannot be calculated right now. Please try again shortly."
+      suggestionLabels:
+        address: "Address"
+        square: "Square"
+        street: "Street"
+        park: "Park"
+        greenArea: "Green space"
+        place: "Place"
+        zone: "Area"
+        greenSpace: "Green space"
+        municipalRefuge: "Municipal refuge"
+    cards:
+      id: climate-refuges-cards
+      tapForDetails: "tap for details"
+      green:
+        id: green-refuge-card
+        fallbackName: "Green space"
+        districtPrefix: "District"
+        areaTemplate: "{n} hectares"
+        typeLabels:
+          urbanPark: "Urban park"
+          park: "Park"
+          neighborhoodGarden: "Neighbourhood garden"
+          schoolGreen: "School grounds"
+          sportsGreen: "Sports green space"
+          greenSpace: "Green space"
+        amenities:
+          fountain: "drinking fountain"
+          benches: "benches"
+          picnicTables: "picnic tables"
+        standout: "One of the city’s large green spaces"
+        streetViewCta: "See what it looks like on Street View"
+      official:
+        id: official-refuge-card
+        popupType: "Municipal climate refuge"
+        badge: "Officially recognised by the Municipality"
+        indoor: "indoors"
+        outdoor: "outdoors"
+        districtPrefix: "District"
+        typeLabels:
+          library: "Library"
+          publicLibrary: "Public library"
+          communityCenter: "Neighbourhood centre"
+          communityCenterAndPark: "Neighbourhood centre and public park"
+          internalCourtyard: "Internal courtyard"
+          publicGarden: "Public garden"
+          multifunctionalVenue: "Multifunctional venue"
+          museum: "Museum"
+          publicPark: "Public park"
+          coveredSquare: "Covered square"
+        waterLabel: "Water"
+        toiletsLabel: "Toilets"
+        toiletsFree: "Free"
+        toiletsNotFree: "Not free"
+        toiletsUnknown: "Cost not specified"
+        openingHours: "Opening hours"
+      nearby:
+        id: nearby-refuges-card
+        nearestOfficial: "Nearest officially recognised refuge"
+        greenNearby: "Green spaces within reach"
+        searchedPointFallback: "The place you searched for"
+        noneReachable: "No reachable refuge was found."
+        routeSource: "Walking routes calculated on the OpenStreetMap network of streets and paths."
+        alreadyThere: "you’re already there"
+        kilometersTemplate: "{n} km"
+        metersTemplate: "{n} m"
+        walkMinutesTemplate: "{n} min on foot"
+
+cityPlan:
+  id: climate-relief-city-plan
+  bridge:
+    id: climate-relief-city-plan-bridge
+    lead: "Where they do not exist, they can be created."
+  scene:
+    id: climate-relief-city-plan-scene
+    ariaLabel: "Where relief is missing, it can be built: an illustrative neighbourhood scenario in which green spaces, shaded routes and porticoes become a network"
+    figureAriaLabel: "An illustrative scenario, not a map of construction projects. The plan combines recognisable elements of Bologna in a typical neighbourhood: an avenue, courtyard blocks, porticoed streets, apartment buildings, a paved square partly used for parking and the asphalt courtyard of a school. Much of the square remains paved, but permeable planting beds, water and shade are introduced; other paved spaces become green areas. A new stop, rows of trees and porticoes join the same network, while a shaded route crosses the map from the park to the garden."
+    svgDescription: "A part of Bologna seen from above: the ring road with its tree-lined central reservation, the city centre with squares, courtyard buildings, open-fronted blocks and two porticoed streets. Beyond it lies a lower-density outer area with apartment blocks, terraced houses, detached homes, workshops, a paved square used as a car park and the asphalt courtyard of a school. As the story unfolds, much of the square remains paved, but permeable planting beds, water and shade are introduced, while the courtyard becomes greener. A stop, groups of trees, pergolas and porticoes connect them in a continuous band of shade running across the map from the park to the garden."
+    context:
+      id: climate-relief-city-plan-context
+      title: "Where relief is missing, it can be built"
+      note: "An illustrative neighbourhood scenario, not a map of construction projects"
+  beats:
+    - id: quartiere
+      lead: "Climate refuges are not always close to everyone."
+      body:
+        - id: neighborhood-body
+          text: "In some areas, parks and gardens remain far from people’s everyday routes."
+    - id: buco
+      lead: "Distance makes a difference."
+      body:
+        - id: distance-body
+          text: "They need to be easy to reach."
+    - id: costruisce
+      lead: "Where they are missing, they can be created."
+      body:
+        - id: nature-before
+          text: "These "
+        - id: nature-keyword
+          text: "nature-based solutions"
+          kw: true
+        - id: nature-after
+          text: " draw on natural processes and can help urban spaces cope better with heat."
+    - id: nonuno
+      lead: "One place alone is not enough."
+      body:
+        - id: distributed-network-body
+          text: "More spaces spread across neighbourhoods create a widespread presence, close to everyday life."
+    - id: corridoi
+      lead: "The route matters as much as the destination."
+      body:
+        - id: corridor-before
+          text: "Connecting several points in the city along the same route creates a "
+        - id: corridor-keyword
+          text: "climate corridor"
+          kw: true
+        - id: corridor-after
+          text: "."
+    - id: portici
+      lead: "Part of the network already exists."
+      body:
+        - id: porticoes-before
+          text: "Bologna’s "
+        - id: porticoes-keyword
+          text: "porticoes"
+          kw: true
+        - id: porticoes-middle
+          text: " form continuous, sheltered routes. The municipal "
+        - id: shadow-lines-link
+          text: "Linee d'ombra"
+          linkId: shadow-lines-project
+        - id: porticoes-after
+          text: " project explores how to enhance them and connect them to climate refuges."
+    - id: rete
+      lead: "When places connect, the city changes."
+      body:
+        - id: connected-network-body
+          text: "New spaces, climate corridors and porticoes can work together to form a continuous, accessible system."
+  annotations:
+    - id: parking
+      label: "car park"
+    - id: new-relief
+      label: "new climate refuge"
+    - id: corridor
+      label: "climate corridor"
+    - id: arcades
+      label: "porticoes"
+  legend:
+    id: climate-relief-city-plan-legend
+    label: "To connect places of relief"
+    items:
+      - id: new-green-spaces
+        label: "new green spaces"
+      - id: climate-corridors
+        label: "climate corridors"
+      - id: porticoes
+        label: "porticoes"
+  vignetteDescriptions:
+    - id: costruire
+      text: "A broad paved square between two apartment buildings, facing a street, with four cars parked in marked spaces along one edge, a drainage channel, streetlights, bollards and bicycle racks. Barriers arrive and two large planting beds open in the paving: bare soil appears beneath the stone, followed by grass. Four trees are planted, a pergola with climbing plants is assembled, a rain garden is excavated with gravel and stones, and a flush fountain comes to life at pavement level. Much of the stone remains, together with three benches and the people using them; a bus stop with a shelter also appears on the pavement."
+    - id: corridoio
+      text: "A street running along a row of apartment buildings. The pavement remains shaded along its entire length through four different elements, one after another: a stretch of portico with its arches, a pergola whose beams cast striped shadows, a row of three trees and finally a hedge with a small tree. At first the shade falls in separate patches; by the end it forms a continuous band, allowing people to travel from one end to the other without ever stepping into the sun."
+    - id: portico
+      text: "A Bolognese portico seen at an angle: three bays with piers along the street edge, round arches framed by voussoirs and keystones, and vaults extending back to the building wall, where the shop windows and ground-floor entrances can be seen. Above are three floors of shuttered windows and a pitched roof with a chimney. A continuous band of shade runs beneath the passage, where an older woman with a walking stick and a wheelchair user are present: the portico is already a refuge, particularly for those who need it most."

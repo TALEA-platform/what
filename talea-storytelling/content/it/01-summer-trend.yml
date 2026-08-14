@@ -1,0 +1,50 @@
+schemaVersion: 1
+locale: it
+
+section:
+  id: summer-trend
+  ariaLabel: "Trend estati a Bologna"
+  title: "La prima conferma arriva dall'aria."
+  lead: "Le temperature massime si stanno alzando sempre di più, e i picchi torridi che un tempo erano rari stanno diventando la normalità."
+  bridge: "Questa tendenza, però, dice quanto fa caldo."
+  punch:
+    - id: trend-punch-negation
+      text: "Non "
+    - id: trend-punch-location
+      text: "dove"
+      kw: true
+    - id: trend-punch-period
+      text: "."
+
+chart:
+  id: summer-trend-chart
+  meta:
+    id: summer-trend-meta
+    collapsed: "Estati dal 2013 al 2025"
+    expanded: "Estati dal 1961 al 2025"
+    value: "Media delle massime giornaliere"
+    unit: "°C, aria, centro di Bologna"
+  zoomInvite:
+    id: summer-trend-zoom-invite
+    collapsed:
+      id: summer-trend-zoom-collapsed
+      lead: "Le ultime tredici estati."
+      action: "Guardale tutte, dal 1961"
+    expanded:
+      id: summer-trend-zoom-expanded
+      lead: "Sessantacinque estati, dal 1961."
+      action: "Torna agli ultimi anni"
+  tooltip:
+    id: summer-trend-tooltip
+    versusMean: "vs media"
+  reference:
+    id: summer-trend-reference
+    label: "media dal 1961 al 2025"
+  source:
+    id: summer-trend-source
+    prefix: "Fonte:"
+    label: "ARPAE Eraclito61, cella ERG5 centrale 01421"
+    meanLabel: "media storica delle massime, dal 1961 al 2025"
+    variable: "Media delle massime giornaliere dell'aria (°C)"
+    period: "giugno-agosto, 1961-2025"
+    area: "Bologna centro, quota media cella 69 m"

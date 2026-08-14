@@ -1,0 +1,155 @@
+schemaVersion: 1
+locale: en
+
+chapter:
+  id: hotspot
+
+intro:
+  id: hotspot-intro
+  ariaLabel: "Hotspot introduction"
+  lead: "While the air surrounds the whole city evenly, its surfaces respond to sunlight differently from one area to another."
+  vignettes:
+    - id: superficie
+      figureLabel: "A street at sunset. A satellite measures surface heat from above: the roof reads 48 degrees, the asphalt 52, the bench 41, while the thermometer carried by a person walking reads 34 degrees for the air."
+      visual:
+        ariaLabel: "Air and surfaces at the same time"
+        description: "Coloured-pencil illustration: a street in summer. A satellite measures surface heat from above. The roof reads 48 degrees, the asphalt 52, the bench 41, while the thermometer carried by a person walking reads 34 degrees for the air."
+        labels:
+          air: "the air"
+      paragraphs:
+        - id: surface-temperature-explanation
+          segments:
+            - id: surface-satellites
+              text: "Satellites record "
+            - id: surface-temperature-term
+              text: "surface temperature"
+              glossary: surface-temperature
+            - id: surface-definition
+              text: ": the heat absorbed by asphalt, roofs and squares during the day and released long after sunset."
+    - id: ricorrenza
+      figureLabel: "Three overlapping sheets show the same part of the city from above, one for each summer. Some areas are among the hottest on every sheet, but only two recur on all of them."
+      visual:
+        ariaLabel: "The same city, summer after summer"
+        description: "Coloured-pencil illustration: three overlapping maps show Bologna's municipal area from above, one for each summer, overlaid with the grid used to sample surface temperature. Some cells are among the hottest on each map, but only two recur on all three; they are circled in pencil."
+        labels:
+          recurring: "always among the hottest"
+      paragraphs:
+        - id: recurring-pattern
+          segments:
+            - id: recurring-pattern-body
+              text: " Measured over several summers, this value reveals a recurring pattern: the same parts of Bologna are among the hottest almost every year."
+        - id: hotspot-definition
+          segments:
+            - id: hotspot-definition-intro
+              text: "These are "
+            - id: hotspot-definition-term
+              text: "climate hotspots"
+              glossary: climate-hotspot
+            - id: hotspot-definition-body
+              text: ": surfaces that fall within the hottest 10% of the city, summer after summer."
+  closer:
+    id: hotspot-intro-closer
+    text: "Let's find them on the map."
+
+map:
+  id: hotspot-map
+  ariaLabel: "Hotspot map"
+  steps:
+    - id: threshold
+      paragraphs:
+        - id: threshold-pattern
+          segments:
+            - id: threshold-pattern-body
+              text: " Over the last 13 summers, heat has concentrated along specific corridors through the city, sparing the hills, parks and countryside."
+        - id: threshold-narrow
+          segments:
+            - id: threshold-narrow-body
+              text: "Let's narrow it down."
+    - id: recurrence
+      paragraphs:
+        - id: recurrence-pattern
+          segments:
+            - id: recurrence-pattern-body
+              text: " The areas where heat peaks occur most often emerge: proof that this pattern has now become a permanent feature."
+    - id: persistence
+      paragraphs:
+        - id: persistence-definition
+          segments:
+            - id: persistence-definition-intro
+              text: "Here are Bologna's "
+            - id: persistence-definition-term
+              text: "climate hotspots"
+              kw: true
+            - id: persistence-definition-body
+              text: ": surfaces that accumulate and retain heat year after year, struggling to cool down."
+        - id: persistence-question
+          segments:
+            - id: persistence-question-body
+              text: "One question remains…"
+  annotations:
+    id: hotspot-annotations
+    ariaLabel: "Hotspot annotations"
+    items:
+      - id: centro-storico
+        name: "Historic centre"
+        tag: "within the city walls"
+        context: "closely packed buildings and narrow streets within the walls"
+      - id: stazione-centrale
+        name: "Central Station"
+        tag: "tracks and rail yards"
+        context: "the rail corridor retains the sun's heat until nightfall"
+      - id: scalo-ravone
+        name: "Ravone rail yard"
+        tag: "former rail yard"
+        context: "open, dark tracks and yards with no shade"
+      - id: caab
+        name: "CAAB"
+        tag: "market and logistics"
+        context: "market halls and paved yards"
+      - id: fiera
+        name: "Exhibition district"
+        tag: "pavilions and paved yards"
+        context: "pavilions and large car parks"
+      - id: villaggio-ina
+        name: "Ducati Villaggio INA"
+        tag: "shopping centre and paved yards"
+        context: "car parks and large roofs that retain heat"
+      - id: aeroporto
+        name: "Airport"
+        tag: "runways and aprons"
+        context: "open, dark surfaces exposed to the sun for hours"
+      - id: bolognina
+        name: "Bolognina"
+        tag: "north of the tracks"
+        context: "closely packed buildings and narrow streets"
+      - id: roveri
+        name: "Roveri"
+        tag: "industrial area"
+        context: "logistics warehouses and yards, with almost no shade"
+  legend:
+    id: hotspot-legend
+    title: "Areas of recurring heat"
+    active:
+      id: hotspot-legend-active
+      one: "Among the hottest 10% in at least {n} summer out of 13"
+      other: "Among the hottest 10% in at least {n} summers out of 13"
+    scale:
+      id: hotspot-legend-scale
+      min: "1 summer"
+      max: "13 summers"
+    caption: "Number of the 13 summers (from 2013 to 2025) in which the area ranked among Bologna's hottest 10% of surfaces."
+    sourceLink:
+      id: hotspot-source-link
+      label: "Explore the technical data in detail"
+  sequence:
+    id: hotspot-sequence
+    playing: "13 summers, layered one over another"
+    done: "Select a sentence to revisit it, or scroll to continue"
+  slider:
+    id: hotspot-slider
+    label: "Change the recurrence threshold"
+    valueTemplate: "≥ {n}/13"
+    markLabelTemplate: "Set {n} summers out of 13"
+  handoff:
+    id: hotspot-handoff
+    question: "Why there in particular?"

@@ -1,11 +1,10 @@
-import { heroBridge } from "../../data/heroCopy";
+import { useContent } from "../../content";
 import { CopySegments } from "./CopySegments";
 
-// Bridge content (original copy — decisione D8 = B: il testo non è stato
-// riscritto). Rendered inside the Hero's sticky zoom as the
-// .hero-bridge-preview that fades in as the hero zooms away; no longer a
-// standalone <section> with its own background.
 export function HeroBridgeSection() {
+  const { content } = useContent();
+  const { heroBridge } = content;
+
   return (
     <div className="hero-bridge-inner">
       <p className="hero-bridge-body">
@@ -14,8 +13,8 @@ export function HeroBridgeSection() {
 
       <div className="hero-bridge-callout">
         <p className="hero-bridge-callout-text">
-          {heroBridge.calloutLead}
-          <strong> {heroBridge.calloutPivot}</strong>
+          {heroBridge.callout.lead}
+          <strong> {heroBridge.callout.pivot}</strong>
         </p>
       </div>
     </div>

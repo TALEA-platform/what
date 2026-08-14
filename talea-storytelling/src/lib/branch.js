@@ -1,28 +1,12 @@
-/**
- * La geometria del ramo dello stelo.
- *
- * Tutto è calcolato in pixel reali, non in un viewBox normalizzato: l'altezza
- * del ramo dipende dal viewport e i fiori devono cadere esattamente all'altezza
- * del loro capitolo, senza deformazioni.
- *
- * Il ramo non è una linea dritta con delle curve aggiunte: è la somma di due
- * onde con frequenze che non vanno d'accordo fra loro. È il trucco più
- * economico per ottenere un andamento che non si ripete mai — quello che
- * distingue un ramo da un fregio.
- */
 
-/** Larghezza della fascia in cui vive il ramo, fiori compresi. */
 export const BRANCH_WIDTH = 46;
 
-/** Asse attorno a cui il ramo serpeggia. */
 const AXIS_X = 16;
 const WAVE_A = 7.4;
 const WAVE_B = 2.2;
 
-/** Passo di campionamento del tracciato, in pixel. */
 const STEP = 5;
 
-/** x del ramo alla frazione t (0 = inizio della storia, 1 = fine). */
 export function branchX(t) {
   return (
     AXIS_X +
@@ -31,7 +15,6 @@ export function branchX(t) {
   );
 }
 
-/** Il tracciato del ramo, campionato su un'altezza di `height` pixel. */
 export function branchPath(height) {
   if (height <= 0) return "";
   const steps = Math.max(2, Math.round(height / STEP));
@@ -45,7 +28,6 @@ export function branchPath(height) {
   return d;
 }
 
-/** Angolo del ramo (in gradi) alla frazione t, per orientare le foglie. */
 function branchAngle(t, height) {
   const dt = 0.004;
   const t0 = Math.max(0, t - dt);
@@ -55,10 +37,6 @@ function branchAngle(t, height) {
   return (Math.atan2(dy, dx) * 180) / Math.PI;
 }
 
-/**
- * Le foglie: una ogni ~4 % della storia, alternate sui due lati, sempre a
- * debita distanza dai fiori (una foglia addosso a un fiore lo sporca).
- */
 export function branchLeaves(height, nodeFractions) {
   if (height <= 0) return [];
   const leaves = [];
@@ -66,8 +44,6 @@ export function branchLeaves(height, nodeFractions) {
     const tooCloseToFlower = nodeFractions.some((f) => Math.abs(f - t) < 0.028);
     if (tooCloseToFlower) continue;
     const side = leaves.length % 2 === 0 ? 1 : -1;
-    // La foglia esce dal ramo di traverso, non perpendicolare: perpendicolare
-    // sembra una lisca di pesce.
     const angle = branchAngle(t, height) + side * 58;
     leaves.push({
       key: t.toFixed(3),

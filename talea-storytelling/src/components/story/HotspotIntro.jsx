@@ -1,28 +1,18 @@
-import { useEffect, useRef, useState } from "react";
-import { hotspotIntroCopy } from "../../data/hotspotIntroCopy";
-import { superficieSvg, ricorrenzaSvg } from "../../data/hotspotIntroVignettes";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useContent } from "../../content";
+import {
+  renderRicorrenzaSvg,
+  renderSuperficieSvg,
+} from "../../data/hotspotIntroVignettes";
 import { CopySegments } from "./CopySegments";
 import { SectionDivider } from "./SectionDivider";
 import { ScrollCue } from "../ui/ScrollCue";
 
-// Identità stabile per l'HTML iniettato. NON riscrivere come oggetto inline
-// (`{{ __html: ... }}`): React confronta le prop per identità, un oggetto nuovo
-// a ogni render gli fa ri-iniettare l'innerHTML e cancella le classi
-// `drawn`/`colored` che l'effetto qui sotto applica al nodo. Qui le classi
-// stanno sul <figure> e non sui figli iniettati, quindi il danno sarebbe solo
-// un ridisegno — ma la trappola è nota e costa più a diagnosticarla che a
-// evitarla (CONTESTO § 4.2).
-const VIGNETTE_HTML = {
-  superficieSvg: { __html: superficieSvg },
-  ricorrenzaSvg: { __html: ricorrenzaSvg },
+const VIGNETTE_RENDERERS = {
+  superficie: renderSuperficieSvg,
+  ricorrenza: renderRicorrenzaSvg,
 };
 
-// Le due vignette non entrano insieme: prima tutta la sinistra, poi la destra.
-// Lo sfasamento del piano (~200 ms) non si leggeva come un ordine, si leggeva
-// come un ritardo; a 720 ms diventa un'indicazione di lettura, che è quello che
-// serve al lettore davanti a due disegni affiancati. Dentro ogni pannello il
-// tratto va per primo, il colore lo raggiunge e la didascalia arriva per ultima:
-// si guarda, poi si legge. Nessun loop, nessuna animazione infinita.
 const PANEL_STAGGER_MS = 720;
 const COLOR_AFTER_MS = 560;
 const CAPTION_AFTER_MS = 980;
@@ -100,14 +90,7 @@ function IntroBridge() {
   );
 }
 
-/**
- * Una vignetta che si disegna a inchiostro, si riempie di colore e solo dopo
- * consegna la sua didascalia. Stessa tecnica della vignetta della fragilità e
- * della scena illustrata del sollievo; l'osservatore sta sul pannello, così su
- * mobile — dove le due
- * vignette sono impilate e la seconda è lontana — ognuna parte quando arriva.
- */
-function IntroVignette({ vignette, delay, onGlossary }) {
+function IntroVignette({ vignette, html, delay, onGlossary }) {
   const panelRef = useRef(null);
   const figureRef = useRef(null);
 
@@ -151,13 +134,13 @@ function IntroVignette({ vignette, delay, onGlossary }) {
         ref={figureRef}
         className={`hotspot-intro-vg hotspot-intro-vg--${vignette.id}`}
         aria-label={vignette.figureLabel}
-        dangerouslySetInnerHTML={VIGNETTE_HTML[vignette.svg]}
+        dangerouslySetInnerHTML={html}
       />
       {vignette.id === "ricorrenza" ? <IntroBridge /> : null}
       <div className="hotspot-intro-caption">
-        {vignette.paragraphs.map((parts, i) => (
-          <p key={i}>
-            <CopySegments parts={parts} onGlossary={onGlossary} />
+        {vignette.paragraphs.map((paragraph) => (
+          <p key={paragraph.id}>
+            <CopySegments parts={paragraph.segments} onGlossary={onGlossary} />
           </p>
         ))}
       </div>
@@ -166,15 +149,23 @@ function IntroVignette({ vignette, delay, onGlossary }) {
 }
 
 export function HotspotIntro({ onGlossary }) {
+  const { content, locale } = useContent();
+  const hotspotIntro = content.hotspot.intro;
+  const vignetteHtml = useMemo(
+    () =>
+      Object.fromEntries(
+        hotspotIntro.vignettes.map((vignette) => {
+          const render = VIGNETTE_RENDERERS[vignette.id];
+          if (!render) throw new Error(`Missing Hotspot vignette renderer: ${vignette.id}`);
+          return [vignette.id, { __html: render(vignette.visual) }];
+        }),
+      ),
+    [hotspotIntro],
+  );
   const sectionRef = useRef(null);
   const closerRef = useRef(null);
   const [closerSeen, setCloserSeen] = useState(false);
 
-  // Alone caldo guidato dallo scroll: pubblica il progresso 0→1 della sezione
-  // come --intro-scroll, così il calore cresce mentre il lettore scende verso
-  // la mappa. È l'unica decorazione rimasta delle tre che c'erano: la griglia a
-  // 96 px era invisibile e l'alone verde pulsava all'infinito senza motivo
-  // (04 § 4.4).
   useEffect(() => {
     const el = sectionRef.current;
     if (!el) return;
@@ -199,9 +190,6 @@ export function HotspotIntro({ onGlossary }) {
     };
   }, []);
 
-  // Il chevron si monta quando la riga di chiusura arriva a schermo, non al
-  // caricamento della pagina: i suoi due impulsi devono partire nel momento in
-  // cui servono, altrimenti sono già finiti quando il lettore arriva.
   useEffect(() => {
     const el = closerRef.current;
     if (!el) return undefined;
@@ -220,19 +208,20 @@ export function HotspotIntro({ onGlossary }) {
   }, []);
 
   return (
-    <section ref={sectionRef} className="hotspot-intro" aria-label="Introduzione hotspot">
+    <section ref={sectionRef} className="hotspot-intro" aria-label={hotspotIntro.ariaLabel}>
       <div className="hotspot-intro-heat" aria-hidden="true" />
 
       <SectionDivider />
 
-      <div className="hotspot-intro-inner" lang="it">
-        <p className="hotspot-intro-lead">{hotspotIntroCopy.lead}</p>
+      <div className="hotspot-intro-inner" lang={locale}>
+        <p className="hotspot-intro-lead">{hotspotIntro.lead}</p>
 
         <div className="hotspot-intro-panels">
-          {hotspotIntroCopy.vignettes.map((vignette, index) => (
+          {hotspotIntro.vignettes.map((vignette, index) => (
             <IntroVignette
               key={vignette.id}
               vignette={vignette}
+              html={vignetteHtml[vignette.id]}
               delay={index * PANEL_STAGGER_MS}
               onGlossary={onGlossary}
             />
@@ -240,7 +229,7 @@ export function HotspotIntro({ onGlossary }) {
         </div>
 
         <div ref={closerRef} className="hotspot-intro-closer">
-          <p className="hotspot-intro-closer-text">{hotspotIntroCopy.closer}</p>
+          <p className="hotspot-intro-closer-text">{hotspotIntro.closer.text}</p>
           {closerSeen ? <ScrollCue variant="light" loop /> : null}
         </div>
       </div>

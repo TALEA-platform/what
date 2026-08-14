@@ -1,0 +1,19 @@
+schemaVersion: 1
+
+hotspot:
+  data: "https://talea.comune.bologna.it/historysuhi/#2.v1.yc.l0"
+
+shadowFocus:
+  data: "https://talea.comune.bologna.it/sci/"
+
+vulnerability:
+  study: "https://doi.org/10.3390/ijgi14010017"
+
+climateRelief:
+  crafMap: "https://talea.comune.bologna.it/craf/"
+  municipalRefugesMap: "https://sitmappe.comune.bologna.it/RifugiClimatici/"
+  shadowLinesProject: "https://www.comune.bologna.it/novita/comunicati-stampa/linee-dombra-itinerari-climatici-sotto-i-portici-approvato-giunta-il-progetto-che-guarda-ai-portici"
+
+talea:
+  historySuhi: "https://talea.comune.bologna.it/historysuhi/"
+  europeanUrbanInitiative: "https://www.urban-initiative.eu/"

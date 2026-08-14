@@ -1,0 +1,105 @@
+schemaVersion: 1
+locale: it
+
+chapter:
+  id: physical-drivers
+
+intro:
+  id: physical-drivers-intro
+  ariaLabel: "Perché il caldo resta proprio qui"
+  title: "Perché proprio qui?"
+  lead: "Per capire perché il calore tende ad immagazzinarsi proprio in queste zone, dobbiamo guardare il territorio più da vicino."
+  topicStatement:
+    id: physical-drivers-topics
+    segments:
+      - id: topic-statement-intro
+        text: "Le cause sono diverse: tra le principali ci sono la quantità del "
+      - id: topic-green
+        text: "verde"
+        kw: true
+        topic: green
+      - id: topic-statement-bridge
+        text: " e la capacità di "
+      - id: topic-absorption
+        text: "assorbimento dei "
+      - id: topic-materials
+        text: "materiali"
+        kw: true
+        topic: materials
+      - id: topic-statement-end
+        text: "."
+  close:
+    id: physical-drivers-intro-close
+    text: "Analizziamole nel dettaglio."
+
+narrative:
+  id: physical-drivers-narrative
+  stages:
+    - id: clue-green
+      segments:
+        - id: green-intro
+          text: "Il "
+        - id: green-topic
+          text: "verde"
+          kw: true
+          topic: green
+          flightTarget: green
+        - id: green-body
+          text: ", inteso come presenza e densità della vegetazione sul territorio, non offre solo ombra, ma rilascia umidità nell'aria contribuendo a mitigare la temperatura circostante.\n\nDove alberi e piante si diradano, il tessuto urbano perde questa naturale capacità di bilanciare il calore."
+    - id: clue-materials
+      segments:
+        - id: materials-intro
+          text: "I "
+        - id: materials-topic
+          text: "materiali"
+          kw: true
+          topic: materials
+          flightTarget: materials
+        - id: materials-body
+          text: " da cui è composta la città, dall'asfalto delle strade al cemento degli edifici, rispondono al sole in base alle loro proprietà fisiche. \n\n Le superfici scure e compatte raggiungono temperature più elevate e si raffreddano più lentamente, influenzando anche le condizioni dell’ambiente circostante."
+    - id: compare
+      segments:
+        - id: compare-intro
+          text: "Quando "
+        - id: compare-materials-topic
+          text: "materiali"
+          kw: true
+          topic: materials
+          flightTarget: compare-materials
+          emphasisGroup: compare-materials
+        - id: compare-materials-detail
+          text: " ad alto assorbimento"
+          kw: true
+          emphasisGroup: compare-materials
+        - id: compare-bridge
+          text: " e una "
+        - id: compare-green-detail
+          text: "scarsa presenza di "
+          kw: true
+          emphasisGroup: compare-green
+        - id: compare-green-topic
+          text: "verde"
+          kw: true
+          topic: green
+          flightTarget: compare-green
+          emphasisGroup: compare-green
+        - id: compare-end
+          text: " coesistono nella stessa zona, il calore trova le condizioni per persistere più a lungo."
+
+legends:
+  id: physical-drivers-legends
+  lenses:
+    - id: green
+      from: "meno vegetazione"
+      to: "più vegetazione"
+    - id: materials
+      from: "assorbe il sole"
+      to: "riflette il sole"
+  hotspot:
+    id: physical-drivers-hotspot-legend
+    label: "Hotspot 10% ≥ 9/13"
+
+comparison:
+  id: physical-drivers-comparison
+  handleHint: "trascina"
+  ariaLabel: "Confronta verde e superfici: trascina o usa le frecce"

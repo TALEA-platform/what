@@ -1,23 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 
-/**
- * Il logo TALEA che si disegna, uguale a quello della schermata d'ingresso.
- *
- * È lo stesso tracciato dello schermo di caricamento (`#talea-boot`, in
- * index.html): stessi path, stesso ordine, stesse durate. Cambia solo il momento
- * in cui parte — lì al primo fotogramma della pagina, qui quando il lettore
- * arriva sul capitolo del progetto. Chi apre la storia e chi ci arriva scorrendo
- * vedono nascere la stessa cosa.
- *
- * Non riusa le classi `.tb-*` del loader: quelle regole stanno in <head>, sono
- * globali e restano nel documento anche dopo che il loader è stato rimosso.
- * Riusarle vorrebbe dire far partire il disegno al montaggio del componente,
- * cioè mentre il capitolo è ancora tre schermate più in basso. Qui il prefisso è
- * `tl-` e l'animazione si accende con `.is-drawn` (src/styles/story.css).
- *
- * L'ordine del disegno è quello del nome: prima il ramo, poi le venature che
- * spuntano, poi i due cerchi che si chiudono attorno e la scritta che emerge.
- */
 export function TaleaLogoDraw({ className = "", title = "TALEA" }) {
   const ref = useRef(null);
   const [drawn, setDrawn] = useState(false);
@@ -36,8 +18,6 @@ export function TaleaLogoDraw({ className = "", title = "TALEA" }) {
     );
     observer.observe(node);
 
-    // Chi ricarica la pagina già fermo su questo punto non riceve nessun
-    // ingresso: l'osservatore non scatta su ciò che è già a schermo al primo giro.
     const rect = node.getBoundingClientRect();
     if (rect.top < window.innerHeight && rect.bottom > 0) {
       setDrawn(true);
@@ -56,10 +36,6 @@ export function TaleaLogoDraw({ className = "", title = "TALEA" }) {
       role="img"
       aria-label={title}
     >
-      {/* La matrice ribalta l'asse Y: è il sistema di coordinate del file
-          originale. Le animazioni non toccano mai `transform` sui path proprio
-          per questo (una transform CSS sostituirebbe in blocco quella
-          dell'elemento); dove serve una scala, sta sul gruppo. */}
       <g transform="matrix(1.3333333,0,0,-1.3333333,0,604.724)">
         <path className="tl-blue tl-p0" pathLength="1" transform="translate(249.5695,438.511)" d="m 0,0 c -89,19.351 -192.986,-9.738 -228.765,-113.385 -50.63,-209.04 108.469,-245.217 145.851,-256.79" />
         <path className="tl-yellow tl-p1" pathLength="1" transform="translate(363.015,355.3655)" d="m 0,0 c 162.417,-24.5 134.432,-201.531 134.432,-201.531 0,0 -11.219,-69.697 -69.396,-109.456 -68.837,-47.25 -177.848,-49.251 -256.856,18.957" />

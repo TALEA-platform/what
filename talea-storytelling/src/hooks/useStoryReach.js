@@ -1,23 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
 
-/**
- * Fin dove è arrivata la lettura, misurata una volta sola per tutta la pagina.
- *
- * Tiene il punto più basso che la storia ha raggiunto: la metà dello schermo,
- * non il suo bordo inferiore, perché un capitolo che spunta dal fondo non è
- * ancora un capitolo letto. È un massimo, quindi risalire non lo riporta
- * indietro: chi torna su a rileggere una scena non si vede richiudere le cose
- * che aveva già visto.
- *
- * Un solo listener passivo e una ref: il valore non deve far ridisegnare
- * niente mentre si scorre, serve solo a chi lo chiede, quando lo chiede
- * (il pannello del metodo, all'apertura).
- *
- * Restituisce `hasReached(selettore)`: vero se quell'elemento è entrato nella
- * metà alta dello schermo almeno una volta. Un selettore vuoto, o che non
- * trova niente, risponde vero — vedi la nota in `src/data/method.js` sul
- * perché qui si sbaglia dalla parte del mostrare.
- */
 export function useStoryReach() {
   const reachRef = useRef(0);
 

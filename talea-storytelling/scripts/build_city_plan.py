@@ -1,81 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Genera LA PIANTA che chiude il capitolo sollievo: un pezzo di Bologna visto
-dall'alto, in filigrana, su cui la rete del fresco si costruisce mentre si
-scorre. Emette `src/data/cityPlan.js`.
-
-    python scripts/build_city_plan.py            rigenera il disegno
-    python scripts/build_city_plan.py --probe    stampa la geometria e basta
-
-Sostituisce il nastro assonometrico (`build_city_ribbon.py`, rimosso). Quello
-disegnava una strada con delle case: dei tre concetti che la sezione deve far
-capire — che dove non c'e' nulla si puo' costruire, che i posti freschi vanno
-COLLEGATI, e che i portici sono ombra che c'e' gia' — non ne arrivava nessuno.
-Nessuno dei tre si vede da terra: sono tutti e tre fatti di DISTANZE, e le
-distanze si vedono solo in pianta.
-
-── Regola numero uno: NIENTE ETICHETTE ─────────────────────────────────────
-La scena non ha piu' scritte sopra il disegno. Se una cosa ha bisogno di un
-cartellino che dica cos'e', e' disegnata male. Quindi ogni elemento porta il suo
-segno inconfondibile visto dall'alto, e quel segno e' la sua ragione di esistere:
-
-    parcheggio    stalli + AUTO PARCHEGGIATE (nient'altro dice "parcheggio")
-    scuola        edificio a L + CAMPETTO con cerchio di centro nel cortile
-    piazza        lastricato a raggiera + FONTANA
-    parco         VIALETTI che serpeggiano + LAGHETTO + alberi di tre taglie
-    giardino      recinto murato + vialetto a croce, alberi lungo il muro
-    viale         DUE carreggiate con AIUOLA CENTRALE alberata, STRISCE, fermate
-    portico       la fila delle COLONNE, passo corto, su tutti e due i fronti
-    isolato       fronti diversi: chiusi, a L, a U, spezzati o con giardino
-    corte         pavimentazione, accesso e alberi: e' un luogo, non un buco
-
-── La geografia, che non e' decorativa ─────────────────────────────────────
-Un viale di circonvallazione attraversa la tavola come un arco molto aperto.
-Sopra il centro storico: palazzi a corte solo dove servono, fronti a L e a U,
-vicoli, piazze e due radiali porticate che entrano in citta' per due porte.
-Sotto la periferia: maglie piu' larghe, case a schiera, condomini, villini,
-laboratori e alcuni grandi lotti impermeabili.
-
-L'arco e' aperto (non una diagonale) per una ragione che non e' estetica: le due
-meta' devono avere la STESSA profondita'. Con una diagonale il centro si riduce a
-una scheggia in un angolo, e il confronto fra «dentro, dove l'ombra c'e' gia'» e
-«fuori, dove non c'e'» non si legge piu'.
-
-Il verde pubblico e' DELIBERATAMENTE poco e mal distribuito: un parco a un capo,
-un giardino murato all'altro e solo piccoli giardini privati nel tessuto. Fra i
-due poli manca una rete continua. E' quel vuoto il soggetto.
-
-I tre luoghi che si trasformano (`C1` parcheggio, `C2` cortile di scuola, `C3`
-piazza) sono CELLE della stessa griglia che genera gli isolati: combaciano sempre
-col tessuto, e spostare una strada non lascia un buco. Le porte cadono
-esattamente su un bordo di colonna della griglia di periferia, cosi' la strada
-che sale dal parcheggio arriva SULLA porta e non a fianco.
-
-Quando un luogo si trasforma, l'asfalto e le auto VANNO VIA (`until`). E' il
-momento «si costruisce», e va visto sparire qualcosa, non solo comparire.
-
-L'itinerario finale attraversa tutta la tavola:
-    parco → scuola → parcheggio → porta → portico → piazza → giardino
-Meta' e' verde nuovo, meta' e' portico che c'era da otto secoli.
-
-── Prestazioni: perche' i colori sono premiscelati ─────────────────────────
-La filigrana NON si fa con l'opacita' di gruppo. Un `<g opacity=".6">` grande
-quanto la tavola obbliga Chrome a un buffer fuori schermo per gruppo, e a
-rasterizzarlo di nuovo a ogni fotogramma mentre la telecamera si muove: erano
-sette buffer a schermo pieno per fotogramma, ed e' quello che faceva scattare lo
-scroll. Qui ogni colore e' GIA' miscelato verso la carta (`veil()`), tutti i
-gruppi stanno a opacita' 1, e non c'e' niente da comporre.
-Per lo stesso motivo il velo del caldo non usa una `mask` con gradiente radiale
-(una maschera si rasterizza di nuovo a ogni cambio di scala) ma tre path con
-`fill-rule="evenodd"`: il rettangolo piu' i cerchi, che bucano.
-
-── Come si accende ─────────────────────────────────────────────────────────
-Niente animazione dentro l'SVG. Ogni elemento porta un `data-at` (la battuta da
-cui esiste), a volte un `data-until` (quella da cui sparisce) e un `--d` (il
-ritardo, che fa crescere un filare da un capo all'altro invece che tutto
-insieme). Il componente React accende `.is-on` e il CSS fa il resto. La
-telecamera e' una `transform` sola sul contenitore.
-"""
+"""Generate deterministic CityPlan geometry; see DATA_SOURCES D17."""
 import io
 import math
 import os
@@ -83,13 +7,7 @@ import random
 import sys
 
 W, H = 2400, 1500
-# Quanto il disegno sfonda il bordo della tavola. Il tessuto continua oltre
-# (`on_plan`) e l'SVG e' montato con overflow visibile: in campo lungo la pianta
-# deve sfumare nella carta, non finire con una riga netta di case allineate.
 BLEED = 300
-# La scala del tessuto. Un'unita' di disegno vale circa 45 cm, quindi la tavola
-# e' un pezzo di citta' di poco piu' di un chilometro: un quartiere, non tre
-# isolati. Abbassarla infittisce tutto senza toccare la geografia.
 S = 0.82
 rnd = random.Random(20260803)
 
@@ -97,11 +15,8 @@ BEATS = 7
 PROBE = "--probe" in sys.argv
 
 
-# ════ PRIMITIVE ═════════════════════════════════════════════════════════════
 def n(v):
-    """Sempre intero. Un'unita' di disegno vale circa 45 cm: il decimale non si
-    vede a nessuno zoom della telecamera, e su qualche migliaio di forme vale un
-    terzo del peso del file."""
+    """Round drawing coordinates to reduce generated output size."""
     return f"{v:.0f}"
 
 
@@ -121,9 +36,6 @@ def multi(polys, close=True):
 
 
 def circle_d(x, y, r):
-    """Un cerchio come sotto-percorso: due archi, non quattro cubiche. Serve a
-    metterne molti in UN path (le chiome, i buchi del velo del caldo), e la forma
-    ad archi pesa un terzo."""
     return (f"M{n(x - r)} {n(y)}a{n(r)} {n(r)} 0 1 0 {n(2 * r)} 0"
             f"a{n(r)} {n(r)} 0 1 0 {n(-2 * r)} 0Z")
 
@@ -155,10 +67,7 @@ def area(poly):
 
 
 def inset(poly, d):
-    """Rientra un poligono convesso di `d`, spostando ogni lato verso il centro e
-    intersecando i lati consecutivi. Gli isolati sono quadrilateri convessi
-    proprio per poter usare questa: e' quello che fa combaciare i fronti degli
-    edifici col bordo dell'isolato senza tolleranze da correggere a mano."""
+    """Inset a convex polygon by moving each edge toward the centre."""
     c = centroid(poly)
     m = len(poly)
     lines = []
@@ -184,8 +93,6 @@ def inset(poly, d):
 
 
 def quad_at(q, u, v):
-    """Interpolazione bilineare in un quadrilatero q = [p00, p10, p11, p01].
-    `u` corre lungo il fronte p00→p10, `v` va verso l'interno."""
     return lerp2(lerp2(q[0], q[1], u), lerp2(q[3], q[2], u), v)
 
 
@@ -195,17 +102,12 @@ def quad_cell(q, u0, u1, v0, v1):
 
 
 def quad_ang(q, u=0.5, v=0.5):
-    """L'orientamento del quadrilatero nel punto (u,v): serve a mettere le auto
-    e le strisce a filo con il disegno invece che a caso."""
     a = quad_at(q, max(0.0, u - 0.08), v)
     b = quad_at(q, min(1.0, u + 0.08), v)
     return math.atan2(b[1] - a[1], b[0] - a[0])
 
 
 def oct_at(p, ang, length, width, cut=0.3):
-    """Un rettangolo con gli spigoli tagliati, orientato. Con 10 unita' per 4,5
-    e' un'auto vista dall'alto; allargandolo diventa una panca, un cassonetto,
-    una pensilina."""
     ca, sa = math.cos(ang), math.sin(ang)
 
     def P(u, v):
@@ -218,7 +120,6 @@ def oct_at(p, ang, length, width, cut=0.3):
 
 
 def blob(cx, cy, r, lobes=7, rough=0.24, per=8):
-    """Una macchia chiusa e irregolare: un laghetto, una chioma non geometrica."""
     pts = []
     for k in range(lobes):
         a = 2 * math.pi * k / lobes
@@ -228,9 +129,7 @@ def blob(cx, cy, r, lobes=7, rough=0.24, per=8):
 
 
 def smooth(pts, per=8):
-    """Catmull-Rom → polilinea densa. Le strade sono definite con pochi punti e
-    poi infittite: senza, ogni cambio di direzione e' uno spigolo, e in pianta
-    uno spigolo si legge come un incrocio che non c'e'."""
+    """Densify sparse road control points with Catmull-Rom interpolation."""
     P = [pts[0]] + list(pts) + [pts[-1]]
     out = []
     for i in range(len(P) - 3):
@@ -250,10 +149,6 @@ def smooth(pts, per=8):
 
 
 class Way:
-    """Una strada: polilinea infittita, con lunghezza d'arco, normali e offset.
-    `nrm` punta sempre verso il CENTRO STORICO (il lato concavo del viale), e
-    tutto il file conta su questo: le fasce di periferia si ricavano con offset
-    negativi, le radiali entrano in citta' seguendo `nrm`."""
 
     def __init__(self, pts, per=8):
         self.p = smooth(pts, per) if len(pts) > 2 and per > 1 else list(pts)
@@ -317,11 +212,6 @@ class Way:
         return [self.at(t0 + (t1 - t0) * k / steps) for k in range(steps + 1)]
 
 
-# ════ TAVOLOZZA ═════════════════════════════════════════════════════════════
-# Gli inchiostri sono quelli della carta del resto della storia (theme.css), ma
-# GIA' MISCELATI verso il fondo: la filigrana e' nel colore, non nell'opacita' di
-# gruppo (vedi la nota sulle prestazioni in testa al file). `veil(colore, quanto)`
-# porta un colore verso la carta: 0 = pieno, 1 = invisibile.
 PAPER = "#F2F1E8"
 
 
@@ -346,71 +236,34 @@ def mix(c1, c2, t):
 
 INK = "#3A352A"
 
-# ── DUE tavolozze, e la distanza fra loro E' la gerarchia ──────────────────
-# La pianta e' lo SFONDO di un testo e il fondale di un primo piano a colori
-# pieni: se il tessuto ha la stessa forza di quello che ci nasce sopra, la tavola
-# diventa una carta topografica e non si capisce piu' dove guardare. Era il
-# rilievo del committente («sembra confusionario e poco ordinato»), ed era giusto:
-# i tetti di cotto pieno su meta' della tavola tiravano l'occhio ovunque.
-#
-# Quindi il TESSUTO e' quasi carta (velature 0,35-0,8), e il RACCONTO — il verde
-# nuovo, l'ombra, i cantieri, le occasioni segnate — no. Chi ritocca questi valori
-# tenga la distanza: se il tessuto risale, il racconto sparisce dentro.
-#
-# La stessa gerarchia si legge anche in un altro modo: il tessuto e' quello che
-# c'e' GIA', il racconto e' quello che si potrebbe fare. Che il primo sia in
-# filigrana e il secondo a colori e' anche il significato della sezione.
 C = dict(
-    # ── il tessuto: presente ma subordinato ──
-    walk=veil("#EFEADD", 0.32),          # marciapiedi e cordoli
-    asphalt=veil("#DCD5C2", 0.38),        # carreggiata
-    asphalt_dk=veil("#CFC7B0", 0.4),     # corsie del viale
-    median=veil("#B9CFA1", 0.4),         # aiuola centrale del viale
-    stripe=veil("#FAF7EC", 0.2),         # strisce e segnaletica
-    court=veil("#CFC7B2", 0.4),          # corti, terra battuta
-    stone=veil("#DFD5BB", 0.36),         # lastricato
-    lot=veil("#D2C9B0", 0.4),            # piastre impermeabili
+    walk=veil("#EFEADD", 0.32),
+    asphalt=veil("#DCD5C2", 0.38),
+    asphalt_dk=veil("#CFC7B0", 0.4),
+    median=veil("#B9CFA1", 0.4),
+    stripe=veil("#FAF7EC", 0.2),
+    court=veil("#CFC7B2", 0.4),
+    stone=veil("#DFD5BB", 0.36),
+    lot=veil("#D2C9B0", 0.4),
     lot_line=veil("#B3A88C", 0.44),
-    # I tetti restano di COTTO — e' il colore che fa leggere «citta' vista
-    # dall'alto», ed e' il colore di Bologna. A 0,42 erano la cosa piu' forte della
-    # tavola e il quartiere sembrava in fiamme; a 0,72 il disegno era diventato
-    # illeggibile. 0,58 e' il punto in cui si capisce che sono tetti senza che
-    # rubino l'occhio. Il valore non deve però cancellare i volumi: tetto, colmo
-    # e ombra devono restare distinguibili anche prima degli interventi.
     roof=[veil(c, 0.45) for c in
           ("#C89A6A", "#BC8C5F", "#D2A574", "#C08F5C", "#CBA070")],
-    ridge=veil("#8E653E", 0.36),          # colmi, giunti e dettagli di copertura
-    shadow=veil("#6E6553", 0.56),         # l'ombra degli edifici
-    # ── il verde che c'e' gia': in filigrana come tutto il resto ──
+    ridge=veil("#8E653E", 0.36),
+    shadow=veil("#6E6553", 0.56),
     grass=veil("#AFC996", 0.44),
     grass_dk=veil("#9DBB84", 0.46),
     meadow=veil("#C2D6A8", 0.5),
-    trail=veil("#E6DFCB", 0.36),         # vialetti dei parchi
+    trail=veil("#E6DFCB", 0.36),
     crown=[veil(c, 0.44) for c in ("#5F8C4C", "#6F9A5B", "#7FA867")],
     crown_hi=veil("#93B978", 0.5),
     trunk=veil("#745B39", 0.4),
     water=veil("#A9C8D6", 0.4),
     water_hi=veil("#C6DEE8", 0.46),
-    # ── il portico: quattro toni, perche' e' uno dei tre soggetti della sezione
-    #    e in pianta deve leggersi come un colonnato e non come una fascia beige.
-    #    Velato meno del resto del tessuto: e' tessuto, ma e' anche racconto ──
-    portico=veil("#CFC3A6", 0.36),        # il piano coperto
-    # Le colonne sono CHIARE, non scure, e questa e' la decisione che fa leggere i
-    # portici. Erano di un bruno medio: sopra una fascia in ombra verde scuro
-    # sparivano, e la fascia porticata restava indistinguibile da un corridoio
-    # alberato — che e' proprio l'equivoco che la sezione non si puo' permettere.
-    # In pietra chiara sono una fila regolare di punti luminosi su una fascia
-    # scura, e una fila regolare di punti e' l'unica cosa che dall'alto vuol dire
-    # «colonnato».
-    portico_col="#F4F0E3",                # il centro chiaro delle colonne
-    portico_arch=veil("#6B604B", 0.3),    # il profilo ripetuto delle arcate
-    # ── superfici particolari ──
-    court_red=veil("#C08A63", 0.44),      # campi da gioco in terra battuta
-    glass=veil("#BFCBC6", 0.4),           # lucernari, tetti a shed
-    # ══ IL RACCONTO: da qui in giu' NIENTE filigrana ══════════════════════════
-    # Il verde NUOVO ha gli stessi valori dei primi piani (`build_plan_vignettes`),
-    # cosi' il rifugio che si apre sulla pianta e quello che si vede da vicino sono
-    # lo stesso verde e il lettore li collega senza che nessuno glielo dica.
+    portico=veil("#CFC3A6", 0.36),
+    portico_col="#F4F0E3",
+    portico_arch=veil("#6B604B", 0.3),
+    court_red=veil("#C08A63", 0.44),
+    glass=veil("#BFCBC6", 0.4),
     grass_new=veil("#A8C58C", 0.04),
     meadow_new=veil("#C2D8A6", 0.1),
     crown_new=["#4F7A3E", "#5F8C4C", "#78A263"],
@@ -418,7 +271,7 @@ C = dict(
     trunk_new="#6C5133",
     water_new="#A9C8D6",
     water_new_hi="#C9E1EA",
-    soil=veil("#A98A63", 0.16),           # terra nuda: l'asfalto appena tolto
+    soil=veil("#A98A63", 0.16),
     warm="#C0503A",
     amber="#C97A2E",
     works="#D9902F",
@@ -428,27 +281,6 @@ C = dict(
 )
 
 
-# ════ RACCOLTA ══════════════════════════════════════════════════════════════
-# Un solo posto dove finiscono gli elementi. `layer` decide l'ordine di
-# sovrapposizione (una lista fissa, non un numero sparso nel codice), `at` la
-# battuta da cui l'elemento esiste, `d` il ritardo in ms dentro la battuta.
-# L'ordine e' quello di SOVRAPPOSIZIONE, e ogni posizione e' una decisione:
-#   plot  dopo street     le piastre stanno sopra l'asfalto, non sotto
-#   mark  dopo plot       le righe del campetto stanno sopra il cortile che segnano
-#                         (prima erano sotto, e il campetto non si vedeva)
-#   water dopo green      il laghetto sta sopra il prato del parco che lo contiene
-#                         (prima era sotto, e il laghetto era invisibile)
-#   portico prima build   il piano coperto si infila sotto i palazzi, non li vela
-#   porticoCutaway        il solo tetto trasparente rivela il passaggio interno
-#   trees dopo prop       le chiome coprono le auto, non viceversa
-#   wash  dopo trees      il velo del caldo vela il tessuto...
-#   newgreen dopo wash    ...ma NON quello che si e' appena costruito
-#   newtree dopo newgreen le chiome del rifugio nuovo stanno sopra il SUO prato
-#                         (prima no: `park()` emetteva le chiome PRIMA di scaricare
-#                         il prato, che le copriva tutte. Dentro un livello conta
-#                         l'ordine di inserimento, quindi la separazione dev'essere
-#                         strutturale e non affidata all'ordine delle chiamate)
-#   corridor dopo newtree la fascia d'ombra e i filari nuovi stanno sopra tutto
 LAYERS = [
     "street", "plot", "mark", "green", "water", "shadow", "portico", "build",
     "porticoCutaway", "prop", "trees", "wash", "site", "newgreen", "newshade",
@@ -458,15 +290,6 @@ BAG = {k: [] for k in LAYERS}
 
 
 class Piece:
-    """Un pezzo di disegno che nasce in una battuta: raccoglie i corpi per livello
-    e ne mette UNO per livello nel sacco.
-
-    Non e' un vezzo di stile. I gruppi animati sono la voce piu' pesante del
-    fotogramma mentre la telecamera si muove, e un isolato scritto a forme sciolte
-    ne usava dodici invece di tre: sull'intera tavola facevano un migliaio di
-    gruppi in transizione insieme, ed e' quello che faceva scattare lo scroll.
-    Le forme di un isolato hanno tutte la stessa battuta e lo stesso ritardo,
-    quindi non c'e' niente da perdere a unirle."""
 
     def __init__(self, at=0, d=0, until=None):
         self.at, self.d, self.until = at, d, until
@@ -489,22 +312,12 @@ def put(layer, body, at=0, d=0, cls="", until=None):
         BAG[layer].append(dict(at=at, d=d, cls=cls, until=until, body=body))
 
 
-# Quante ONDATE per il tessuto di fondo. Tutto quello che nasce alla battuta 0,
-# non sparisce e non ha una classe sua viene unito in poche ondate: una per
-# livello e per fascia di ritardo.
-#
-# Non e' un'ottimizzazione di comodo, e' LA correzione dello scroll a scatti. Ogni
-# gruppo con `transition: opacity` in corso e' un buffer fuori schermo, e il
-# tessuto sciolto ne accendeva quattrocentotrenta insieme: bastava questo a far
-# perdere fotogrammi per due secondi. Le ondate ne animano una quindicina alla
-# volta, e il disegno che si compone a scatti diagonali si vede uguale — anzi si
-# legge meglio, perche' e' una spazzata invece di un formicolio.
 WAVES = 6
 WAVE_MS = 230
 
 
 def merged(layer):
-    """I gruppi di un livello, con il tessuto di fondo unito in ondate."""
+    """Merge background pieces into waves to limit rendered SVG groups."""
     waves, loose = {}, []
     for it in BAG[layer]:
         if it["at"] == 0 and it["until"] is None and not it["cls"]:
@@ -536,17 +349,11 @@ def line(d, colour, w, extra=""):
 
 
 def ink(d, opacity=0.5, w=None):
-    """Il tratto. `w` resta vuoto quasi sempre: lo spessore lo decide il CSS in
-    funzione dello zoom della telecamera, cosi' in primo piano il segno non
-    diventa un bordo nero."""
     wa = f' stroke-width="{n(w)}"' if w else ""
     return (f'<path class="pl-ink" d="{d}" fill="none" opacity="{opacity}"'
             f'{wa} pathlength="1"></path>')
 
 
-# Le strade sono la voce piu' pesante del file: la stessa polilinea serve da
-# marciapiede, carreggiata, corsia e mezzeria. La si dichiara UNA volta nei defs e
-# si tirano quattro `<use>`, invece di ripeterne il `d` quattro volte.
 DEFS_PATHS = []
 _pid = [0]
 
@@ -564,30 +371,22 @@ def use(pid, colour, w, extra=""):
 
 
 def discs(spots, colour, extra=""):
-    """Tanti dischetti in UN path: i paracarri di una piazza erano venti elementi
-    per venti pietre da tre unita'."""
+    """Pack repeated discs into one SVG path to reduce DOM nodes."""
     return (f'<path d="{"".join(circle_d(x, y, r) for x, y, r in spots)}"'
             f' fill="{colour}"{extra}></path>')
 
 
-# ════ IL VIALE ══════════════════════════════════════════════════════════════
-# Un arco molto aperto, concavo verso l'alto: sopra il centro, sotto la
-# periferia, entrambi profondi ~700 unita' in mezzo alla tavola.
 VIALE = Way([(-260, 445), (180, 550), (660, 685), (1180, 795),
              (1720, 772), (2200, 662), (2660, 512)])
 VIALE_W = 104 * S
 
-# Le due porte porticate. Sono ANCHE bordi di colonna della griglia di periferia
-# (vedi PER_COLS): la strada che sale dal parcheggio arriva SULLA porta.
 PORTA_A = 0.245
 PORTA_B = 0.535
 
 
 def radial(t_gate, up, out=150, bend=0.0, per=11):
-    """Una radiale che entra in citta' da una porta: parte `out` fuori dal viale,
-    lo attraversa e sale di `up` verso il centro con una piega leggera."""
     p = VIALE.at(t_gate)
-    into = VIALE.nrm(t_gate)          # `nrm` guarda il centro storico
+    into = VIALE.nrm(t_gate)
     tv = VIALE.tan(t_gate)
     pts = []
     steps = 6
@@ -598,77 +397,57 @@ def radial(t_gate, up, out=150, bend=0.0, per=11):
         pts.append((p[0] + into[0] * r + tv[0] * s, p[1] + into[1] * r + tv[1] * s))
     w = Way(pts, per=per)
     w.up, w.out = up, out
-    w.tg = out / (up + out)           # dove cade la porta, in t della radiale
-    # `t` di un punto a distanza `d` dal viale, sul lato periferia: serve a far
-    # combaciare l'itinerario con la strada che sale dalla periferia.
+    w.tg = out / (up + out)
     w.t_out = lambda d: (out - d) / (up + out)
     return w
 
 
-# Le radiali sfondano il bordo alto della tavola: il tessuto deve essere TAGLIATO
-# dal margine, non finire poco prima con una riga di case allineate al bordo.
-RD = radial(0.075, 620, bend=-0.05)      # radiale di margine, senza portico
-RA = radial(PORTA_A, 790, bend=0.05)     # porticata · la spina dell'itinerario
-RB = radial(PORTA_B, 920, bend=-0.04)    # porticata
-RC = radial(0.80, 800, bend=0.05)        # radiale di margine, senza portico
+RD = radial(0.075, 620, bend=-0.05)
+RA = radial(PORTA_A, 790, bend=0.05)
+RB = radial(PORTA_B, 920, bend=-0.04)
+RC = radial(0.80, 800, bend=0.05)
 
 RADIALS = [(RD, 52 * S, False), (RA, 66 * S, True),
            (RB, 64 * S, True), (RC, 54 * S, False)]
 
 
-# ── Le maglie del centro ────────────────────────────────────────────────────
-# Un "cordolo" fra due radiali: le celle si ricavano interpolando fra le due,
-# quindi gli isolati seguono da soli la piega delle strade e i vicoli restano
-# paralleli. `fr` sono le righe, in frazione della parte dentro le mura.
 def ladder(a, b, cols, fr, tag):
     return dict(a=a, b=b, cols=cols, tag=tag,
                 rows=[a.tg + (1 - a.tg) * f for f in fr])
 
 
 CENTRO = [
-    ladder(RA, RB, 4, [0.03, 0.24, 0.45, 0.66, 0.85, 1.0], "A"),   # cuore porticato
+    ladder(RA, RB, 4, [0.03, 0.24, 0.45, 0.66, 0.85, 1.0], "A"),
     ladder(RD, RA, 3, [0.04, 0.28, 0.54, 0.78, 1.0], "D"),
     ladder(RB, RC, 3, [0.03, 0.25, 0.48, 0.71, 0.9, 1.0], "B"),
 ]
 
-# ── Le maglie della periferia ───────────────────────────────────────────────
-# Fasce parallele al viale (offset verso l'esterno, il lato convesso: si puo'
-# scostare di quasi mille unita' senza che la curva si ripieghi) e strade
-# perpendicolari che le attraversano.
 PER_ROWS = [64, 292, 528, 768, 1010, 1260]
 PER_COLS = [0.02, 0.105, 0.175, PORTA_A, 0.315, 0.39, 0.465, PORTA_B,
             0.615, 0.695, 0.775, 0.86, 0.94]
 PER_OFF = [VIALE.offset(-d) for d in PER_ROWS]
 
-# I luoghi della storia, come celle delle due griglie.
-P1 = ("per", 8, 1)          # il parco che c'e' gia', a un capo della periferia
-P2 = ("A", 0, 2)            # il giardino murato in cima al centro
-C1 = ("per", 3, 1)          # la piazza lastricata che diventa rifugio
-C2 = ("per", 6, 0)          # il cortile d'asfalto della scuola
-C3 = ("A", 0, 0)            # la piazza, appena dentro la porta
+P1 = ("per", 8, 1)
+P2 = ("A", 0, 2)
+C1 = ("per", 3, 1)
+C2 = ("per", 6, 0)
+C3 = ("A", 0, 0)
 
-# Gli altri luoghi riconoscibili. Non servono al racconto: servono a farlo
-# credere. Un quartiere in cui tutti gli isolati hanno la stessa forma smette di
-# essere un quartiere e diventa una texture, e il lettore smette di leggerlo.
 SPECIAL = {
     P1: "park", P2: "garden", C1: "lot", C2: "school", C3: "piazza",
-    ("A", 2, 1): "church",          # la chiesa col sagrato, dentro le mura
-    ("B", 1, 1): "courts",          # campi da gioco in terra battuta
-    ("D", 0, 2): "market",          # mercato: interrompe la fila in alto a sinistra
-    ("per", 1, 2): "shed",          # capannoni col tetto a shed
+    ("A", 2, 1): "church",
+    ("B", 1, 1): "courts",
+    ("D", 0, 2): "market",
+    ("per", 1, 2): "shed",
     ("per", 5, 2): "shed",
-    ("per", 2, 3): "villini",       # villini con giardino, in fondo
+    ("per", 2, 3): "villini",
     ("per", 7, 3): "villini",
     ("per", 9, 2): "villini",
     ("per", 4, 2): "courts",
-    ("per", 0, 1): "public",         # un edificio pubblico, per rompere la scala
+    ("per", 0, 1): "public",
     ("B", 0, 1): "public",
 }
 
-# La forma urbana non viene estratta a sorte. Ogni fascia ha una logica e ogni
-# cella ha un ruolo, cosi' rigenerare il disegno non sposta interi quartieri.
-# Le righe `edge` continuano a ricevere le strade, ma non una fila di mezzi
-# edifici tagliati sul bordo alto: era una delle ripetizioni piu' visibili.
 CENTRO_FABRIC = {
     "A": (
         ("piazza", "corte", "open_u", "palazzo"),
@@ -702,7 +481,6 @@ PER_OUTER = ("villini", "terraces", "apartments", "bars", "mixed", "parking")
 
 
 def per_fabric_kind(i, j):
-    """Gradiente urbano: compatto sul viale, domestico verso il margine."""
     if j == 0:
         return PER_NEAR[i % len(PER_NEAR)]
     if j == 1:
@@ -752,11 +530,7 @@ if PROBE:
     sys.exit(0)
 
 
-# ════ STRADE ════════════════════════════════════════════════════════════════
 def draw_way(w, width, at=0, d=0, dashed=False, kind="locale", until=None):
-    """Una strada: marciapiedi, carreggiata, cordolo a tratto. Il viale ha due
-    corsie e l'aiuola in mezzo, ed e' l'unico: e' cosi' che si riconosce un viale
-    da una strada qualunque anche in filigrana."""
     pid = defpath(dpath(w.p))
     body = [use(pid, C["walk"], width + 15 * S), use(pid, C["asphalt"], width)]
     if kind == "viale":
@@ -774,8 +548,6 @@ def draw_way(w, width, at=0, d=0, dashed=False, kind="locale", until=None):
 
 
 def zebra(w, t, half, at=0, d=0, length=None, colour=None):
-    """Strisce pedonali: un pettine attraverso la strada. E' uno dei pochi segni
-    che dall'alto vuol dire una cosa sola, e mette la scala umana sulla pianta."""
     length = length or 15 * S
     bars = []
     p, nv, ang = w.at(t), w.nrm(t), w.ang(t)
@@ -789,8 +561,6 @@ def zebra(w, t, half, at=0, d=0, length=None, colour=None):
 
 
 def bus_bay(w, t, off, at=0, d=0):
-    """Una fermata: la piazzola rientrante e la pensilina. Regge la riga di copy
-    che parla di camminare fino alla fermata, e non ha bisogno di scritte."""
     p, nv, ang = w.at(t), w.nrm(t), w.ang(t)
     c = (p[0] + nv[0] * off, p[1] + nv[1] * off)
     bay = oct_at(c, ang, 60 * S, 13 * S, cut=0.5)
@@ -802,8 +572,6 @@ def bus_bay(w, t, off, at=0, d=0):
 
 
 def street_cars(w, t0, t1, off, count, at=0, d=0, until=None):
-    """Qualche auto in sosta lungo il fronte: dice «strada» meglio di qualunque
-    altra cosa, e da' la scala a tutto il resto."""
     tones = {}
     for k in range(count):
         t = t0 + (t1 - t0) * (k + 0.5) / count
@@ -815,7 +583,6 @@ def street_cars(w, t0, t1, off, count, at=0, d=0, until=None):
 
 
 draw_way(VIALE, VIALE_W, d=0, dashed=False, kind="viale")
-# L'aiuola centrale alberata: e' lei che fa leggere «viale» e non «strada larga».
 put("street", line(dpath(VIALE.p), C["median"], VIALE_W * 0.2)
     + ink(dpath(VIALE.offset(VIALE_W * 0.1).p) + dpath(VIALE.offset(-VIALE_W * 0.1).p), 0.22),
     at=0, d=80)
@@ -823,14 +590,13 @@ put("street", line(dpath(VIALE.p), C["median"], VIALE_W * 0.2)
 for w, wid, has_portico in RADIALS:
     draw_way(w, wid, d=120 if has_portico else 240, dashed=has_portico)
 
-# Righe del centro → strade trasversali; colonne → vicoli.
 for lad in CENTRO:
     a, b, rows, cols = lad["a"], lad["b"], lad["rows"], lad["cols"]
     for j, t in enumerate(rows):
         if j == 0:
             continue
         pa, pb = a.at(t), b.at(t)
-        ov = 0.08                          # sborda sulle radiali: giunti pieni
+        ov = 0.08
         draw_way(Way([lerp2(pa, pb, -ov), lerp2(pa, pb, 0.5), lerp2(pa, pb, 1 + ov)],
                      per=8), (42 if j < len(rows) - 1 else 36) * S, d=300 + j * 40)
     for i in range(1, cols):
@@ -839,7 +605,6 @@ for lad in CENTRO:
         draw_way(Way([lerp2(a.at(t), b.at(t), u) for t in ts], per=9), 24 * S,
                  d=420 + i * 45)
 
-# Fasce della periferia e strade che le tagliano.
 for j, off in enumerate(PER_OFF):
     if j == 0:
         continue
@@ -850,8 +615,6 @@ for i, s in enumerate(PER_COLS):
     draw_way(Way(pts, per=9), (46 if s in (PORTA_A, PORTA_B) else 32) * S,
              d=380 + i * 34)
 
-# Strisce e fermate: alle due porte, dove la gente attraversa il viale, e in
-# qualche incrocio del centro.
 for t in (PORTA_A, PORTA_B):
     zebra(VIALE, t - 0.012, VIALE_W / 2, d=900)
     zebra(VIALE, t + 0.012, VIALE_W / 2, d=960)
@@ -862,27 +625,17 @@ bus_bay(VIALE, 0.62, -VIALE_W / 2 - 8 * S, d=1080)
 for w in (RA, RB):
     zebra(w, w.tg + 0.14, w.up * 0.043 + 12 * S, d=1020)
 
-# Auto in sosta lungo il viale e le radiali.
 street_cars(VIALE, 0.12, 0.94, VIALE_W / 2 + 5 * S, 26, d=1120)
 street_cars(VIALE, 0.10, 0.92, -VIALE_W / 2 - 5 * S, 24, d=1160)
-# Poche, e solo sulle due radiali: bastano a dare la scala, e piu' di cosi'
-# diventano coriandoli. Erano dodici per lato piu' una per palazzina.
 street_cars(RA, RA.tg + 0.05, 0.96, 38 * S, 5, d=1200)
 street_cars(RB, RB.tg + 0.05, 0.96, -37 * S, 5, d=1240)
 
-# Un canale, coperto quasi ovunque, che affiora per un tratto nel centro: e' la
-# citta' d'acqua che Bologna e' stata, e da' un appiglio a chi la conosce.
 CANAL = Way([lerp2(RA.at(t), RB.at(t), 0.5 + 0.16 * math.sin(t * 3.4))
              for t in (0.34, 0.48, 0.62, 0.76, 0.9, 1.02)])
 put("water", line(dpath(CANAL.p), C["water"], 15 * S, ' opacity=".85"')
     + line(dpath(CANAL.p), C["water_hi"], 6 * S, ' opacity=".7"'), d=560)
 
 
-# ════ ALBERI ════════════════════════════════════════════════════════════════
-# Gli alberi che CI SONO gia' e quelli che si PIANTANO non hanno lo stesso verde,
-# ed e' la differenza su cui si regge mezza sezione: il filare nuovo lungo il
-# corridoio deve staccare dagli alberi del viale che stanno li' da sempre, altrimenti
-# la battuta 4 non ha niente da mostrare. Il verde nuovo e' lo stesso dei primi piani.
 def tones(new):
     if new:
         return C["crown_new"], C["crown_new_hi"], mix(C["shade"], PAPER, 0.62)
@@ -890,11 +643,6 @@ def tones(new):
 
 
 def canopy_d(x, y, r, seed=0):
-    """Chioma organica compatta, costruita con otto lobi.
-
-    I vecchi cerchi perfetti sembravano simboli cartografici. Questa forma resta
-    economica come un solo path, ma ha un profilo diverso per ogni albero e si
-    legge come vegetazione anche senza aggiungere decine di dettagli interni."""
     phase = seed * 1.71 + x * .013 + y * .017
     pts = []
     lobes = 8
@@ -903,14 +651,10 @@ def canopy_d(x, y, r, seed=0):
         rr = r * (.86 + .12 * math.sin(phase + k * 2.17)
                   + .045 * math.cos(phase * .7 + k * 1.31))
         pts.append((x + math.cos(a) * rr, y + math.sin(a) * rr))
-    # Otto segmenti con giunti arrotondati costano meno della metà delle vecchie
-    # curve quadratiche. A questa scala è il contorno irregolare, non la curva
-    # matematica, a far leggere la chioma.
     return dpath(pts, True)
 
 
 def crown_body(x, y, r, k, new=False):
-    """Una chioma in pianta: profilo irregolare, ombra, tronco e punto luce."""
     cr, hi, sh = tones(new)
     base = canopy_d(x, y, r, k)
     shadow = circle_d(x + r * .22, y + r * .27, r * 1.02)
@@ -924,16 +668,6 @@ def crown_body(x, y, r, k, new=False):
 
 
 def crowns_body(spots, new=False):
-    """Le chiome di un gruppo.
-
-    Sopra le due, in UN path per tono invece di tre cerchi per albero. Cinquecento
-    alberi facevano millecinquecento `<circle>`, cioe' META' di tutti gli elementi
-    del disegno, e ogni elemento in piu' e' lavoro che il browser rifa' a ogni
-    movimento di telecamera. Un path con cento sotto-cerchi costa quanto uno.
-
-    Sotto le due si tengono i cerchi: gli alberi del corridoio e dei rifugi nuovi
-    stanno UNO per gruppo (arrivano a uno a uno, e la crescita e' il contenuto
-    della battuta), e per un albero solo tre cerchi pesano meno di quattro path."""
     if len(spots) <= 2:
         return "".join(crown_body(x, y, r, k, new)
                        for k, (x, y, r) in enumerate(spots))
@@ -979,27 +713,13 @@ def row_spots(w, t0, t1, off, step, r=(7.5, 11.5)):
 
 
 def crowns(spots, at, d, step=22, chunk=1, layer="trees", cls="pl-tree", new=True):
-    """Chiome che arrivano una dopo l'altra. `chunk` unisce piu' chiome in un solo
-    gruppo: si usa solo dove il ritardo serve (i filari del corridoio, che SONO il
-    contenuto della battuta 4). Il tessuto di fondo non passa da qui — le sue
-    chiome stanno nel gruppo del loro isolato, e la scala di ritardi si vede
-    comunque perche' gli isolati arrivano uno dopo l'altro.
-
-    `new` di default e' vero perche' TUTTI i chiamanti sono alberi che si piantano:
-    i filari del corridoio, quelli della piazza, quelli dei due rifugi. Il tessuto
-    passa da `crowns_body` diretto, e resta in filigrana."""
+    """Chunk crowns into shared paths to reduce transition count."""
     for i in range(0, len(spots), chunk):
         put(layer, crowns_body(spots[i:i + chunk], new), at=at,
             d=d + (i // chunk) * step * chunk, cls=cls)
 
 
 def corridor_pergola(w, t0, t1, off, width, at, d):
-    """Un breve pergolato visto dall'alto, appoggiato lungo un percorso.
-
-    La copertura non e' una campitura verde: bordo, travetti, quattro appoggi e
-    rampicante tratteggiato la fanno leggere come struttura d'ombra. Serve a
-    interrompere i filari del corridoio, mostrando che la continuita' climatica
-    puo' essere costruita anche dove non c'e' spazio per un altro albero."""
     left = w.offset(off - width / 2).slice(t0, t1)
     right = w.offset(off + width / 2).slice(t0, t1)
     band = left + list(reversed(right))
@@ -1027,33 +747,19 @@ def corridor_pergola(w, t0, t1, off, width, at, d):
     put("corridor", body, at=at, d=d, cls="pl-pergola")
 
 
-# L'aiuola del viale, alberata: e' il verde "che c'e'" piu' visibile della tavola,
-# ed e' anche quello che non fa ombra dove serve — il corridoio arriva dopo, e la
-# differenza fra i due filari e' tutta la sezione.
 put("trees", crowns_body(row_spots(VIALE, 0.05, 0.97, 0, 46 * S, (6, 9))),
     at=0, d=1300)
 
 
-# ════ ISOLATI ══════════════════════════════════════════════════════════════
-# Ogni costruttore riceve un `Piece` e ci scrive dentro: un isolato esce dal
-# sacco come tre gruppi (ombra, edifici, oggetti) e non come dodici forme
-# sciolte. Vedi la nota su `Piece`: e' la differenza fra uno scroll fluido e uno
-# a scatti quando la telecamera si muove.
 def roof_tone():
     return C["roof"][rnd.randrange(len(C["roof"]))]
 
 
 def roof_fill(d, tone):
-    """Una copertura in cotto. Il tetto non cambia colore durante la storia:
-    il passaggio dal caldo al fresco resta nell'atmosfera intorno alla mappa."""
     return fill(d, tone)
 
 
 def roof_axis(poly):
-    """La linea lunga di una copertura, usata come colmo.
-
-    Il colmo e una piccola emergenza tecnica sono dettagli grandi e strutturali:
-    fanno leggere un volume abitato senza trasformarlo in una trama di finestre."""
     along_u = dist(poly[0], poly[1]) >= dist(poly[1], poly[2])
     if along_u:
         return [quad_at(poly, .08, .5), quad_at(poly, .92, .5)], quad_ang(poly)
@@ -1061,10 +767,6 @@ def roof_axis(poly):
 
 
 def building_cluster(pc, bodies, details=True, shadow=.25):
-    """Disegna un insieme di corpi edilizi con una gerarchia coerente.
-
-    Le impronte cambiano da isolato a isolato; ombra, colmo e pochi lucernari
-    restano invece costanti, cosi' la diversita' non diventa rumore grafico."""
     if not bodies:
         return
     tones, ridges, marks = {}, [], []
@@ -1087,11 +789,6 @@ def building_cluster(pc, bodies, details=True, shadow=.25):
 
 
 def courtyard(pc, poly):
-    """Rende una corte un luogo leggibile, non un vuoto ritagliato nel tetto.
-
-    Una pavimentazione, un ingresso, una piccola aiuola e uno o due alberi sono
-    abbastanza per far capire che lo spazio e' usato. Le varianti evitano che
-    tutte le corti diventino a loro volta un simbolo ripetuto."""
     a = area(poly)
     if a < 3000:
         return
@@ -1109,10 +806,6 @@ def courtyard(pc, poly):
 
 
 def block_corte(pc, q, depth=None, seg=None):
-    """Isolato chiuso a corte: l'anello di edifici sul perimetro, la corte dentro,
-    l'ombra propria e la linea di colmo sui tetti. Ombra e colmo sono i due segni
-    che fanno leggere «edifici» invece di «campiture beige», e sono il motivo per
-    cui questa pianta non ha bisogno di scritte."""
     seg = seg or 138 * S
     outer = inset(q, 5 * S)
     per = sum(dist(outer[i], outer[(i + 1) % 4]) for i in range(4))
@@ -1125,12 +818,8 @@ def block_corte(pc, q, depth=None, seg=None):
     for k in range(4):
         a0, a1 = outer[k], outer[(k + 1) % 4]
         i0, i1 = inner[k], inner[(k + 1) % 4]
-        # Una o due unita' per lato: abbastanza per far leggere la successione
-        # degli edifici, mai abbastanza da produrre la vecchia scacchiera.
         side_len = dist(a0, a1)
         m = 2 if side_len > 230 * S else 1
-        # Il fronte principale ha un varco vero, non solo una riga disegnata
-        # sopra il tetto: e' l'accesso che rende plausibile la corte interna.
         parts = [(.0, .45), (.55, 1.)] if k == 0 and side_len > 145 * S else [
             (t / m, (t + 1) / m) for t in range(m)
         ]
@@ -1164,10 +853,6 @@ def block_corte(pc, q, depth=None, seg=None):
 
 
 def block_open(pc, q, form="l"):
-    """Un isolato storico aperto: a L, a U oppure suddiviso in piu' proprietà.
-
-    Conserva l'allineamento sulla strada, ma lascia vedere accessi, giardini e
-    corpi posteriori. E' la principale alternativa al vecchio anello ripetuto."""
     if form == "u":
         bodies = [quad_cell(q, .05, .44, .06, .28),
                   quad_cell(q, .56, .95, .06, .28),
@@ -1201,10 +886,6 @@ def block_open(pc, q, form="l"):
 
 
 def block_palazzo(pc, q):
-    """Un palazzo dominante con ala secondaria, ingresso e giardino laterale.
-
-    La massa unica rompe la scala degli isolati senza diventare un generico
-    rettangolo: il colmo, il cortile d'ingresso e l'ala raccontano come si usa."""
     main = quad_cell(q, .07, .68, .08, .57)
     wing = quad_cell(q, .07, .3, .57, .86)
     forecourt = quad_cell(q, .34, .67, .61, .84)
@@ -1221,10 +902,6 @@ def block_palazzo(pc, q):
 
 
 def block_terraces(pc, q):
-    """Case a schiera: tetti stretti sul fronte e giardini profondi separati.
-
-    Il ritmo fitto ma non identico dice subito 'case' e offre un passaggio
-    leggibile fra il centro compatto e i villini della fascia esterna."""
     houses, gardens, lawns, divisions = [], [], [], []
     count = 4 if dist(q[0], q[1]) < 240 * S else 5
     for k in range(count):
@@ -1250,11 +927,6 @@ def block_terraces(pc, q):
 
 
 def block_apartments(pc, q):
-    """Condomini immersi in uno spazio comune, con balconi e corpi scala.
-
-    Tre volumi sfalsati sono abbastanza diversi dalle barre industriali e dalle
-    case a schiera; le fasce sui fronti lunghi li rendono riconoscibili come
-    edifici residenziali anche in una vista molto larga."""
     common = quad_cell(q, .05, .95, .06, .92)
     flip = int(abs(centroid(q)[0]) / 180) % 2
     if flip:
@@ -1281,10 +953,6 @@ def block_apartments(pc, q):
 
 
 def block_market(pc, q):
-    """Un piccolo mercato di quartiere: sala coperta, piazza e tre pensiline.
-
-    Sostituisce una parte della fila edilizia al margine alto a sinistra con un
-    luogo riconoscibile e aperto, senza introdurre un altro grande parco."""
     hall = quad_cell(q, .08, .92, .08, .35)
     square = quad_cell(q, .08, .92, .39, .9)
     canopies = [quad_cell(square, .1, .9, .12 + k * .27, .24 + k * .27)
@@ -1301,10 +969,6 @@ def block_market(pc, q):
 
 
 def block_allotments(pc, q):
-    """Orti urbani al margine: lotti stretti, sentiero comune e piccoli ricoveri.
-
-    È uno spazio minuto, non un nuovo parco; serve soprattutto a far terminare
-    il tessuto costruito in modo plausibile invece che con un'altra fila di tetti."""
     p = inset(q, 10 * S)
     plots, paths, sheds = [], [], []
     count = 4
@@ -1329,13 +993,6 @@ def block_allotments(pc, q):
 
 
 def block_bars(pc, q, rows=2):
-    """Palazzine in linea: il tessuto fuori dai viali.
-
-    Ogni barra e' diversa dalla vicina, e non e' un vezzo: se tutti gli isolati
-    hanno la stessa forma il lettore smette di leggere la pianta e la guarda come
-    una texture. Quindi profondita' variabile, qualcuna con l'ala a L, i BALCONI
-    sul fronte lungo (sono loro a dire "ci abita gente" invece di "capannone"), le
-    auto fra una barra e l'altra, e l'ombra propria."""
     tones, edges, ridge, facade_marks, roof_marks = {}, [], [], [], []
     nbar = max(1, int(dist(q[0], q[1]) / (205 * S)))
     band = 0.84 / rows
@@ -1349,9 +1006,6 @@ def block_bars(pc, q, rows=2):
             tones.setdefault(roof_tone(), []).append(cell)
             edges.append(cell)
             ridge.append([quad_at(cell, 0.02, 0.5), quad_at(cell, 0.98, 0.5)])
-            # Due segni grandi sul fronte e un corpo scala sul tetto: il dettaglio
-            # torna, ma raggruppato in forme leggibili. Non si rimettono auto o
-            # finestrelle isolate, che a questa scala diventano coriandoli.
             front_a, front_b = cell[3], cell[2]
             for s0, s1 in ((.14, .34), (.66, .86)):
                 facade_marks.append([lerp2(front_a, front_b, s0),
@@ -1371,9 +1025,6 @@ def block_bars(pc, q, rows=2):
 
 
 def block_public(pc, q):
-    """Un edificio pubblico: una piastra sola, grande, con il piazzale davanti e
-    l'ombra piu' marcata. Serve a rompere la scala: in un quartiere vero non tutti
-    gli edifici sono della stessa taglia, e questo si vede subito."""
     body = quad_cell(q, .1, .9, .3, .88)
     court = quad_cell(q, .1, .9, .06, .28)
     pc.add("plot", fill(dpath(court, True), C["stone"]),
@@ -1388,10 +1039,6 @@ def block_public(pc, q):
 
 
 def block_villini(pc, q):
-    """Villini con giardino: il tessuto appena fuori dai viali. Case piccole e
-    staccate, ognuna col suo verde e la sua auto nel vialetto. Serve a far vedere
-    che il quartiere NON e' tutto uguale: se ogni isolato ha la stessa forma, il
-    lettore smette di leggere la pianta e la guarda come una texture."""
     cols, rows = 3, 2
     roofs, gardens, lawns, edges, cars, trees = {}, [], [], [], {}, []
     for r in range(rows):
@@ -1422,9 +1069,6 @@ def block_villini(pc, q):
 
 
 def block_shed(pc, q):
-    """Un capannone col tetto a SHED. Le pieghe a denti di sega sono il segno piu'
-    riconoscibile che esista in pianta: dicono «qui non abita nessuno, e questo
-    tetto e' una piastra che scotta». Davanti, il piazzale coi mezzi."""
     body = quad_cell(q, .06, .94, .06, .58)
     yard = quad_cell(q, .06, .94, .62, .94)
     teeth, glass = [], []
@@ -1449,9 +1093,6 @@ def block_shed(pc, q):
 
 
 def block_church(pc, q):
-    """Una chiesa: navata, transetto, abside semicircolare, e il sagrato davanti.
-    In pianta e' una delle pochissime forme che si riconoscono a qualunque
-    altezza, e in un quartiere di Bologna ci sta."""
     sagrato = quad_cell(q, .06, .94, .06, .3)
     nave = quad_cell(q, .3, .7, .32, .84)
     trans = quad_cell(q, .12, .88, .48, .62)
@@ -1475,9 +1116,6 @@ def block_church(pc, q):
 
 
 def block_courts(pc, q):
-    """Campi da gioco in terra battuta: verde intorno, ma superficie dura. Serve
-    anche a dire una cosa vera — non tutto quello che sta in un'area sportiva fa
-    ombra, e il colore caldo lo ammette."""
     pad = inset(q, 12 * S)
     pc.add("green", fill(dpath(jit(pad, 2), True), C["grass"], ' opacity=".85"'))
     fields, lines = [], []
@@ -1494,7 +1132,6 @@ def block_courts(pc, q):
 
 
 def plan_car_body(point, ang, tone):
-    """Un'auto in pianta con ombra, carrozzeria, abitacolo e parabrezza."""
     body = oct_at(point, ang, 12 * S, 5.2 * S, cut=.34)
     shadow = oct_at((point[0] + 1.2 * S, point[1] + 1.5 * S), ang,
                     12.3 * S, 5.4 * S, cut=.34)
@@ -1512,22 +1149,9 @@ def plan_car_body(point, ang, tone):
 
 
 def parking(pc, q, cars=True, civic=False, surface=True):
-    """La PIAZZA LASTRICATA della battuta 2: una spianata di pietra usata come
-    parcheggio, con le auto in sosta lungo i due lati.
-
-    Era una griglia di stalli, cioe' un parcheggio e basta. E' diventata una piazza
-    perche' il primo piano della stessa battuta mostra una piazza: due disegni della
-    stessa cosa devono raccontare la stessa cosa, e finche' uno diceva «parcheggio»
-    e l'altro «piazza» il cerchio di richiamo fra i due era una contraddizione.
-
-    La lastricatura a maglia larga e le auto SOLO sui bordi sono i due segni che
-    distinguono una piazza usata male da un parcheggio: in mezzo lo spazio c'e', ed
-    e' proprio quello che la battuta dice di poter riprendere."""
     p = inset(q, 9 * S)
     gl, drains = [], []
     m = max(3, int(dist(p[0], p[1]) / (52 * S)))
-    # Lastre sfalsate, non una griglia da parcheggio: la piazza resta una piazza
-    # anche nello stato iniziale, quando le auto ne occupano un bordo.
     for row in range(3):
         v0, v1 = .04 + row * .92 / 3, .04 + (row + 1) * .92 / 3
         offset = .5 if row % 2 else 0
@@ -1566,8 +1190,6 @@ def parking(pc, q, cars=True, civic=False, surface=True):
                    line("".join(dpath(x) for x in rays), C["lot_line"],
                         1.1 * S, ' opacity=".54"'))
 
-            # Due lampioni, paracarri e rastrelliere: pochi oggetti permanenti
-            # che danno scala e fanno capire che e' uno spazio pubblico.
             lamps = [quad_at(p, .06, .94), quad_at(p, .94, .94)]
             bollards = [quad_at(p, u, .955) for u in (.08, .16, .84, .92)]
             racks = []
@@ -1612,8 +1234,6 @@ def parking(pc, q, cars=True, civic=False, surface=True):
 
 
 def school_building(pc, q):
-    """L'edificio a L. Resta anche dopo la trasformazione: e' il cortile che
-    cambia, non la scuola."""
     body_q = quad_cell(q, .07, .93, .07, .33)
     wing = quad_cell(q, .07, .3, .33, .86)
     pc.add("shadow", fill(multi([move(body_q, 3 * S, 4 * S), move(wing, 3 * S, 4 * S)]),
@@ -1626,10 +1246,6 @@ def school_building(pc, q):
 
 
 def school_yard(pc, q):
-    """Il cortile d'asfalto e, dentro, il CAMPETTO: rettangolo, linea di meta',
-    cerchio di centro. E' un segno che dall'alto vuol dire una cosa sola, e
-    trasforma «un altro piazzale» in «il cortile della scuola» — cioe' la
-    differenza fra un disegno muto e un disegno che spiega da se'."""
     yard = quad_cell(q, .33, .93, .37, .92)
     field = quad_cell(yard, .1, .9, .12, .88)
     cx, cy = centroid(field)
@@ -1644,11 +1260,6 @@ def school_yard(pc, q):
 
 
 def piazza(pc, q, clip_id):
-    """Una piazza: lastricato a raggiera e una FONTANA al centro. La raggiera e
-    l'acqua bastano — un rettangolo di pietra liscia si legge come un tetto."""
-    # Le celle arrivano alla mezzeria delle strade. Un rientro minimo faceva
-    # quindi dilagare il lastricato sopra carreggiate e marciapiedi; 40S lo porta
-    # oltre il bordo stradale e lascia un perimetro urbano netto.
     p = inset(q, 40 * S)
     cx, cy = centroid(p)
     rays = []
@@ -1678,9 +1289,6 @@ def piazza(pc, q, clip_id):
 
 
 def park_trail(p, walled=False):
-    """Il vialetto: a croce nei giardini murati, serpeggiante negli altri. E' la
-    differenza fra "una macchia verde" e "un posto dove si cammina", e questa
-    sezione parla di camminare."""
     if walled:
         return (dpath([quad_at(p, .5, .06), quad_at(p, .5, .94)])
                 + dpath([quad_at(p, .06, .5), quad_at(p, .94, .5)]))
@@ -1693,27 +1301,8 @@ def park_trail(p, walled=False):
 
 def park(pc, q, tone=None, walled=False, pad=None, pond=True, layer="green",
          stagger=None, trail=True, tree_layer="trees"):
-    """Un parco: prato, VIALETTI che serpeggiano, un LAGHETTO e alberi di tre
-    taglie, piu' folti sul bordo. I vialetti sono la differenza fra «una macchia
-    verde» e «un posto dove si cammina», e questa sezione parla di camminare.
-
-    Deliberatamente NON arredato con panchine, fontanelle e pergole: di cosa e'
-    fatto un rifugio climatico lo spiega gia' la vignetta di `09`, e ripeterlo qui
-    sarebbe dirlo due volte. Qui contano due cose sole: che ci sia, e dove.
-
-    `stagger` (at, d, cls) fa arrivare gli alberi uno per gruppo invece che tutti
-    con il prato: si usa SOLO per i tre luoghi che si trasformano, dove la crescita
-    e' il contenuto della battuta.
-
-    `tree_layer` NON e' un dettaglio: le chiome escono da qui PRIMA che il chiamante
-    scarichi il suo `Piece`, quindi finendo nello stesso livello del prato ci
-    finivano SOTTO, e il rifugio nuovo arrivava con gli alberi sepolti. L'ordine
-    dentro un livello e' quello di inserimento, e su questo non si puo' contare."""
     pad = pad if pad is not None else 10 * S
     p = inset(q, pad)
-    # Il bordo del verde e' MOSSO, non un quadrilatero: un rettangolo verde si
-    # legge come una campitura, un contorno irregolare si legge come un parco. Il
-    # perimetro si infittisce e ogni punto si scosta di poco.
     edge_poly = jit(smooth([p[0], lerp2(p[0], p[1], .5), p[1],
                             lerp2(p[1], p[2], .5), p[2],
                             lerp2(p[2], p[3], .5), p[3],
@@ -1733,9 +1322,6 @@ def park(pc, q, tone=None, walled=False, pad=None, pond=True, layer="green",
                fill(dpath(blob(c[0] - 3 * S, c[1] - 3 * S, 19 * S, lobes=7, rough=.22),
                           True), C["water_hi"], ' opacity=".65"'))
 
-    # bordo alberato + macchie interne: tre taglie, come un parco vero
-    # Il bordo alberato: le posizioni sono scostate a caso lungo il fronte e verso
-    # l'interno, altrimenti diventa una collana di perline invece di un filare.
     edge = []
     for k in range(16):
         u = (k + rnd.uniform(-.3, .3)) / 16
@@ -1752,41 +1338,15 @@ def park(pc, q, tone=None, walled=False, pad=None, pond=True, layer="green",
     return p
 
 
-# ════ PORTICI ══════════════════════════════════════════════════════════════
-# I portici sono UNO DEI TRE SOGGETTI della sezione, con i rifugi da costruire e i
-# corridoi. Quindi non sono una fascia beige con dei puntini: in pianta un portico
-# bolognese e' un colonnato, e si disegna con tutti e quattro i suoi segni.
-#
-#   1. il PIANO coperto, un tono piu' scuro del marciapiede (e' al riparo)
-#   2. l'OMBRA che ci sta sotto da otto secoli, appena accennata — e' la stessa
-#      fascia che alla battuta 5 si accende: il lettore riconosce una cosa che
-#      guardava da cinque schermate, e capisce da se' che c'era gia'
-#   3. le COLONNE sul filo esterno, con bordo scuro e centro di pietra
-#   4. una fila di ARCHI disegnati fra una colonna e l'altra. Non è una proiezione
-#      letterale: è un piccolo segno di sezione sovrapposto alla pianta, scelto
-#      perché la precedente griglia di costole sembrava soltanto un tratteggio
-#
-# La facciata e il filo esterno sono a tratto, come tutto il resto del disegno.
-# Le misure sono state ingrossate rispetto al vero. Un portico bolognese ha
-# colonne da ~50 cm a interasse ~4,5 m: alla scala di questa tavola facevano punti
-# da tre pixel, e la fascia porticata non si distingueva da un marciapiede largo.
-# Qui la leggibilita' vale piu' della misura esatta — i portici sono uno dei tre
-# soggetti della sezione, e un soggetto che non si vede non e' un soggetto.
-PORTICO_DEPTH = 22 * S           # copertura leggibile, ma non larga come un edificio
-PORTICO_STEP = 48 * S            # poche campate grandi: devono leggersi da lontano
+PORTICO_DEPTH = 22 * S
+PORTICO_STEP = 48 * S
 
 
 def portico_geometry(w, t0, t1, half, sides=(-1, 1)):
-    """Geometria condivisa dal portico in filigrana e dalla sua accensione.
-
-    La fila di costole trasversali della prima versione produceva un codice a
-    barre. Qui il bordo esterno diventa una sequenza di archi morbidi e ogni
-    giunto ha una colonna ad anello: è un piccolo ibrido pianta/sezione, ma è
-    immediatamente leggibile e resta coerente col tratto architettonico."""
     out = []
     for sgn in sides:
-        bi = w.offset(sgn * half)                        # facciata
-        bo = w.offset(sgn * (half + PORTICO_DEPTH))      # filo delle colonne
+        bi = w.offset(sgn * half)
+        bo = w.offset(sgn * (half + PORTICO_DEPTH))
         ipts, opts = bi.slice(t0, t1), bo.slice(t0, t1)
         band = ipts + list(reversed(opts))
         m = max(4, int(abs(t1 - t0) * w.L / PORTICO_STEP))
@@ -1836,36 +1396,12 @@ def portico(w, t0, t1, half, at=0, d=0, sides=(-1, 1)):
 
 
 def portico_beam(w, t0, t1, half, sides=(-1, 1)):
-    """Fascia, archi e colonne: la battuta 5 li riaccende come un unico sistema."""
     return portico_geometry(w, t0, t1, half, sides=sides)
 
 
-# ── Perche' qui NON c'e' piu' nessuna vista inclinata ──────────────────────
-# C'era: la telecamera si abbassava e girava (`rotateX`/`rotateZ` in proiezione
-# ortografica) e il generatore emetteva le estrusioni per quegli angoli esatti. Era
-# corretto geometricamente e sbagliato in tutto il resto. E' stato scartato con tre
-# ragioni che vanno tenute a mente prima di riprovarci:
-#
-#   1. una pianta piegata di taglio NON diventa un volume. Resta la stessa pianta,
-#      storta: i portici erano ancora una fascia con dei puntini;
-#   2. si muoveva tutto insieme — telecamera, zoom, inclinazione, rotazione — e
-#      l'occhio non registrava nessuno dei tre movimenti. Le transizioni erano
-#      illeggibili proprio perche' erano tante;
-#   3. costava. Muovere una `transform` su duemila elementi vale ~11 ms a colpo, e
-#      non c'e' ottimizzazione che lo tolga: l'unico modo e' non muoverli.
-#
-# Il volume, adesso, lo fanno le VIGNETTE ASSONOMETRICHE
-# (`scripts/build_plan_vignettes.py`): disegni piccoli e dedicati, in vera
-# assonometria, con le arcate e le volte dei portici, i tronchi e le chiome degli
-# alberi, il cantiere che lavora. Ottanta path ciascuna, quindi si possono disegnare
-# a tratto senza che si senta.
-#
-# La pianta, per contro, sta FERMA e fa la sola cosa che sa fare meglio di
-# qualunque assonometria: dire dove sono le cose e quanto sono lontane.
 
-# ════ COSTRUZIONE DEL TESSUTO ══════════════════════════════════════════════
-CELLS = {}          # (tag, i, j) -> poligono. Serve al percorso e alle ancore.
-CLIPS = []          # le clip-path della raggiera delle piazze
+CELLS = {}
+CLIPS = []
 
 SITE_AT = {C1: 2, C2: 3, C3: 3}
 
@@ -1945,60 +1481,39 @@ for i in range(len(PER_COLS) - 1):
         elif kind == "parking":
             parking(pc, q)
         elif kind == "lot":
-            # tutto il parcheggio se ne va alla battuta 2: e' quello il momento
-            # «si costruisce», e va visto sparire qualcosa, non solo comparire
             parking(pc, q, cars=False, civic=True)
             pc.flush()
             pc = Piece(at=0, d=d + 40, until=SITE_AT[C1])
             parking(pc, q, cars=True, civic=True, surface=False)
         elif kind == "school":
-            school_building(pc, q)          # la scuola resta
+            school_building(pc, q)
             pc.flush()
             pc = Piece(at=0, d=d + 40, until=SITE_AT[C2])
-            school_yard(pc, q)              # il cortile d'asfalto no
+            school_yard(pc, q)
         pc.flush()
 
-# I portici delle due radiali. Esistono dalla prima battuta, in filigrana come
-# tutto il resto: si accendono alla battuta 5, quando la storia li nomina.
 _A_ROWS = CENTRO[0]["rows"]
 _D_ROWS = CENTRO[1]["rows"]
 _B_ROWS = CENTRO[2]["rows"]
 PORTICO_RUNS = [
-    # RA, lato ovest: tre fronti costruiti consecutivi.
     (RA, _D_ROWS[0] + .012, _D_ROWS[3] - .012, 36 * S, (1,)),
-    # RA, lato est: due soli fronti. I vuoti corrispondono alla piazza C3 e al
-    # giardino P2, quindi il portico non attraversa piu verde e fontane.
     (RA, _A_ROWS[1] + .012, _A_ROWS[2] - .012, 36 * S, (-1,)),
     (RA, _A_ROWS[3] + .012, _A_ROWS[4] - .012, 36 * S, (-1,)),
-    # RB ha edifici continui sui due lati fino all'ultima fascia urbana.
     (RB, max(_A_ROWS[0], _B_ROWS[0]) + .012,
      min(_A_ROWS[4], _B_ROWS[4]) - .012, 34 * S, (-1, 1)),
 ]
-# Anche due tratti sulle trasversali del centro: due righe parallele non sono una
-# rete, e la battuta 5 dice "rete". Con i traversi si vede da se' che si puo'
-# girare l'isolato restando al coperto.
 for _lad in CENTRO[:1]:
     for _j in (1, 3):
         _pa = _lad["a"].at(_lad["rows"][_j])
         _pb = _lad["b"].at(_lad["rows"][_j])
         _w = Way([lerp2(_pa, _pb, -0.06), lerp2(_pa, _pb, 0.5),
                   lerp2(_pa, _pb, 1.06)], per=8)
-        # Si parte dopo il primo quarto d'isolato: vicino a RA ci sono proprio
-        # la piazza e il giardino che prima venivano attraversati dal segno.
         PORTICO_RUNS.append((_w, 0.29, 0.93, 25 * S, (-1, 1)))
 
 for _k, (_w, _t0, _t1, _h, _sides) in enumerate(PORTICO_RUNS):
     portico(_w, _t0, _t1, _h, at=0, d=1000 + _k * 60, sides=_sides)
 
 
-# ════ LA COPERTURA (battute 1 e 6) ══════════════════════════════════════════
-# I cerchi non sono una misura: dicono «da qui il fresco e' a pochi minuti a
-# piedi». Il raggio e' indicativo per scelta, come per le aree pilota di `13`.
-#
-# Il velo NON usa una maschera: tre path con `fill-rule="evenodd"`, il rettangolo
-# piu' i cerchi che bucano, a raggio decrescente per fare un bordo morbido a tre
-# gradini. Una `mask` con gradiente radiale si rasterizza di nuovo a ogni cambio
-# di scala della telecamera, ed era una delle cause dello scroll a scatti.
 COVER_R = 405
 cell_c = lambda key: centroid(CELLS[key])
 COVER_OLD = [cell_c(P1), cell_c(P2)]
@@ -2007,15 +1522,7 @@ RECT_D = (f"M{-BLEED} {-BLEED}H{W + BLEED}V{H + BLEED}H{-BLEED}Z")
 
 
 def wash(spots, at, until, tag, k=1.0):
-    """`k` e' l'intensita'. Il velo della battuta 6 pesa meno di quello della 1, e
-    non e' una svista: alla 1 dice 'questo quartiere e' lontano dal fresco', alla 6
-    dice 'un po' meno'. Con la stessa forza le due inquadrature, che sono la stessa
-    inquadratura, sembravano identiche e la rima non pagava."""
     body = []
-    # I tre valori sono stati abbassati con il tessuto: da quando la pianta e' meno
-    # velata, un velo caldo al 26% cumulato la tingeva tutta di rosa e il disegno
-    # smetteva di leggersi. Quello che deve leggersi non e' il velo, e' il CONFINE
-    # fra dentro e fuori i cerchi.
     for f, op in ((1.0, 0.07 * k), (0.86, 0.058 * k), (0.7, 0.05 * k)):
         holes = "".join(circle_d(x, y, COVER_R * f) for x, y in spots)
         body.append(f'<path d="{RECT_D}{holes}" fill="{C["warm"]}"'
@@ -2023,19 +1530,9 @@ def wash(spots, at, until, tag, k=1.0):
     put("wash", "".join(body), at=at, until=until, cls=f"pl-wash pl-wash--{tag}")
 
 
-# Il velo vive SOLO nelle due inquadrature larghe, la 1 e la 6. Prima restava
-# accesso dalla 1 alla 6, e nei primi piani (dove si vede solo terreno fuori dai
-# cerchi) diventava un filtro rosa uniforme: non diceva piu' niente e sporcava
-# l'unica cosa che quelle battute devono far vedere, cioe' la trasformazione. Un
-# velo che dice "questa parte e' lontana dal fresco" ha senso solo se nella stessa
-# inquadratura si vede anche la parte che non lo e'.
 wash(COVER_OLD, 1, 2, "a")
 wash(COVER_OLD + COVER_NEW, 6, None, "b", k=0.55)
 
-# All'inizio si vedono i raggi dei due rifugi gia' presenti. Nella tavola finale
-# gli stessi identici cerchi restano e si aggiungono quelli dei tre nuovi luoghi:
-# cinque raggi uguali, per confrontare la copertura prima e dopo senza cambiare
-# unita' visiva proprio sui due estremi del percorso.
 for at, spots in ((1, COVER_OLD), (6, COVER_OLD + COVER_NEW)):
     for k, (x, y) in enumerate(spots):
         put("wash", f'<circle cx="{n(x)}" cy="{n(y)}" r="{COVER_R}" fill="none"'
@@ -2044,9 +1541,6 @@ for at, spots in ((1, COVER_OLD), (6, COVER_OLD + COVER_NEW)):
             at=at, until=2 if at == 1 else None, d=k * 200, cls="pl-ring")
 
 
-# ════ I TRE LUOGHI CHE SI TRASFORMANO ═══════════════════════════════════════
-# Battuta 1: si segnano, come tre occasioni. Battuta 2 (il parcheggio, da vicino)
-# e battuta 3 (le altre due): si aprono, e l'asfalto se ne va.
 for k, key in enumerate((C1, C2, C3)):
     p = inset(CELLS[key], 7 * S)
     put("site", f'<path d="{dpath(p, True)}" fill="none" stroke="{C["amber"]}"'
@@ -2055,12 +1549,7 @@ for k, key in enumerate((C1, C2, C3)):
                 f' pathlength="1"></path>',
         at=1, until=SITE_AT[key], d=280 + k * 180, cls="pl-site")
 
-# Il parcheggio e il cortile diventano parco; la piazza resta pietra e si prende
-# l'ombra (il testo dice esattamente questo, e il disegno non deve smentirlo).
 def works(cell, at, until, d):
-    """Due transenne e uno scavo: il cantiere. Non e' il protagonista (due
-    transenne, non una fascia di lavori a tutta pagina), ma senza di lui il
-    parcheggio diventerebbe un parco per magia. Sparisce alla battuta dopo."""
     pc = Piece(at=at, until=until, d=d)
     bars, marks = [], []
     for u in (0.2, 0.62):
@@ -2073,22 +1562,7 @@ def works(cell, at, until, d):
 
 
 def new_park(cell, at, d, pond):
-    """Il parcheggio e il cortile perdono l'asfalto e diventano parco. Non tutto
-    insieme: la trasformazione e' il momento piu' importante della sezione, e va
-    vista SUCCEDERE, un passo alla volta.
-
-        l'asfalto e le auto se ne vanno      (i gruppi con `until`, subito)
-        + 250 ms   la TERRA NUDA che c'era sotto
-        + 700 ms   il prato
-        + 1050 ms  il vialetto
-        + 1300 ms  il giardino della pioggia e il laghetto
-        + 1550 ms  gli alberi, uno alla volta
-
-    Con un solo ritardo per tutto, il lettore vedeva un rettangolo grigio che
-    diventava un rettangolo verde: due stati, nessun racconto. Cosi' invece si
-    legge un cantiere che finisce bene, ed e' quello che la sezione promette."""
     p = inset(cell, 10 * S)
-    # la terra nuda: l'unico fotogramma in cui si vede che l'asfalto E' stato tolto
     pc = Piece(at=at, d=d + 250)
     pc.add("newgreen", fill(dpath(jit(p, 2.4), True), C["soil"]),
            ink(dpath(jit(p), True), 0.3))
@@ -2121,11 +1595,6 @@ def new_park(cell, at, d, pond):
 
 
 def new_square(cell, at, d):
-    """Una piazza minerale che diventa piu' fresca senza trasformarsi in prato.
-
-    Il lastricato esistente resta nel livello `plot`; qui si aprono due sole
-    tasche permeabili, un giardino della pioggia, alberi, acqua e sedute. Il
-    centro continua a essere uno spazio civico riconoscibile."""
     p = inset(cell, 11 * S)
     bed_a = quad_cell(p, .07, .43, .1, .42)
     bed_b = quad_cell(p, .6, .94, .53, .91)
@@ -2179,8 +1648,6 @@ def new_square(cell, at, d):
     crowns(spots, at=at, d=d + 1120, step=150, chunk=1,
            layer="newtree", cls="pl-tree pl-pop")
 
-    # Pergola e sedute corrispondono agli stessi oggetti del primo piano: la
-    # mappa non deve diventare una versione impoverita del modello 3D.
     pergola_q = quad_cell(p, .08, .43, .58, .86)
     slats = [[quad_at(pergola_q, u, .04), quad_at(pergola_q, u, .96)]
              for u in (.05, .2, .35, .5, .65, .8, .95)]
@@ -2206,18 +1673,7 @@ def new_square(cell, at, d):
 
 
 def new_shade(cell, at, d):
-    """La piazza alta resta minerale e acquista un margine realmente abitabile.
-
-    La vecchia versione aggiungeva due filari di quattordici chiome e una fascia
-    verde: gli alberi si coprivano fra loro e la piazza spariva. Ora un solo bordo
-    piantumato, tre alberi maturi e una pergola con due sedute lasciano visibili
-    lastricato, raggiera e fontana già presenti nello stato iniziale. Le tre zone
-    non si toccano e restano arretrate rispetto alle strade."""
-    # Un margine appena maggiore del lastricato di base tiene anche le chiome,
-    # sedute e copertura oltre le quattro carreggiate che bordano la cella.
     p = inset(cell, 46 * S)
-    # L'aiuola occupa un solo angolo. Il centro con la fontana e la raggiera resta
-    # libero e continua a dire, senza etichette, che questo e' una piazza.
     band = quad_cell(p, .52, .95, .70, .94)
     pc = Piece(at=at, d=d)
     pc.add("newgreen", fill(dpath(jit(band, 2), True), C["grass_new"]),
@@ -2235,8 +1691,6 @@ def new_shade(cell, at, d):
     crowns(spots, at=at, d=d + 420, step=130, chunk=1,
            layer="newtree", cls="pl-tree pl-pop")
 
-    # Il pergolato e' sul lato opposto agli alberi, con due panche al suo interno:
-    # tre zone separate (copertura, fontana, alberi) invece di un unico groviglio.
     pergola_q = quad_cell(p, .04, .34, .08, .34)
     slats = [[quad_at(pergola_q, u, .05), quad_at(pergola_q, u, .95)]
              for u in (.05, .23, .41, .59, .77, .95)]
@@ -2259,29 +1713,16 @@ def new_shade(cell, at, d):
     pc.flush()
 
 
-# Il ritardo NON e' arbitrario: e' sincronizzato con il primo piano della stessa
-# battuta, che toglie l'asfalto al quinto tempo (~1,8 s). Prima il parcheggio qui
-# diventava parco dopo 120 ms, mentre accanto il disegno mostrava ancora le auto in
-# sosta: il cerchio di richiamo indicava un giardino e il primo piano diceva
-# «parcheggio», e i due si smentivano. Adesso l'asfalto se ne va nei due posti
-# insieme, e la stessa cosa si vede da vicino e da lontano.
-# Chi cambia `VIGNETTE_STEP_MS` in CityPlanScene rimetta mano anche a questo.
 new_square(CELLS[C1], at=SITE_AT[C1], d=850)
-# La fermata compare sul bordo stradale della piazza, verso la fine della
-# trasformazione: rende esplicita la raggiungibilita' del nuovo rifugio.
 bus_bay(PER_OFF[1], (PER_COLS[3] + PER_COLS[4]) / 2,
         -38 * S, at=SITE_AT[C1], d=2500)
 new_park(quad_cell(CELLS[C2], .3, .96, .34, .95), at=SITE_AT[C2], d=120, pond=False)
 new_shade(CELLS[C3], at=SITE_AT[C3], d=520)
 
 
-# ════ L'ITINERARIO E I CORRIDOI (battuta 4) ═════════════════════════════════
-# Un `d` solo, dal parco al giardino, che passa dove passerebbe una persona: la
-# strada fra la prima e la seconda fascia della periferia fino al parcheggio, su
-# per la porta, e poi sotto il portico della radiale.
 ROW1 = PER_OFF[1]
 GATE = Way([PER_OFF[k].at(PORTA_A) for k in range(len(PER_OFF) - 1, -1, -1)], per=9)
-GATE_T0 = 1 - 1 / (len(PER_ROWS) - 1)      # dove GATE incrocia ROW1
+GATE_T0 = 1 - 1 / (len(PER_ROWS) - 1)
 ROUTE = []
 for seg in (ROW1.slice(PER_COLS[9], PER_COLS[3]),
             GATE.slice(GATE_T0, 1.0),
@@ -2289,20 +1730,12 @@ for seg in (ROW1.slice(PER_COLS[9], PER_COLS[3]),
     ROUTE += seg[1:] if ROUTE and dist(ROUTE[-1], seg[0]) < 30 else seg
 ROUTE_D = dpath(Way(ROUTE, per=1).p)
 
-# La fascia d'ombra che si chiude: tre tratti sovrapposti, sempre piu' stretti e
-# piu' scuri, cosi' il bordo e' morbido e legge come OMBRA e non come una fascia
-# verde. Si scopre da un capo all'altro, nella direzione in cui si cammina.
 put("corridor", "".join(
     f'<path class="pl-shade" d="{ROUTE_D}" fill="none" stroke="{C["shade"]}"'
     f' stroke-width="{n(wd * S)}" stroke-linecap="round" stroke-linejoin="round"'
     f' opacity="{op}" pathlength="1"></path>'
     for wd, op in ((100, 0.09), (72, 0.1), (46, 0.11))), at=4, cls="pl-sweep")
 
-# Alberi e pergolati si alternano lungo il corridoio. Due filari ininterrotti
-# sembravano una barriera verde e ripetevano lo stesso segno per tutta la via;
-# qui restano gruppi di chiome, ma i vuoti sono occupati da strutture d'ombra.
-# Nel livello `corridor`, non in `trees`: i filari nuovi devono stare SOPRA il velo
-# del caldo, altrimenti la cosa che risolve il problema esce velata dal problema.
 for _t0, _t1, _off, _d in (
         (PER_COLS[9], .63, 30 * S, 140),
         (.54, .45, 30 * S, 330),
@@ -2313,13 +1746,9 @@ for _t0, _t1, _off, _d in (
     crowns(row_spots(ROW1, _t0, _t1, _off, 39 * S), at=4, d=_d, step=42, chunk=1,
            layer="corridor", cls="pl-tree pl-pop")
 
-# Due coperture sulla via, alternate sui lati: non formano un nuovo filare e
-# lasciano sempre leggibile la strada sotto.
 corridor_pergola(ROW1, .62, .55, 30 * S, 21 * S, at=4, d=390)
 corridor_pergola(ROW1, .40, .34, -30 * S, 21 * S, at=4, d=690)
 
-# Anche la salita verso la porta alterna un piccolo pergolato e gruppi di alberi.
-# Il percorso d'ombra resta continuo grazie alla fascia sottostante.
 for _t0, _t1, _off, _d in (
         (GATE_T0 + .03, .865, 23 * S, 760),
         (.925, .96, 23 * S, 980),
@@ -2329,19 +1758,12 @@ for _t0, _t1, _off, _d in (
            chunk=1, layer="corridor", cls="pl-tree pl-pop")
 corridor_pergola(GATE, .875, .92, 23 * S, 19 * S, at=4, d=920)
 
-# ════ IL PORTICO ENTRA NELLA RETE (battuta 5) ══════════════════════════
-# La stessa fascia che stava in filigrana dalla prima battuta si accende. Non
-# compare niente di nuovo, ed e' esattamente il punto: i portici non vanno
-# costruiti, vanno CONTATI.
 for _k, (_w, _t0, _t1, _h, _sides) in enumerate(PORTICO_RUNS):
     pc = Piece(at=5, d=_k * 200)
     for (_band, _arches, _ribs, _cols, _facade,
          _outside, _midline) in portico_beam(
              _w, _t0, _t1, _h, sides=_sides):
         pc.add(
-            # Un tetto di carta semitrasparente sopra l'edificio: il tetto resta
-            # percepibile sotto, ma ora si vedono percorso, travi e colonne del
-            # portico interno. Prop e alberi vengono dopo e non sono mai velati.
             "porticoCutaway",
             fill(dpath(_band, True), PAPER, ' opacity=".58"'),
             fill(dpath(_band, True), C["portico"], ' opacity=".24"'),
@@ -2357,7 +1779,6 @@ for _k, (_w, _t0, _t1, _h, _sides) in enumerate(PORTICO_RUNS):
         )
     pc.flush(cls="pl-portico-on")
 
-# ════ L'ITINERARIO CONTINUO (battuta 6) ════════════════════════════════════
 put("route", f'<path class="pl-route-line" d="{ROUTE_D}" fill="none"'
              f' stroke="{C["shade"]}" stroke-width="{n(8 * S)}"'
              f' stroke-linecap="round" stroke-linejoin="round" opacity=".78"'
@@ -2374,10 +1795,6 @@ for k, key in enumerate((P1, C2, C1, C3, P2)):
         at=6, d=520 + k * 120, cls="pl-node")
 
 
-# ════ USCITA ════════════════════════════════════════════════════════════════
-# Le ancore: dove stanno i luoghi della storia, in coordinate della pianta. Le
-# telecamere le prendono da qui invece di ripetere dei numeri che il generatore
-# puo' cambiare sotto.
 CORRIDOR_ANCHOR = centroid([cell_c(C1), cell_c(C2), VIALE.at(PORTA_A), cell_c(P1)])
 
 ANCHORS = {
@@ -2385,18 +1802,10 @@ ANCHORS = {
     "scuola": cell_c(C2), "piazza": cell_c(C3),
     "portaA": VIALE.at(PORTA_A), "portaB": VIALE.at(PORTA_B),
     "viale": VIALE.at(0.42), "portico": RA.at((RA.tg + 1) / 2),
-    # Il richiamo indica il tratto basso dell'itinerario, dove il collegamento è
-    # più leggibile e non finisce dentro il tessuto fitto del centro.
     "corridoio": (CORRIDOR_ANCHOR[0], CORRIDOR_ANCHOR[1] + 120 * S),
     "centro": centroid(CELLS[("A", 1, 1)]),
 }
 
-# La descrizione del disegno. Va in `<desc>` e NON in `<title>`: un `<title>`
-# dentro un SVG inline il browser lo mostra come tooltip di sistema — un riquadro
-# bianco con tutto questo testo — appena il puntatore si ferma sopra la pianta, e
-# ricompare a ogni rimontaggio del nodo (sviluppo, cambio di battuta). Qui non
-# serve a nessuno: il palco è `aria-hidden`, la versione leggibile dai lettori di
-# schermo è la trascrizione `.plan-transcript` in `CityPlanScene`.
 TITLE = ("Un pezzo di Bologna visto dall'alto: il viale di circonvallazione con "
          "l'aiuola alberata, il centro con piazze, palazzi a corte, fronti aperti "
          "e due strade porticate. Fuori, una periferia diversa per densita', con "
@@ -2417,51 +1826,8 @@ svg = "".join([
 ])
 
 HEAD = '''// AUTO-GENERATO da `scripts/build_city_plan.py` — non modificare a mano.
-// Per ritoccare il disegno si cambia lo script e si rigenera:
-//     python scripts/build_city_plan.py
-//
-// LA PIANTA che chiude il capitolo sollievo: un pezzo di Bologna dall'alto, in
-// filigrana, su cui la rete del fresco si costruisce mentre si scorre.
-//
-// Perche' una pianta e non una veduta: i tre concetti della sezione sono tutti
-// e tre fatti di DISTANZE, e le distanze si vedono solo dall'alto. Che dove non
-// c'e' nulla si puo' costruire e' un buco nella copertura; un corridoio
-// climatico e' una linea che unisce due punti; i portici sono una rete che
-// esiste gia'. Da terra nessuno dei tre si vede: e' il motivo per cui il nastro
-// assonometrico che stava qui prima e' stato buttato.
-//
-// ── Niente etichette permanenti dentro il disegno ──────────────────────────
-// L'SVG non incorpora scritte: le poche note contestuali vengono sovrapposte dal
-// componente e spariscono al cambio di battuta. Ogni elemento porta comunque il
-// suo segno inconfondibile visto dall'alto — le auto nel parcheggio, il campetto
-// nel cortile della scuola, la fontana in piazza, i vialetti e il laghetto nel
-// parco, l'aiuola centrale e le strisce sul viale, la fila delle colonne sotto i
-// portici. Chi tocca il generatore non tolga quei segni: restano il primo testo.
-//
-// ── Come si accende ────────────────────────────────────────────────────────
-// Nessuna animazione dentro l'SVG. Ogni elemento e' un `<g class="pl-i">` con:
-//   · `data-at`    la battuta da cui esiste
-//   · `data-until` la battuta da cui sparisce (esclusa): l'asfalto e le auto del
-//                  parcheggio ce l'hanno, perche' «si costruisce» si vede anche
-//                  da qualcosa che se ne va
-//   · `--d`        il ritardo dentro la battuta, che fa crescere un filare da un
-//                  capo all'altro invece di farlo comparire tutto insieme
-// `CityPlanScene.jsx` accende `.is-on`, e il CSS fa il resto. La telecamera e'
-// una `transform` sola sul contenitore, non un `viewBox` animato.
-//
-// ── I colori sono premiscelati, e non e' un vezzo ──────────────────────────
-// La filigrana e' nel COLORE (`veil()` nel generatore), non nell'opacita' di
-// gruppo. Un `<g opacity=".6">` grande quanto la tavola obbliga il browser a un
-// buffer fuori schermo per gruppo e a rasterizzarlo di nuovo a ogni fotogramma
-// mentre la telecamera si muove: erano sette buffer a schermo pieno, ed e' quello
-// che faceva scattare lo scroll. Chi vuole schiarire il tessuto cambi `veil()`,
-// NON aggiunga opacita' ai gruppi `.pl-l--*`.
-// Per lo stesso motivo il velo del caldo non e' una `mask` con gradiente radiale
-// ma tre path con `fill-rule="evenodd"`.
-//
-// I gruppi (`.pl-l--*`) sono l'ordine di SOVRAPPOSIZIONE, non l'ordine del
-// racconto: un elemento della battuta 6 sta comunque sotto l'itinerario.
-
+// I colori premiscelati evitano buffer fuori schermo durante i movimenti di camera.
+// `data-at`, `data-until` e `--d` sono il contratto di animazione con CityPlanScene.
 '''
 
 here = os.path.dirname(os.path.abspath(__file__))
@@ -2475,5 +1841,4 @@ io.open(out, "w", encoding="utf-8").write(
     + "export const PLAN_ANCHORS = {\n" + anchors + ",\n};\n\n"
     + "export const cityPlanSvg = `\n" + svg + "\n`;\n"
 )
-# ASCII: la console di Windows e' cp1252 e su una freccia unicode va in errore
 print(f"{sum(len(v) for v in BAG.values())} pezzi, {len(svg) // 1024} KB -> {out}")

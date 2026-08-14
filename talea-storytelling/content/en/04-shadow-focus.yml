@@ -1,0 +1,60 @@
+schemaVersion: 1
+locale: en
+
+chapter:
+  id: shadow-focus
+  ariaLabel: "Shade in Bologna"
+
+intro:
+  id: shadow-focus-intro
+  opening: "There is a third factor, and it behaves in a strange way."
+  title: "Shade"
+  lead: "You might expect the shadiest areas to also be the coolest."
+  pivot: "In some parts of Bologna, the opposite is true."
+
+map:
+  id: shadow-focus-map
+  ariaLabel: "Dark map of shade in Bologna"
+  stages:
+    - id: overview
+      body: "During the hottest hours, trees and buildings create a patchwork of light and shade across the city.\n Sun exposure varies from one area to another."
+    - id: centro
+      body: "Moving closer to the historic centre, tall buildings block direct sunlight for much of the day. \n Yet this is precisely where, despite the greater shelter, temperatures are often high."
+  legend:
+    id: shadow-focus-legend
+    title: "Sun exposure"
+    description: "How long streets and parks remain in the sun between 12:00 and 15:00 on summer days."
+    from: "More exposed to the sun"
+    to: "More often in shade"
+    sourceLink:
+      id: shadow-focus-data-link
+      label: "Explore the shade data in detail"
+  sequence:
+    id: shadow-focus-sequence
+    playing: "Shade during the hottest hours"
+    done: "Select a description, or scroll to continue"
+
+closing:
+  id: shadow-focus-closing
+  pivot: "There is shade, but the heat remains."
+  body: "An urban paradox: protection from the sun offers apparent relief, while the surrounding environment continues to absorb and release heat."
+
+statistics:
+  id: shadow-focus-statistics
+  kicker: "In Bologna's urban centre"
+  scope: "Percentage of surface area within the highlighted boundary"
+  hinge: "And yet"
+  because: "This is because this area has"
+  municipalComparison: "Citywide average"
+  handoff: "But a city is not made of surfaces alone."
+  metrics:
+    - metricId: shade
+      label: "is in shade"
+      note: "during the hottest hours, from 12:00 to 15:00"
+    - metricId: hotspot
+      label: "falls within climate hotspots"
+      note: "within the hottest 10% of the entire municipality, in at least 9 summers out of 13"
+    - metricId: vegetation
+      label: "greenery"
+    - metricId: absorbing-surfaces
+      label: "absorbing surfaces"

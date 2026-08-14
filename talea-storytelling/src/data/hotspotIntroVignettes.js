@@ -1,83 +1,25 @@
-/* Intro hotspot — le due vignette (04 § 4.1).
 
-   Era il blocco più didattico della storia: due concetti insegnati a parole in
-   una pagina che per il resto disegna tutto. Ora li disegna.
+const escapeSvgText = (value) =>
+  value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
 
-   Stessa mano delle altre vignette (rifugio climatico, fragilità): tratto a
-   matita scuro, campiture a matita colorata calde, filtro `feDisplacementMap`
-   che toglie al tratto la precisione del vettoriale. Stessa struttura:
-
-     .color   le campiture, che entrano in dissolvenza dopo il tratto
-     .ink     il tratto, in sottogruppi .il[data-d="N"] che si disegnano uno
-              dopo l'altro (stroke-dasharray su pathLength="1")
-     .labels  numeri ed etichette, FUORI dal gruppo filtrato: il displacement
-              map li renderebbe illeggibili
-
-   Il colore del tratto (--vg-ink) e la tipografia delle etichette stanno in
-   maps.css, non qui: qui c'è solo la geometria.
-
-   Le due vignette condividono il riquadro 640 × 460, così appaiate stanno alla
-   stessa altezza e le due didascalie partono sulla stessa riga. Sotto gli
-   860 px si impilano.
-
-   Nota sul fondo: essendo tratto scuro su carta, queste due vignette vivono
-   sulla parte CHIARA della sezione. La discesa nell'ambra scuro (04 § 4.3)
-   avviene sotto di loro, sulla riga di chiusura. */
-
-// ── 1 · La temperatura di superficie ─────────────────────────────────────────
-// Una via d'estate vista di lato. Il satellite in alto misura quello che tocchi:
-// il tetto, l'asfalto, la panchina. La persona in strada, col suo termometro,
-// misura l'aria — ed è l'unico numero basso della scena, l'unico su cartellino
-// chiaro. Dall'asfalto il calore continua a salire.
-export const superficieSvg = `
-<svg viewBox="0 0 640 460" role="img" aria-label="L'aria e le superfici, alla stessa ora" xmlns="http://www.w3.org/2000/svg">
-<desc>Illustrazione a matita colorata: una strada d'estate. Un satellite misura dall'alto il calore delle superfici. Il tetto segna 48 gradi, l'asfalto 52, la panchina 41, mentre il termometro della persona che cammina segna 34 gradi d'aria.</desc>
+export function renderSuperficieSvg({ ariaLabel, description, labels }) {
+  return `
+<svg viewBox="0 0 640 460" role="img" aria-label="${escapeSvgText(ariaLabel)}" xmlns="http://www.w3.org/2000/svg">
+<desc>${escapeSvgText(description)}</desc>
 <defs>
   <filter id="hsi-a-pencil" x="-4%" y="-4%" width="108%" height="108%">
     <feTurbulence type="fractalNoise" baseFrequency="0.015" numOctaves="2" seed="5" result="n"/>
     <feDisplacementMap in="SourceGraphic" in2="n" scale="1.7"/>
   </filter>
-  <!-- Il calore che sale dal selciato. È lo stesso lavaggio del vicolo d'ombra
-       ("sfv-heat" in shadowVignette.js), stesso colore e stessa direzione: più
-       forte in basso, cioè vicino a chi guarda. Prima il calore lo diceva una
-       campitura piena di marrone saturo su tutto il terzo inferiore — l'unico
-       pavimento opaco di tutta la storia, e il motivo per cui questa vignetta
-       sembrava disegnata da un'altra mano. -->
-  <!-- In unità di DISEGNO, non del riquadro: il selciato adesso sborda oltre la
-       cornice per poter sfumare, e con le unità relative il lavaggio si sarebbe
-       stirato insieme a lui, spostando il punto più caldo. Ancorato a y 460-318
-       resta dov'è qualunque cosa faccia il path che lo porta. -->
   <linearGradient id="hsi-a-heat" gradientUnits="userSpaceOnUse" x1="0" y1="460" x2="0" y2="318">
     <stop offset="0" stop-color="#C2551F" stop-opacity=".34"/>
     <stop offset=".55" stop-color="#C2551F" stop-opacity=".18"/>
     <stop offset="1" stop-color="#C2551F" stop-opacity=".07"/>
   </linearGradient>
-  <!-- ── IL BORDO ────────────────────────────────────────────────────────────
-       Il disegno finiva con un taglio netto sui lati e in basso — soprattutto il
-       selciato, che è una fascia piena da bordo a bordo — e in pagina si leggeva
-       come una figurina incollata invece che come un disegno sul foglio.
-
-       La maschera è un rettangolo bianco sfocato: dove è bianco il disegno c'è
-       tutto, dove sfuma si dissolve nella carta. Il lato ALTO è tirato fuori
-       quadro (y = -60) perché lassù non c'è niente da sfumare.
-
-       ── E VA APPLICATA SOLO A CIÒ CHE SBORDA ──
-       Un primo tentativo l'aveva messa su tutta la scena, ed è stato un errore
-       istruttivo: sfumare vuol dire TOGLIERE, quindi su un oggetto che sta tutto
-       dentro il quadro non produce dissolvenza ma amputazione. Alla persona
-       sparivano i piedi e al palazzo di destra si mangiava lo spigolo: invece di
-       sembrare meno tagliato, il disegno sembrava tagliato peggio.
-
-       Quindi la maschera veste SOLO i tre elementi che escono davvero dalla
-       cornice — l'alone del sole, il palazzo di destra e il selciato — e quei
-       tre sono stati ALLUNGATI oltre il bordo apposta. Così la sfumatura consuma
-       disegno in più, che nessuno doveva leggere, e la cornice smette di essere
-       un taglio: diventa una finestra su una strada che continua.
-       Gli oggetti che stanno dentro (satellite, palazzo di sinistra, albero,
-       panchina, persona) restano a fuoco pieno fino al loro contorno.
-
-       È la stessa idea della vignetta del rifugio, che lo fa in CSS con una
-       "mask-image" radiale. Qui serve asimmetrica, e in SVG si dosa meglio. -->
   <filter id="hsi-a-soft" x="-30%" y="-30%" width="160%" height="160%">
     <feGaussianBlur stdDeviation="19"/>
   </filter>
@@ -88,33 +30,6 @@ export const superficieSvg = `
 
 <g class="scene" filter="url(#hsi-a-pencil)">
   <g class="color">
-    <!-- Sole d'agosto: qui c'è SOLO il disco e i raggi.
-         ── DOV'È FINITO L'ALONE ──
-         C'era un'ellisse piena (rx 176, ry 92, #F4CE86 al 30 %) mascherata sul
-         bordo del riquadro. Era il singolo pezzo che faceva leggere questa
-         vignetta come una figurina: un'ellisse ha un contorno, e un contorno
-         visibile attorno a una luce dice «questa è una macchia disegnata», non
-         «qui c'è il sole». Sul lato sinistro, dove la maschera non arrivava, si
-         vedeva l'arco netto; sul destro si tagliava al bordo del disegno, e la
-         luce finiva dove finiva la cornice — cioè nel posto in cui il lettore
-         capisce che sta guardando un rettangolo incollato sulla pagina.
-         L'alone adesso è la CARTA: .hotspot-intro-panel--superficie::before
-         in maps.css, ancorato a questo stesso centro (cx 556, cy 66) ma grande
-         due volte e mezzo il pannello, quindi senza bordi da nessuna parte, e
-         libero di attraversare il varco fino alla vignetta degli anni.
-         Se il sole si sposta, va rispostato anche quell'ancoraggio. -->
-    <!-- ── ALZATO DI 24 ──
-         Il sole stava a cy 90, cioè a un quinto dell'altezza: una quota da
-         mezzo cielo. Finché aveva l'ellisse addosso quella posizione reggeva,
-         perché l'alone gli faceva da appoggio e riempiva il vuoto sopra;
-         tolto l'alone, il disco restava sospeso in mezzo a un cielo vuoto con
-         altrettanto vuoto sopra e sotto, e non c'è niente di più fermo di un
-         sole a mezz'aria. A cy 66 sta nell'angolo, dove i soli stanno, e lascia
-         libera la fascia in cui passano le correnti di calore verso la vignetta
-         degli anni: sotto ci passano, addosso no.
-         È una traslazione, non un ridisegno: il gruppo del tratto porta la
-         STESSA, e l'ancoraggio della luce in maps.css è ricalcolato su cy 66.
-         Se si tocca uno dei tre, vanno toccati tutti e tre. -->
     <g transform="translate(0,-24)">
       <circle cx="556" cy="90" r="30" fill="#E8A23C"/>
       <g fill="none" stroke="#F1B345" stroke-width="3" stroke-linecap="round" opacity=".55">
@@ -125,24 +40,13 @@ export const superficieSvg = `
       </g>
     </g>
 
-    <!-- quello che il satellite legge sono le superfici, non l'aria in mezzo -->
     <path d="M110 78 L44 318 L452 318 Z" fill="#F4CE86" opacity=".26"/>
 
-    <!-- Satellite. Corpo e pannelli erano grigio-lavanda (#A6A0AA) e azzurro
-         acciaio (#7E9CB0): gli unici tre pezzi freddi di una scena che per il
-         resto sta tutta sul caldo, e per giunta in alto a sinistra, dove non c'e'
-         nient'altro a fargli compagnia. Restano leggermente piu' freddi di ogni
-         altra cosa — e' l'unico oggetto tecnico del disegno e deve leggersi come
-         tale — ma dentro la stessa luce del resto. -->
     <path d="M92 30 L128 30 L128 64 L92 64 Z" fill="#ABA292"/>
     <path d="M52 36 L90 36 L90 58 L52 58 Z" fill="#93A6AE"/>
     <path d="M130 36 L168 36 L168 58 L130 58 Z" fill="#93A6AE"/>
     <path d="M104 64 L116 64 L124 78 L96 78 Z" fill="#D6DAD2"/>
 
-    <!-- palazzo di sinistra: tetto in cotto, portico alla base.
-         I muri prendono la parete della pianta ("wall" = #E6DBC3) e il tetto il
-         suo cotto ("roof" = #C9975F): sono gli stessi materiali della sezione
-         finale, e non c'è ragione perché una casa cambi colore fra due capitoli. -->
     <path d="M20 318 L20 156 L194 156 L194 318 Z" fill="#E6DBC3"/>
     <path d="M12 156 L107 118 L202 156 Z" fill="#C9975F"/>
     <path d="M40 180 h30 v32 h-30 z" fill="#E9DFC9"/>
@@ -151,12 +55,6 @@ export const superficieSvg = `
     <path d="M36 318 L36 290 A28 28 0 0 1 92 290 L92 318 Z" fill="#C7B896"/>
     <path d="M106 318 L106 290 A28 28 0 0 1 162 290 L162 318 Z" fill="#C7B896"/>
 
-    <!-- Palazzo di destra, più basso, sullo sfondo. Finiva a 622, cioè diciotto
-         unità prima del bordo: troppo poco per leggersi come "continua fuori
-         quadro" e troppo per non vedersi lo spigolo. Ora corre fino a 700, ben
-         oltre la cornice, con una quarta finestra a tenere il ritmo, e la
-         maschera lo dissolve. Il muro di destra non si disegna più: non esiste
-         un muro lì, il palazzo prosegue. -->
     <g mask="url(#hsi-a-edge)">
       <path d="M468 318 L468 200 L700 200 L700 318 Z" fill="#E6DBC3"/>
       <path d="M460 190 L700 190 L700 200 L460 200 Z" fill="#CFC0A0"/>
@@ -167,26 +65,10 @@ export const superficieSvg = `
       <path d="M660 222 h26 v26 h-26 z" fill="#E9DFC9"/>
     </g>
 
-    <!-- Albero: chioma e tronco della pianta ("crown" / "trunk").
-         La chioma era #5F8C4C, ed era il singolo colore che faceva leggere questa
-         vignetta come disegnata da un'altra mano: un verde saturo e freddo in
-         mezzo a una scena tutta di ocra e cotto sotto una luce d'agosto. Sotto
-         quella luce nessuna foglia e' di quel verde. Ora sta nella stessa
-         famiglia dell'albero di «fragilita'» (#8FA876), un gradino piu' profondo
-         perche' qui e' in primo piano e deve reggere il tratto. -->
     <path d="M386 318 L386 246 L398 246 L398 318 Z" fill="#8E7250"/>
     <path d="M332 230 Q336 190 372 178 Q404 168 434 182 Q460 196 456 230 Q440 262 404 258 Q368 268 340 254 Q328 244 332 230 Z" fill="#7E9C63"/>
     <ellipse cx="378" cy="206" rx="34" ry="18" fill="#A9C68A" opacity=".62"/>
 
-    <!-- Il selciato: la superficie che trattiene di più. Base chiara come tutta
-         la carta della storia, e il calore lo dice il lavaggio che sale dal
-         basso — non una campitura piena. Il 52° e le volute che salgono restano
-         a dirlo con i numeri e col segno. -->
-    <!-- Il selciato SBORDA: da -46 a 700 in larghezza e fino a 486 in basso,
-         cioè oltre la cornice su tre lati, e la maschera lo dissolve prima che
-         il bordo arrivi. Le lastre lunghe e i giunti proseguono oltre il quadro
-         insieme a lui: è quello a farlo leggere come una strada che continua
-         invece che come una fascia che finisce. -->
     <g mask="url(#hsi-a-edge)">
       <path d="M-46 318 L700 318 L700 486 L-46 486 Z" fill="#DFCFB2"/>
       <path d="M-46 318 L700 318 L700 486 L-46 486 Z" fill="url(#hsi-a-heat)"/>
@@ -206,7 +88,6 @@ export const superficieSvg = `
     <ellipse cx="300" cy="452" rx="43" ry="7" fill="#4a4234" opacity=".14"/>
     <ellipse cx="541" cy="428" rx="88" ry="8" fill="#4a4234" opacity=".14"/>
 
-    <!-- panchina: legno e ferro della pianta ("trunk" / "shutter_dk") -->
     <path d="M470 356 L612 356 L612 366 L470 366 Z" fill="#8E7250"/>
     <path d="M466 386 L616 386 L616 396 L466 396 Z" fill="#8E7250"/>
     <path d="M480 366 h8 v20 h-8 z" fill="#7C8269"/>
@@ -214,57 +95,18 @@ export const superficieSvg = `
     <path d="M478 396 h10 v28 h-10 z" fill="#7C8269"/>
     <path d="M594 396 h10 v28 h-10 z" fill="#7C8269"/>
 
-    <!-- La persona in strada: misura l'aria, non il suolo.
-         ── Le proporzioni ──
-         La testa valeva il 28% dell'altezza e le gambe il 23%: una figura da
-         libro per bambini, mentre il cast del resto della storia (la signora col
-         cappello di «fragilità», la donna del rifugio) sta intorno al 17% di
-         testa e al 50% di gambe. Le gambe sono state allungate da 24 a 53 unità
-         — testa al 23%, gambe al 39% — e la persona ora appartiene allo stesso
-         cast invece di essere un'ospite disegnata da un'altra mano.
-         I PIEDI NON SI SONO MOSSI: la traslazione verticale è stata alzata di
-         32,5 (= 26 unità di gambe in più × 1,25) per compensare, quindi l'ombra
-         a terra e lo spezzone di orizzonte dietro di lei valgono ancora.
-         La testa sale invece di 32,5, e resta comunque dentro la finestra che
-         l'orizzonte le lascia (data-d="0" lo interrompe fra x 284 e 316).
-         Il gruppo del tratto (data-d="5") porta la stessa trasformazione: se le
-         due divergono, il tratto disegna una persona e il colore ne riempie
-         un'altra. -->
     <g transform="translate(-75,-120) scale(1.25)">
-    <!-- LA TESTA, rimpicciolita al 72% attorno alla base del collo (300, 352).
-         Valeva il 23% dell'altezza della figura, contro il 17% di tutto il cast
-         di «fragilità» e del rifugio: è la singola misura che faceva leggere
-         questa persona come un personaggio da libro per bambini in mezzo a una
-         storia disegnata per adulti. Ora è al 17,5%.
-         Il collo non è nel gruppo e non si muove: la testa continua a poggiarci
-         sopra a y 352. Le gocce di sudore SONO nel gruppo, altrimenti
-         resterebbero larghe dove stavano e si leggerebbero come orecchini. -->
     <g transform="translate(300,352) scale(0.72) translate(-300,-352)">
       <path d="M288 336 Q289 322 300 321 Q311 322 312 336 Q306 329 300 329 Q294 329 288 336 Z" fill="#3A2B22"/>
       <path d="M290 341 C290 333 294 328 300 328 C306 328 310 333 310 341 C310 348 306 352 300 352 C294 352 290 348 290 341 Z" fill="#E9C6A0"/>
-      <!-- Il sudore. La faccia è neutra, non contenta: quello che la vignetta
-           deve far sentire è il caldo addosso, e una persona che sorride sotto
-           52 gradi di asfalto dice l'opposto. Due gocce alle tempie bastano.
-           Vanno tenute STACCATE dal profilo della testa (che arriva a x 290 e
-           310): appoggiate al bordo si leggono come orecchini. -->
       <path d="M317 329 C319.6 333 320 335.4 317 335.4 C314 335.4 314.4 333 317 329 Z" fill="#A9CBDE"/>
       <path d="M283 335 C285.6 339 286 341.4 283 341.4 C280 341.4 280.4 339 283 335 Z" fill="#A9CBDE"/>
     </g>
     <path d="M296 352 h8 v9 h-8 z" fill="#E9C6A0"/>
     <path d="M288 362 Q300 356 312 362 Q316 384 312 404 L288 404 Q284 384 288 362 Z" fill="#7E9CB0"/>
     <path d="M289 404 L286 454 L296 454 L300 412 L304 454 L314 454 L311 404 Z" fill="#8C9A6E"/>
-    <!-- Le scarpe a cuneo, con la punta che scappa in FUORI: è la costruzione di
-         tutto il cast (FIG2 di «fragilità», M285 326 L283 333 L297 333 …).
-         Erano due rettangoli, e due rettangoli sotto una persona sono zoccoli. -->
     <path d="M285 450 L282 457 L297 457 L297 450 Z" fill="#5E564A"/>
     <path d="M315 450 L318 457 L303 457 L303 450 Z" fill="#5E564A"/>
-    <!-- Le braccia stanno DOPO le gambe, ed è l'ordine a contare: scendono
-         accanto alla coscia e, disegnate prima, sparivano sotto la campitura dei
-         pantaloni. Arrivano a metà coscia come nel cast — ferme all'anca, con le
-         gambe allungate, la figura sembrava senza avambracci.
-         Manica corta e avambraccio scoperto: è agosto a 52 gradi d'asfalto, e
-         una manica lunga in questa scena è una contraddizione. Il gomito dà
-         anche l'unica articolazione visibile della figura. -->
     <path d="M282 366 L290 366 L289 388 L281 387 Z" fill="#7E9CB0"/>
     <path d="M310 366 L318 366 L319 387 L311 388 Z" fill="#7E9CB0"/>
     <path d="M281 387 L289 388 L288 418 L280 416 Z" fill="#E9C6A0"/>
@@ -272,12 +114,6 @@ export const superficieSvg = `
     <circle cx="284" cy="421" r="3.8" fill="#E9C6A0"/>
     <circle cx="316" cy="421" r="3.8" fill="#E9C6A0"/>
 
-    <!-- Il termometro che tiene in mano: l'aria.
-         Il controtraslo di 26 lo rimette esattamente dove stava prima che la
-         persona crescesse: salendo con lei finiva a quattro unità dalla chioma
-         dell'albero, e i due disegni si accavallavano. Il buco che l'orizzonte
-         gli lascia (data-d="0", fra x 344 e 370) vale ancora, perché in x non
-         si è mosso. -->
     <g transform="translate(0,26)">
       <path d="M338 314 L348 314 L348 348 L338 348 Z" fill="#F1E8D5"/>
       <circle cx="343" cy="356" r="9" fill="#F1E8D5"/>
@@ -286,9 +122,6 @@ export const superficieSvg = `
     </g>
     </g>
 
-    <!-- Tratteggio dei materiali. Non cambia il contorno: aggiunge soltanto
-         la grana che manca alle campiture piu' estese, e compare insieme al
-         colore per non anticipare il disegno durante l'animazione. -->
     <g class="material-hatch" aria-hidden="true">
       <g class="material-hatch--roof">
         <path d="M30 151 Q70 137 112 121"/><path d="M50 155 Q91 139 130 126"/>
@@ -317,16 +150,12 @@ export const superficieSvg = `
   </g>
 
   <g class="ink">
-    <!-- Spezzata dove passano la persona e il termometro: l'orizzonte sta
-         DIETRO di loro, e una linea continua gliela tirerebbe attraverso. -->
     <g class="il" data-d="0" mask="url(#hsi-a-edge)">
       <path d="M-46 320 Q140 314 284 317" pathLength="1"/>
       <path d="M316 318 Q332 318 344 318" pathLength="1"/>
       <path d="M370 319 Q500 322 700 317" pathLength="1"/>
     </g>
     <g class="il" data-d="1">
-      <!-- Stessa traslazione del gruppo di colore. Se le due divergono, il
-           tratto disegna un sole e il colore ne riempie un altro. -->
       <g transform="translate(0,-24)">
         <circle cx="556" cy="90" r="30" pathLength="1"/>
         <path d="M556 44 L556 30" pathLength="1"/><path d="M556 136 L556 150" pathLength="1"/>
@@ -352,9 +181,6 @@ export const superficieSvg = `
       <path d="M106 318 L106 290 A28 28 0 0 1 162 290 L162 318" pathLength="1"/>
       <path d="M20 262 L194 262" pathLength="1"/>
     </g>
-    <!-- Il palazzo di destra esce dal quadro insieme al suo colore, quindi il
-         gruppo è mascherato. L'albero ci sta dentro (x 328-460) e la maschera
-         non lo tocca: sta qui solo perché è sempre stato il suo tempo. -->
     <g class="il" data-d="3" mask="url(#hsi-a-edge)">
       <path d="M468 318 L468 200 L700 200" pathLength="1"/>
       <path d="M460 200 L460 190 L700 190" pathLength="1"/>
@@ -378,19 +204,12 @@ export const superficieSvg = `
       <path d="M478 396 L478 424" pathLength="1"/><path d="M488 396 L488 424" pathLength="1"/>
       <path d="M594 396 L594 424" pathLength="1"/><path d="M604 396 L604 424" pathLength="1"/>
     </g>
-    <!-- STESSA trasformazione del gruppo di colore, sempre. Se le due divergono
-         il tratto disegna una persona e il colore ne riempie un'altra. -->
     <g class="il" data-d="5" transform="translate(-75,-120) scale(1.25)">
-      <!-- Stesso rimpicciolimento della testa del gruppo di colore, attorno allo
-           stesso punto: qui dentro ci sono anche occhi, bocca e gocce, che
-           devono rimpicciolire con lei e non restare grandi su una faccia
-           piccola. -->
       <g transform="translate(300,352) scale(0.72) translate(-300,-352)">
         <path d="M288 336 Q289 322 300 321 Q311 322 312 336" pathLength="1"/>
         <path d="M288 336 Q294 329 300 329 Q306 329 312 336" pathLength="1"/>
         <path d="M290 341 C290 333 294 328 300 328 C306 328 310 333 310 341 C310 348 306 352 300 352 C294 352 290 348 290 341 Z" pathLength="1"/>
         <path d="M295 340 q2 0 3 0" pathLength="1"/><path d="M303 340 q2 0 3 0" pathLength="1"/>
-        <!-- bocca dritta: neutra. Era un sorriso, e sotto quel sole non ci sta -->
         <path d="M296 348 L304 348" pathLength="1"/>
         <path d="M317 329 C319.6 333 320 335.4 317 335.4 C314 335.4 314.4 333 317 329 Z" pathLength="1"/>
         <path d="M283 335 C285.6 339 286 341.4 283 341.4 C280 341.4 280.4 339 283 335 Z" pathLength="1"/>
@@ -399,17 +218,12 @@ export const superficieSvg = `
       <path d="M288 362 Q300 356 312 362" pathLength="1"/>
       <path d="M288 362 Q284 384 288 404" pathLength="1"/><path d="M312 362 Q316 384 312 404" pathLength="1"/>
       <path d="M288 404 Q300 400 312 404" pathLength="1"/>
-      <!-- Solo il contorno ESTERNO del braccio: quello interno lo fa già il
-           fianco del busto, e due linee parallele a due unità di distanza non
-           leggevano come un braccio ma come una striscia staccata dal corpo. -->
       <path d="M284 366 Q278 392 280 416" pathLength="1"/><path d="M316 366 Q322 392 320 416" pathLength="1"/>
-      <!-- l'orlo della manica: è il segno che dice "manica corta" -->
       <path d="M281 387 L289 388" pathLength="1"/><path d="M311 388 L319 387" pathLength="1"/>
       <circle cx="284" cy="421" r="3.8" pathLength="1"/><circle cx="316" cy="421" r="3.8" pathLength="1"/>
       <path d="M286 454 L289 404" pathLength="1"/><path d="M296 454 L300 412 L304 454" pathLength="1"/>
       <path d="M314 454 L311 404" pathLength="1"/>
       <path d="M285 450 L282 457 L297 457" pathLength="1"/><path d="M315 450 L318 457 L303 457" pathLength="1"/>
-      <!-- Stesso controtraslo del termometro nel gruppo di colore. -->
       <g transform="translate(0,26)">
         <path d="M338 348 L338 314 L348 314 L348 348" pathLength="1"/>
         <circle cx="343" cy="356" r="9" pathLength="1"/>
@@ -417,8 +231,6 @@ export const superficieSvg = `
         <path d="M348 338 L354 338" pathLength="1"/>
       </g>
     </g>
-    <!-- il calore che continua a salire dal suolo: è la frase che questa
-         vignetta deve far dire senza scriverla -->
     <g class="il rise" data-d="6">
       <path d="M70 452 q-8 -14 0 -26 q8 -14 0 -26" pathLength="1"/>
       <path d="M64 406 L70 398 L76 406" pathLength="1"/>
@@ -448,37 +260,20 @@ export const superficieSvg = `
   </g>
   <path class="lead" d="M541 340 L541 356"/>
 
-  <!-- Spostato in alto a destra del termometro, nel pezzo di cielo libero fra
-       la chioma e il palazzo: più in basso «l'aria» finiva sul bordo del
-       selciato, più a sinistra cadeva sul tronco dell'albero. A puntare ci
-       pensa il filo, non la vicinanza. -->
   <g class="tag tag--air">
     <rect x="407" y="262" width="58" height="30" rx="8"/>
     <text x="436" y="283" text-anchor="middle">34°</text>
   </g>
-  <text class="tag-word" x="436" y="310" text-anchor="middle">l'aria</text>
+  <text class="tag-word" x="436" y="310" text-anchor="middle">${escapeSvgText(labels.air)}</text>
   <path class="lead" d="M407 280 L366 307"/>
 </g>
 </svg>`;
+}
 
-// ── 2 · Gli hotspot climatici ────────────────────────────────────────────────
-// La stessa porzione di città vista dall'alto, un foglio per estate. Su ogni
-// foglio alcune zone sono fra le più calde — ma non sempre le stesse. Due
-// tornano ogni volta: sono quelle, gli hotspot. È già la logica della mappa che
-// segue (soglia, ricorrenza, persistenza), mostrata prima che la mappa la usi.
-//
-// Geometria: rombi isometrici di semiasse 220 × 52 attorno a cx = 320, con i
-// centri a y 120 / 232 / 344. Ogni riquadro è una cella (i, j) della griglia
-// 4 × 4 del foglio, con
-//   A = (320 + 55(i-j),   cy - 52 + 13(i+j))
-//   B = (320 + 55(i-j+1), cy - 52 + 13(i+j+1))
-//   C = (320 + 55(i-j),   cy - 52 + 13(i+j+2))
-//   D = (320 + 55(i-j-1), cy - 52 + 13(i+j+1))
-// Le due celle che tornano su tutti e tre i fogli sono (1,1) e (0,2): i loro
-// centri stanno a x 320 e x 210, ed è lì che scendono le due verticali.
-export const ricorrenzaSvg = `
-<svg viewBox="0 0 640 460" role="img" aria-label="La stessa città, estate dopo estate" xmlns="http://www.w3.org/2000/svg">
-<desc>Illustrazione a matita colorata: tre carte sovrapposte mostrano il territorio del comune di Bologna visto dall'alto, una per estate, con sopra la griglia con cui la temperatura di superficie viene campionata. In ogni carta alcune caselle sono fra le più calde, ma solo due tornano su tutte e tre: sono cerchiate a matita.</desc>
+export function renderRicorrenzaSvg({ ariaLabel, description, labels }) {
+  return `
+<svg viewBox="0 0 640 460" role="img" aria-label="${escapeSvgText(ariaLabel)}" xmlns="http://www.w3.org/2000/svg">
+<desc>${escapeSvgText(description)}</desc>
 <defs>
   <filter id="hsi-b-pencil" x="-4%" y="-4%" width="108%" height="108%">
     <feTurbulence type="fractalNoise" baseFrequency="0.015" numOctaves="2" seed="11" result="n"/>
@@ -491,7 +286,6 @@ export const ricorrenzaSvg = `
 
 <g class="scene" filter="url(#hsi-b-pencil)">
   <g class="color">
-    <!-- 2025: prima lo spessore della carta, poi il territorio, poi le caselle -->
     <path d="M166.7 71.0 L215.6 49.5 L240.2 69.4 L276.5 55.6 L309.5 72.3 L330.1 55.9 L370.8 60.4 L433.3 49.0 L512.3 62.9 L489.2 72.7 L524.3 86.0 L421.7 130.6 L371.9 132.6 L228.7 165.0 L205.1 154.5 L175.8 161.0 L251.4 106.0 L155.1 94.5 Z" fill="#DCCEB2"/>
     <path d="M166.7 64.0 L215.6 42.5 L240.2 62.4 L276.5 48.6 L309.5 65.3 L330.1 48.9 L370.8 53.4 L433.3 42.0 L512.3 55.9 L489.2 65.7 L524.3 79.0 L421.7 123.6 L371.9 125.6 L228.7 158.0 L205.1 147.5 L175.8 154.0 L251.4 99.0 L155.1 87.5 Z" fill="#F2E9D7"/>
     <g clip-path="url(#hsi-b-clip0)">
@@ -501,7 +295,6 @@ export const ricorrenzaSvg = `
       <path d="M253.0 71.0 L346.0 71.0 L318.0 100.0 L225.0 100.0 Z" fill="#C8502A"/>
       <path d="M346.0 71.0 L439.0 71.0 L411.0 100.0 L318.0 100.0 Z" fill="#C8502A"/>
     </g>
-    <!-- una delle estati in mezzo: prima lo spessore della carta, poi il territorio, poi le caselle -->
     <path d="M166.7 193.0 L215.6 171.5 L240.2 191.4 L276.5 177.6 L309.5 194.3 L330.1 177.9 L370.8 182.4 L433.3 171.0 L512.3 184.9 L489.2 194.7 L524.3 208.0 L421.7 252.6 L371.9 254.6 L228.7 287.0 L205.1 276.5 L175.8 283.0 L251.4 228.0 L155.1 216.5 Z" fill="#DCCEB2"/>
     <path d="M166.7 186.0 L215.6 164.5 L240.2 184.4 L276.5 170.6 L309.5 187.3 L330.1 170.9 L370.8 175.4 L433.3 164.0 L512.3 177.9 L489.2 187.7 L524.3 201.0 L421.7 245.6 L371.9 247.6 L228.7 280.0 L205.1 269.5 L175.8 276.0 L251.4 221.0 L155.1 209.5 Z" fill="#F2E9D7"/>
     <g clip-path="url(#hsi-b-clip1)">
@@ -510,7 +303,6 @@ export const ricorrenzaSvg = `
       <path d="M253.0 193.0 L346.0 193.0 L318.0 222.0 L225.0 222.0 Z" fill="#C8502A"/>
       <path d="M346.0 193.0 L439.0 193.0 L411.0 222.0 L318.0 222.0 Z" fill="#C8502A"/>
     </g>
-    <!-- 2013: prima lo spessore della carta, poi il territorio, poi le caselle -->
     <path d="M166.7 315.0 L215.6 293.5 L240.2 313.4 L276.5 299.6 L309.5 316.3 L330.1 299.9 L370.8 304.4 L433.3 293.0 L512.3 306.9 L489.2 316.7 L524.3 330.0 L421.7 374.6 L371.9 376.6 L228.7 409.0 L205.1 398.5 L175.8 405.0 L251.4 350.0 L155.1 338.5 Z" fill="#DCCEB2"/>
     <path d="M166.7 308.0 L215.6 286.5 L240.2 306.4 L276.5 292.6 L309.5 309.3 L330.1 292.9 L370.8 297.4 L433.3 286.0 L512.3 299.9 L489.2 309.7 L524.3 323.0 L421.7 367.6 L371.9 369.6 L228.7 402.0 L205.1 391.5 L175.8 398.0 L251.4 343.0 L155.1 331.5 Z" fill="#F2E9D7"/>
     <g clip-path="url(#hsi-b-clip2)">
@@ -569,7 +361,6 @@ export const ricorrenzaSvg = `
         <path d="M346.0 315.0 L439.0 315.0 L411.0 344.0 L318.0 344.0 Z" pathLength="1"/>
       </g>
     </g>
-    <!-- lo stesso posto, carta dopo carta -->
     <g class="il drop" data-d="5">
       <path d="M285.5 85.5 L285.5 412" pathLength="1"/>
       <path d="M378.5 85.5 L378.5 412" pathLength="1"/>
@@ -593,6 +384,7 @@ export const ricorrenzaSvg = `
   <circle class="lab-dot" cx="107" cy="222" r="2.6"/>
   <circle class="lab-dot" cx="118" cy="222" r="2.6"/>
   <text class="lab-year" x="118" y="350" text-anchor="end">2013</text>
-  <text class="lab-count" x="332.0" y="454" text-anchor="middle">sempre tra le più calde</text>
+  <text class="lab-count" x="332.0" y="454" text-anchor="middle">${escapeSvgText(labels.recurring)}</text>
 </g>
 </svg>`;
+}

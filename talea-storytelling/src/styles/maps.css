@@ -1,8 +1,4 @@
-/* =============================================
-   TALEA Storytelling — Map styles
-   ============================================= */
 
-/* ── MapLibre Canvas ── */
 
 .map-canvas {
   width: 100%;
@@ -20,48 +16,17 @@
 }
 
 
-/* ── Hotspot Intro ──
-   04 § 4.3 — il blocco scende dall'avorio all'ambra allo scuro. Prima virava al
-   verde mentre il testo parlava di calore: il colore diceva l'opposto del
-   contenuto, e spendeva qui il verde che è la cifra del secondo tempo della
-   storia. Adesso il lettore *sente* la discesa nel calore mentre legge, e la
-   mappa gialla e rossa che segue arriva preparata invece che contraddetta.
-
-   Le fermate del gradiente sono tarate sul contenuto, non a occhio:
-   - fino a oltre il 70 % è carta chiara, perché lì stanno il testo e le due vignette,
-     che sono a matita scura e su un fondo scuro sparirebbero;
-   - solo oltre il 90 % la carta prende l'ambra necessaria alla riga di chiusura;
-   - il passaggio resta chiaro e continuo fino alla mappa successiva.
-   Chi sposta il testo deve rispostare le fermate. */
 
 .hotspot-intro {
   position: relative;
   padding: 128px var(--content-pad) 96px;
   margin: 0;
   background:
-    /* Qui stavano due lavaggi locali, uno per vignetta, accesi a opacità fissa
-       dal caricamento della pagina. Erano la versione «prima» della stessa idea
-       che adesso portano `.hotspot-intro-panel::before`: la differenza è che
-       quelli c'erano già quando il lettore arrivava, e la carta risultava calda
-       sotto due disegni non ancora fatti. La luce di questa sezione ha una
-       causa — il sole della prima vignetta — e una causa non può precedere il
-       suo effetto. Restano qui solo la carta e il suo scaldarsi verso il basso,
-       che non dipendono da nessun disegno. */
     linear-gradient(
       180deg,
-      /* parte esattamente sul colore su cui finisce il trend: --paper da tutti
-         e due i lati, un valore solo (03 § 3.1, dove era --seam-green) */
       var(--paper) 0%,
       #fbf8f1 54%,
       #f7eddd 72%,
-      /* La sezione SCALDA la pagina, non la colora.
-         Prima scendeva fino a --amber-deep (quasi nero), poi fino alla
-         terracotta piena: in tutti e due i casi finiva su un campo di colore
-         saturo, a tutto schermo, in mezzo a due superfici chiare che portano
-         informazione — e quel salto si vede comunque lo si faccia. Peggio:
-         spendeva l'arancione sulla tappezzeria, e la mappa che arriva subito
-         dopo l'arancione ce l'ha come DATO. Ora l'ambra resta una temperatura
-         della carta e il caldo resta dove significa qualcosa. */
       #eedcc0 92%,
       #e9d4b0 100%
     );
@@ -70,11 +35,6 @@
   isolation: isolate;
 }
 
-/* L'unica decorazione rimasta delle tre che c'erano (04 § 4.4): la griglia a
-   96 px era invisibile sotto la sua maschera e l'alone verde pulsava
-   all'infinito senza motivo. Questa invece racconta qualcosa — il fondo si
-   scalda mentre si scende — ed è guidata dallo scroll, non da un timer:
-   l'opacità arriva da --intro-scroll, scritto da HotspotIntro.jsx. */
 .hotspot-intro-heat {
   position: absolute;
   top: 46%;
@@ -85,17 +45,9 @@
   max-width: 140vw;
   pointer-events: none;
   z-index: 0;
-  /* Molto più leggero di prima: sotto c'era terracotta, adesso c'è carta, e su
-     carta lo stesso alone non si legge come un calore diffuso ma come una
-     macchia. Alfa bassa e sfocatura larga: deve essere un lavaggio, non una
-     forma. */
   background: radial-gradient(ellipse, rgba(192, 91, 37, 0.1), transparent 72%);
   filter: blur(96px);
   opacity: var(--intro-scroll, 0);
-  /* Si spegne prima del bordo basso della sezione. `.hotspot-intro` ha
-     overflow: hidden, che taglia la sfocatura di netto: quel taglio si vedeva
-     come una riga orizzontale esattamente sulla giunzione con la mappa, cioè
-     nel punto in cui la giunzione non deve vedersi per niente. */
   -webkit-mask-image: linear-gradient(180deg, #000 58%, transparent 94%);
   mask-image: linear-gradient(180deg, #000 58%, transparent 94%);
 }
@@ -107,9 +59,6 @@
   margin: 0 auto;
 }
 
-/* La riga di apertura: intatta dal testo di prima, ma promossa a frase guida.
-   Colonna stretta e centrata, perché sopra due vignette affiancate una riga
-   lunga quanto tutte e due non si legge. */
 .hotspot-intro-lead {
   max-width: var(--measure-narrow);
   margin: 0 auto;
@@ -139,42 +88,6 @@
   flex-direction: column;
 }
 
-/* ── LA LUCE DEL SOLE È LA CARTA ────────────────────────────────────────────
-   Questi due lavaggi sono l'unica luce della sezione, e il modo in cui sono
-   fatti è il punto.
-
-   PRIMA. L'alone del sole era un'ellisse piena dentro l'SVG (rx 176, ry 92,
-   #F4CE86 al 30 %), e i lavaggi qui erano due macchie centrate sul PANNELLO,
-   accese a opacità fissa dal primo fotogramma. Tre errori sovrapposti:
-   · un'ellisse ha un contorno, e attorno a una luce un contorno visibile dice
-     «macchia disegnata», non «sole»;
-   · stando dentro il disegno, la luce finiva dove finiva il riquadro: il taglio
-     verticale sul bordo destro era la riga che rivelava il rettangolo incollato
-     sulla pagina;
-   · ed essendo già lì prima che il tratto partisse, la carta era calda mentre
-     il sole non era ancora stato disegnato. Il fondo anticipava il disegno
-     invece di riceverlo.
-
-   ADESSO. La luce non sta nel disegno: sta nella carta, ancorata al sole ma
-   grande due volte e mezzo il pannello, quindi senza un bordo da nessuna parte
-   e libera di attraversare il varco fino alla vignetta degli anni. E arriva
-   MENTRE la vignetta si costruisce (`:has(.drawn)` qui sotto), non prima.
-
-   ── L'ANCORAGGIO, che è la parte da non rompere ──
-   Il sole sta a (cx 556, cy 66) di un viewBox 640 × 460, cioè all'86,88 % della
-   larghezza del pannello e al 14,35 % dell'altezza del disegno — e il disegno è
-   alto 460/640 = 0,71875 volte la propria larghezza. Quindi, in larghezze di
-   pannello P:  sole = (0,8688 P ; 0,1031 P).
-   L'elemento è largo 2,4 P e alto 2,4 × 0,71875 P = 1,725 P, e il `translate`
-   in percentuale si misura sulla SUA scatola: per portargli il centro sul sole
-   servono −(1,2 − 0,8688)/2,4 = −13,8 % in x e −(0,8625 − 0,1031)/1,725 =
-   −44,02 % in y. Sono questi due numeri, non «a occhio»: se il sole si sposta
-   nell'SVG vanno ricalcolati, altrimenti la luce esce da un punto in cui non
-   c'è niente. (È già successo una volta: il sole è salito da cy 90 a cy 66 e
-   questa riga è salita con lui.)
-   La sfumatura si spegne al 92 %, cioè PRIMA del bordo della scatola: se
-   arrivasse a 100 % ricomparirebbe esattamente il bordo netto che stiamo
-   togliendo. */
 .hotspot-intro-panel::before {
   content: "";
   position: absolute;
@@ -185,8 +98,6 @@
   aspect-ratio: 640 / 460;
   pointer-events: none;
   opacity: 0;
-  /* Un filo di sfocatura, non per sfumare — ci pensano le fermate — ma per
-     togliere le bande che un alfa così basso disegna su fondo chiaro. */
   filter: blur(18px);
   transition: opacity 1.9s var(--ease-cine) 0.2s;
 }
@@ -203,11 +114,6 @@
   );
 }
 
-/* La seconda vignetta non ha un sole da cui far partire la luce: quello che ha
-   è il calore ACCUMULATO, che è un'altra cosa e un altro colore. Terracotta
-   invece che ambra, centrata sulla pila delle carte (cx 332, cy 232 dello
-   stesso viewBox: 0,5188 P e 0,3625 × 0,71875 P = 0,2605 P), e più bassa di
-   intensità: qui il fondo deve restare leggibile sotto tre fogli chiari. */
 .hotspot-intro-panel--ricorrenza::before {
   transform: translate(-28.38%, -34.90%);
   background: radial-gradient(
@@ -219,10 +125,6 @@
   );
 }
 
-/* Le luci arrivano col disegno, non prima: è la stessa regola delle didascalie
-   (prima si guarda, poi si legge) applicata alla carta. 1,9 s a partire da
-   +0,2 s: la sfumatura finisce di salire quando l'ultimo gruppo d'inchiostro
-   (data-d="6", 1,28 s + 0,85 s) finisce di disegnarsi. */
 .hotspot-intro-panel:has(.hotspot-intro-vg.drawn)::before {
   opacity: 1;
 }
@@ -293,10 +195,6 @@
   stroke-dashoffset: 0;
 }
 
-/* La didascalia arriva DOPO il disegno (vedi HotspotIntro.jsx): prima si
-   guarda, poi si legge. Senza questo ritardo il testo era già lì mentre il
-   tratto si stava ancora facendo, e il disegno diventava un ornamento del
-   paragrafo invece che il contrario. */
 .hotspot-intro-caption {
   position: relative;
   margin: clamp(30px, 3.4vw, 48px) 0 0;
@@ -305,9 +203,6 @@
   color: var(--ink);
   display: flex;
   flex-direction: column;
-  /* Due paragrafi corti invece di un blocco unico: sotto un disegno, sei righe
-     di fila si leggono come una nota a piè di pagina. Lo stacco è più largo di
-     un a capo e più stretto di un paragrafo nuovo. */
   gap: 0.9em;
   opacity: 0;
   transform: translateY(14px);
@@ -316,8 +211,6 @@
     transform var(--dur-mid) var(--ease-cine);
 }
 
-/* Il filo centrale prosegue il collegamento visivo e separa le due letture
-   senza trasformarle in colonne da tabella. Il nodo ne marca il centro. */
 .hotspot-intro-panel--ricorrenza .hotspot-intro-caption::before {
   content: "";
   position: absolute;
@@ -346,9 +239,6 @@
   transform: none;
 }
 
-/* Il glossario, secondo livello di enfasi (01 § 1.3): peso 600 e sottolineatura
-   tratteggiata. Era gialla — e il giallo, qui dentro, dice solo «questo è ciò
-   che stai guardando», mai «questa parola è importante». */
 .hotspot-intro .glossary-term {
   font-weight: 600;
   color: var(--ink-deep);
@@ -359,10 +249,6 @@
   border-bottom-color: var(--amber);
 }
 
-/* ── Le due vignette (04 § 4.1) ──
-   Stessa tecnica di .vulnerability-vignette e .relief-beat-vg: il tratto si
-   disegna (stroke-dashoffset su pathLength="1"), poi il colore entra in
-   dissolvenza, poi le etichette. La 1 arriva da sinistra, la 2 da destra. */
 
 .hotspot-intro-vg {
   --vg-ink: #3a352a;
@@ -412,16 +298,11 @@
 .hotspot-intro-vg .il[data-d="5"] * { transition-delay: 1.1s; }
 .hotspot-intro-vg .il[data-d="6"] * { transition-delay: 1.28s; }
 
-/* Tratti che non sono contorno. Stanno DOPO la regola generica di .ink: stessa
-   specificità, vince l'ultima. */
 .hotspot-intro-vg .rise path {
   stroke: #c2551f;
   stroke-width: 2.2;
 }
 
-/* Il reticolo con cui la temperatura di superficie viene campionata. Sta sopra
-   la sagoma del comune e la sborda: è una griglia di misura, non un confine, e
-   deve restare sotto la soglia dell'attenzione rispetto alle caselle calde. */
 .hotspot-intro-vg .street path {
   stroke: color-mix(in srgb, var(--vg-ink) 34%, transparent);
   stroke-width: 1.2;
@@ -445,9 +326,6 @@
 
 .hotspot-intro-vg.colored .color { opacity: 1; }
 
-/* Una grana disegnata, non un filtro globale: segue i materiali e lascia
-   intatti contorni, persone e numeri. Essendo dentro .color compare con le
-   campiture, dopo che la costruzione a matita si e' disegnata. */
 .hotspot-intro-vg .material-hatch {
   fill: none;
   stroke-linecap: round;
@@ -459,13 +337,9 @@
 .hotspot-intro-vg .material-hatch path { vector-effect: non-scaling-stroke; }
 .hotspot-intro-vg .material-hatch--roof { stroke: #9c6e48; stroke-width: 1.15; opacity: 0.32; }
 .hotspot-intro-vg .material-hatch--wall { stroke: #9d8c70; stroke-width: 1; opacity: 0.22; }
-/* Il tratteggio della chioma segue la chioma: era #355f32, tarato sul verde
-   saturo e freddo di prima, e su una chioma calda leggeva come sporco. */
 .hotspot-intro-vg .material-hatch--foliage { stroke: #4a6b3c; stroke-width: 1.2; opacity: 0.26; }
 .hotspot-intro-vg .material-hatch--ground { stroke: #aa683d; stroke-width: 1.15; opacity: 0.2; }
 
-/* I numeri stanno FUORI dal gruppo filtrato: il displacement map a matita li
-   renderebbe illeggibili. Entrano per ultimi, a colore già steso. */
 .hotspot-intro-vg .labels {
   opacity: 0;
   transition: opacity 0.7s ease 0.4s;
@@ -482,8 +356,6 @@
 .hotspot-intro-vg .tag rect { fill: #3b2213; }
 .hotspot-intro-vg .tag text { fill: #fbf4e6; font-size: 22px; font-weight: 700; }
 
-/* L'unico numero che misura l'aria è anche l'unico su cartellino chiaro: la
-   differenza si vede prima ancora di leggere le cifre. */
 .hotspot-intro-vg .tag--air rect {
   fill: #f6f1e4;
   stroke: var(--vg-ink);
@@ -492,9 +364,6 @@
 
 .hotspot-intro-vg .tag--air text { fill: #2a1d12; }
 
-/* Alone chiaro dietro alla parola: è l'unica etichetta senza cartellino, e
-   attraversando un disegno finisce sempre sopra qualcosa. `paint-order` mette
-   il bordo sotto al pieno, così resta una parola e non diventa un contorno. */
 .hotspot-intro-vg .tag-word {
   fill: #5b4630;
   font-size: 19px;
@@ -516,7 +385,6 @@
 .hotspot-intro-vg .lab-dot { fill: #6b5b45; }
 .hotspot-intro-vg .lab-count { fill: #2a1d12; font-size: 23px; font-weight: 700; }
 
-/* ── La chiusura, sulla carta calda ── */
 
 .hotspot-intro-closer {
   display: flex;
@@ -534,8 +402,6 @@
   font-weight: 700;
   line-height: 1.45;
   letter-spacing: normal;
-  /* Era chiara con un'ombra, perché sotto c'era il buio. Sotto adesso c'è
-     carta. */
   color: var(--ink-deep);
   text-wrap: balance;
 }
@@ -546,9 +412,6 @@
     gap: clamp(48px, 9vw, 72px);
   }
 
-  /* Impilate, le due vignette entrano tutte e due dal basso: farne arrivare una
-     da sinistra e una da destra su una colonna sola sarebbe un movimento senza
-     motivo. */
   .hotspot-intro-vg--superficie,
   .hotspot-intro-vg--ricorrenza {
     transform: translateY(20px);
@@ -563,10 +426,6 @@
   }
 }
 
-/* Su schermo stretto la vignetta scende a ~330 px: il disegno regge, i numeri
-   no. Non si possono ingrandire cambiando font-size — il cartellino è un rect
-   di misura fissa nell'SVG — quindi si ingrandisce il gruppo attorno al proprio
-   centro, cartellino e cifre insieme. */
 @media (max-width: 700px) {
   .hotspot-intro-vg .tag,
   .hotspot-intro-vg .tag-word,
@@ -579,14 +438,9 @@
 }
 
 
-/* ── Hotspot Map Scene ── */
 
 .hotspot-scene {
   position: relative;
-  /* Carta, dall'inizio alla fine. Prima il fondo virava al verde per consegnare
-     alla banda verde che apriva le cause: quel verde è stato tolto (vedi
-     .hotspot-map-veil-exit). Questo è ciò che si vede sotto la mappa mentre si
-     stacca, cioè la metà bassa della transizione d'uscita. */
   background: var(--paper);
   min-height: 240vh;
 }
@@ -598,56 +452,11 @@
   width: 100%;
   z-index: 1;
   overflow: hidden;
-  /* ── Un'andatura sola per l'interfaccia della mappa ──
-     Legenda e schede entrano una dopo l'altra sulla stessa schermata, quindi
-     entrano con lo stesso movimento: stessa curva, stessa distanza, stessa
-     durata. Prima la legenda faceva 600 ms e le schede 550 ms di opacità con
-     700 ms di trasformazione — due ingressi diversi a mezzo secondo l'uno
-     dall'altro, e la differenza si legge come una svista, non come un accento.
-     Cambia il VERSO, e solo quello: la legenda sta in basso a sinistra e sale
-     dal suo bordo, la colonna del testo si posa dall'alto perché la pila cresce
-     verso il basso (vedi .hotspot-sequence--in). Ognuna entra dal proprio lato.
-     LEGEND_IN_MS in HotspotMapScene.jsx è questa durata: chi la cambia qui la
-     cambia anche lì, perché il testo aspetta che la legenda abbia finito. */
   --ui-in-ms: 600ms;
   --ui-in-shift: 10px;
-  /* Si vede solo se la marea passa prima che i riquadri della mappa siano
-     arrivati: quindi è la carta della mappa, che ora è la carta della storia
-     (vedi src/lib/basemapPaper.js). Un fondo scuro qui sotto era un lampo nero
-     in mezzo alla transizione. */
   background: var(--paper);
 }
 
-/* Il velo d'INGRESSO: un lavaggio che raccorda la sezione di descrizione alla
-   mappa mentre ci si scorre dentro, poi si alza (--hidden a scena agganciata) e
-   resta alzato per tutto il resto della mappa.
-   04 § 4.3 — era verde scuro, perché la descrizione sopra finiva in verde. Ora
-   la descrizione scende nel calore e la mappa che si scopre è gialla e rossa:
-   in mezzo un sipario verde era un colore che non veniva da nessuna parte e non
-   portava da nessuna parte. Ora si entra dal caldo e si esce dal verde, che è
-   esattamente il movimento della storia — l'uscita (.hotspot-map-veil-exit)
-   resta verde perché consegna al capitolo delle cause. */
-/* ── Il sipario si ritira come una marea ─────────────────────────────────────
-   Non sfuma: se ne va. Cala verso il basso con un fronte sfumato, e la città si
-   scopre dall'alto mentre l'ambra si ritira sotto di lei. È lo stesso gesto
-   dell'uscita (dove il verde sale) letto al contrario: il capitolo si apre e si
-   chiude con la stessa grammatica.
-
-   Perché non è una dissolvenza: una dissolvenza fa comparire tutta insieme
-   un'immagine piena di dettaglio al posto di un campo di colore, e quel salto
-   si vede sempre, comunque si scelgano i colori. Un fronte che si muove non fa
-   comparire niente: scopre.
-
-   Geometria — l'elemento è più alto del contenitore e comincia più in alto:
-     altezza 160% · top -20%  →  il suo 12,5% cade esatto sul bordo alto dello
-     schermo. Sopra quel punto c'è il fronte sfumato, che a riposo sta FUORI
-     dallo schermo: perciò a riposo il velo copre tutto e comincia esattamente
-     con #8c4420, il colore su cui finisce la sezione sopra (giunzione
-     invisibile). Le fermate della rampa sono le stesse di prima, riscalate su
-     12,5%–75% perché lo schermo è quella fetta dell'elemento.
-     Ritirandosi trasla del 75% della propria altezza, cioè 1,2 schermi: quanto
-     basta perché anche il fronte esca dal fondo.
-   Chi cambia altezza o top deve rifare tutte e tre le cose insieme. */
 .hotspot-map-veil {
   position: absolute;
   left: 0;
@@ -658,9 +467,7 @@
   pointer-events: none;
   background: linear-gradient(
     180deg,
-    /* il fronte: sopra la marea non c'è più niente */
     rgba(233, 212, 176, 0) 0%,
-    /* esattamente il colore su cui finisce la sezione sopra */
     #e9d4b0 12.5%,
     #eee0c6 28.75%,
     #f2e8d8 46.25%,
@@ -675,24 +482,6 @@
   transform: translateY(75%);
 }
 
-/* ── L'uscita, in due metà ───────────────────────────────────────────────────
-   Qui c'era un velo che copriva tutto: prima verde pieno, poi — tolto il verde,
-   che è il secondo tempo di questa storia e qui siamo ancora nel primo — una
-   marea di carta che saliva. Ma una marea di carta e la pagina del capitolo
-   dopo sono la stessa immagine, e la seconda ha dentro il testo invece che
-   niente: così l'ultima schermata smette di essere carta vuota da scorrere.
-
-   Quindi da SOTTO sale `.causes-section` con la sua sovrapposizione negativa di
-   100vh (story.css), che è la pagina vera del capitolo nuovo. E da SOPRA cala
-   questa, che è l'apertura al contrario: stessa geometria specchiata —
-   l'elemento sta tutto sopra lo schermo (il suo bordo basso è a 0), il fronte
-   sfumato è in fondo invece che in cima, e scende del 75% della propria altezza
-   cioè 1,2 schermi. Le due metà si incontrano a metà schermo.
-
-   Non ha transizione perché non ha un suo tempo: la posizione arriva da
-   --handoff, un numero 0→1 che HotspotMapScene scrive a ogni frame sullo
-   scorrimento. Legarla a un timer significherebbe farla desincronizzare dalla
-   pagina che sale, che allo scroll è legata per forza. */
 .hotspot-map-veil-close {
   position: absolute;
   left: 0;
@@ -715,16 +504,7 @@
   inset: 0;
 }
 
-/* Qui stava .hotspot-map-warm, la tinta calda che si scaricava dalla mappa (la
-   prima delle due proposte d'ingresso: «la città si raffredda»). Provata e
-   scartata: anche con le fasi messe in fila restava troppo simile a una
-   dissolvenza. Il posto è z-index 3, fra il canvas e il velo, se serve
-   rimetterla. */
 
-/* Solo spaziatori: dettano quanto dura ogni battuta della coda della scena.
-   Prima qui c'erano anche le tre schede narrative (pannelli che scorrevano) e
-   la card bianca della domanda finale: le schede sono diventate la sequenza
-   agganciata sulla mappa, la domanda è passata sul velo verde (05 § 5.6). */
 .hotspot-scene-panels {
   position: relative;
   z-index: 2;
@@ -734,32 +514,20 @@
 }
 
 
-/* ── Auto-played description sequence ──
-   The three descriptions no longer scroll: they are pinned on the map and enter
-   one by one on a timer, stacking downward. Non-active ones dim so the reader
-   always knows which description the map is showing. After all three have
-   entered, each becomes a button that re-selects its map view. */
 
 .hotspot-sequence {
   position: absolute;
   z-index: 5;
   top: 9vh;
   right: clamp(20px, 3vw, 44px);
-  /* Un filo più larga del taglio precedente (430 px), ma ancora sotto i 478:
-     i testi respirano un po' di più senza tornare a un muro di testo
-     appoggiato sulla mappa. */
   width: min(444px, 35vw);
-  pointer-events: none; /* map stays interactive; shown items opt back in */
+  /* Keep the map interactive; visible cards opt back in below. */
+  pointer-events: none;
   transition:
     opacity 0.7s ease,
     transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* L'ingresso del testo è QUESTO: la colonna intera, una volta sola, con la
-   stessa andatura della legenda che l'ha appena preceduta (--ui-in-*). Arriva
-   dall'alto perché la pila cresce verso il basso — una colonna che sale entra
-   contro la direzione in cui è costruita, e l'occhio deve rincorrerla indietro.
-   Adesso si posa. */
 .hotspot-sequence--in {
   opacity: 1;
   transform: translateY(0);
@@ -770,13 +538,6 @@
     visibility 0s;
 }
 
-/* Fades up and out as the reader scrolls on toward the exit.
-   `visibility: hidden` alla fine della dissolvenza, e non solo opacità: le
-   schede diventate cliccabili restavano cliccabili anche da invisibili, e
-   siccome coprono il terzo destro della mappa rubavano il puntatore ai popup
-   delle zone che stanno lì sotto. La visibilità si eredita e non si può
-   riconquistare da un figlio, quindi è l'unico modo di spegnerle davvero
-   senza rincorrere la specificità di ogni regola che le riaccende. */
 .hotspot-sequence--out {
   opacity: 0;
   transform: translateY(calc(var(--ui-in-shift) * -1));
@@ -793,17 +554,6 @@
   gap: 16px;
 }
 
-/* Carta su carta.
-   Il fondo delle schede è stato verde scuro (quando tutto il capitolo era
-   verde) e poi inchiostro caldo. Erano tutte e due pannelli di vetro scuro
-   appoggiati su una mappa chiara — e nello stesso schermo, in basso a sinistra,
-   la legenda è sempre stata una scheda di carta con il testo scuro: due sistemi
-   contemporaneamente. Ora sono una famiglia sola, e siccome il capitolo intero
-   è passato sulla carta, i riquadri scuri erano anche l'ultimo pezzo rimasto
-   del periodo buio.
-
-   Niente sfocatura dietro: prima l'unica parte di città che il lettore non
-   vedeva bene era esattamente quella che il testo stava commentando. */
 .hotspot-seq-item {
   position: relative;
   display: block;
@@ -811,34 +561,16 @@
   text-align: left;
   font: inherit;
   color: var(--ink);
-  /* Lo spazio a sinistra è il posto del quadratino: le righe successive
-     rientrano con la prima, come una nota con il suo segno. */
   padding: 20px 24px 21px 46px;
-  /* La carta sta in background-color, la rampa in background-image, e non tutto
-     insieme in `background`: le rampe non si interpolano, e da quando le tre
-     schede sono tutte a schermo la carta è uno dei modi in cui si distingue
-     quella in scena — quindi deve poter cambiare con una transizione invece di
-     scattare. Resta comunque PIENA anche da spenta: abbassarne l'opacità
-     renderebbe translucido il fondo e la mappa filtrerebbe attraverso le parole
-     proprio dove il testo è già secondario. */
   background-color: rgba(255, 255, 255, 0.97);
   background-image:
     linear-gradient(180deg, rgba(255, 255, 255, 0), rgba(240, 237, 228, 0.55));
   border: 1px solid rgba(27, 58, 41, 0.12);
   border-radius: 14px;
   box-shadow: 0 18px 44px -20px rgba(27, 58, 41, 0.28);
-  /* Cliccabile da subito, non solo a sequenza finita: le tre schede sono tutte
-     scritte dall'inizio, e tenere chiuso il comando su un testo che il lettore
-     ha già davanti non protegge niente. Un clic durante la riproduzione è anche
-     il modo di FERMARLA. Il contenitore ha pointer-events: none perché la mappa
-     resti raggiungibile, le schede se lo riprendono. */
   pointer-events: auto;
   cursor: pointer;
   transform: none;
-  /* Niente più transizione d'ingresso qui: a entrare è il blocco intero (vedi
-     .hotspot-sequence--in/--out), e queste sono le proprietà che cambiano
-     quando l'evidenza si sposta da una scheda all'altra. Nessun ritardo: se il
-     lettore ha appena toccato una scheda, la risposta dev'essere immediata. */
   transition:
     color 0.45s ease,
     background-color 0.45s ease,
@@ -847,10 +579,6 @@
     transform 0.45s var(--ease-cine);
 }
 
-/* Il quadratino è il colore che la mappa ha a quella soglia, letto da
-   hotspotPalette.js e passato come --tier: non un colore nuovo, quello. Era un
-   filetto verticale lungo tutta la scheda, cioè un ornamento; qui sta davanti
-   alla prima parola, dove si legge come un'etichetta. */
 .hotspot-seq-item::before {
   content: "";
   position: absolute;
@@ -874,32 +602,17 @@
   text-wrap: pretty;
 }
 
-/* La riga di stacco («Stringiamo il campo.», «Resta una domanda…»): sta nella
-   stessa scheda ma non è la stessa voce, ed è quella che porta avanti. */
 .hotspot-seq-text + .hotspot-seq-text {
   margin-top: 9px;
   font-size: calc(var(--fs-map) * 0.95);
   color: var(--ink-soft);
 }
 
-/* Su carta la .kw torna quella di 01 § 1.3, senza varianti. */
 .hotspot-seq-kw {
   font-weight: 700;
   color: var(--talea-dark-green);
 }
 
-/* ── Quale scheda sta mostrando la mappa ──
-   Da quando le tre schede sono tutte scritte dall'inizio, questa differenza non
-   è più un accento su uno schermo altrimenti vuoto: è l'UNICA cosa che dice al
-   lettore quale delle tre sta guardando sulla mappa. Prima poteva permettersi
-   di essere sottile (una sola scheda era accesa, il resto era spazio), adesso
-   deve reggere tre paragrafi affiancati — quindi la differenza passa da uno a
-   cinque segnali, tutti nella stessa direzione: l'attiva è più avanti (carta
-   più bianca, ombra più lunga, scala piena, inchiostro pieno, quadratino
-   pieno), le altre sono appoggiate al foglio.
-   Il bordo prende il colore della soglia: su carta il giallo di --focus non si
-   vedrebbe, e comunque questo colore dice la stessa cosa meglio, perché è
-   quello che il lettore ha davanti sulla mappa in quel momento. */
 .hotspot-seq-item.is-active {
   color: var(--ink);
   background-color: rgba(255, 255, 255, 0.985);
@@ -909,47 +622,21 @@
     0 0 0 1px color-mix(in srgb, var(--tier, #fec44f) 26%, transparent);
 }
 
-/* Le schede già lette arretrano davvero: si spengono E si allontanano di un
-   filo. Prima cambiava solo l'opacità, e restavano tre blocchi contemporanei
-   della stessa misura, senza che si capisse quale fosse «adesso». */
-/* Devono restare leggibili tutte e tre, quindi ad arretrare è l'INCHIOSTRO, non
-   la carta: abbassare l'opacità dell'intera scheda rende translucido anche il
-   fondo, e la mappa filtra attraverso le parole proprio dove il testo è già
-   secondario. Qui la carta resta piena e cambia solo il colore del testo, con
-   un filo di scala e un'ombra più corta a dire «questa è più indietro». */
 .hotspot-seq-item.is-dim {
   color: var(--ink-soft);
   transform: scale(0.982);
   transform-origin: 100% 50%;
-  /* Carta spenta ma piena: si avvicina all'avorio della pagina invece di
-     diventare trasparente. */
   background-color: rgba(243, 241, 234, 0.96);
   border-color: rgba(27, 58, 41, 0.09);
   box-shadow: 0 7px 20px -18px rgba(27, 58, 41, 0.22);
 }
-/* Il quadratino della soglia resta PIENO solo sulla scheda in scena; sulle
-   altre diventa un contorno vuoto. È il segnale più corto che ci sia — «questa
-   soglia esiste, ma non è quella che stai guardando» — e usa lo stesso colore
-   invece di aggiungerne uno. */
 .hotspot-seq-item.is-dim::before {
   background-color: transparent;
   box-shadow: inset 0 0 0 1.5px var(--tier, #fec44f);
   opacity: 0.66;
 }
 
-/* Qui stava l'ingresso di ogni singola scheda (opacità e 10 px dall'alto, con
-   il posto già riservato perché la colonna non si rimisurasse a ogni arrivo — e
-   prima ancora un'apertura a fisarmonica su `max-height`, `padding` e `margin`,
-   cioè la cosa più cara da animare e quella che sembra più economica). Non
-   serve più: le schede non arrivano una alla volta, arriva il blocco intero una
-   volta sola, e quell'ingresso sta su .hotspot-sequence--in/--out con la stessa
-   andatura della legenda. Quello che entrava dall'alto adesso è la colonna.
 
-   Il passaggio scheda per scheda è rimasto uno solo, e non è più un ingresso: è
-   l'evidenza che si sposta (is-active / is-dim, qui sopra). */
-
-/* Il puntatore riporta in avanti la scheda che sta per essere scelta: è la
-   stessa differenza che porta l'attiva, in anteprima. */
 .hotspot-seq-item.is-dim:hover {
   color: var(--ink);
   background-color: rgba(255, 255, 255, 0.97);
@@ -961,24 +648,10 @@
   opacity: 1;
 }
 .hotspot-seq-item:focus-visible {
-  /* Su carta il giallo non fa contrasto: il contorno di messa a fuoco è
-     l'inchiostro. */
   outline: 2px solid var(--talea-dark-green);
   outline-offset: 3px;
 }
 
-/* Il piede: un passo di pallini, uno per descrizione, che si accendono a mano a
-   mano. Nessuna barra che si svuota, nessun conto alla rovescia. A sequenza
-   finita diventa un invito a scegliere, con il chevron di 01 § 1.4 sotto.
-   Chip scuro e caldo, come le schede, perché sotto c'è una carta chiara. */
-/* Sta in fondo alla colonna, e ci sta in flusso. Prima inseguiva l'ULTIMA
-   scheda arrivata, con --foot-y misurato in JS a ogni tappa: serviva perché
-   sotto di lei c'erano i posti vuoti riservati alle schede non ancora entrate,
-   e un piede in fondo sarebbe rimasto staccato dalla scheda che commentava.
-   Adesso le tre schede sono tutte scritte dall'inizio: sotto l'ultima non c'è
-   nessun vuoto, e il piede sta dove lo mette il flusso. Via la misura, via il
-   listener, e via il buco che aveva (le schede cambiano altezza anche quando
-   arrivano i font, non solo al resize). */
 .hotspot-sequence-foot {
   margin-top: 16px;
   opacity: 0;
@@ -1008,8 +681,6 @@
   background: rgba(27, 58, 41, 0.16);
   transition: background 0.45s ease, transform 0.45s ease;
 }
-/* Ogni pallino porta il colore che la mappa ha alla SUA soglia: i tre pallini
-   sono la scala della legenda in miniatura, e non un altro colore ancora. */
 .hotspot-seq-dot-step.is-done {
   background: color-mix(in srgb, var(--tier, #fec44f) 62%, transparent);
 }
@@ -1018,9 +689,6 @@
   transform: scale(1.15);
 }
 
-/* L'anello che si chiude attorno al pallino in scena, sul tempo della sua
-   scheda: dà la percezione del tempo che passa senza l'ansia di una barra che
-   si svuota. Nasce e muore con il pallino, quindi riparte a ogni tappa. */
 .hotspot-seq-dot-ring {
   position: absolute;
   left: 50%;
@@ -1035,7 +703,6 @@
   stroke: var(--tier, #fec44f);
   stroke-width: 2;
   stroke-linecap: round;
-  /* 2πr con r = 10 */
   stroke-dasharray: 62.83;
   stroke-dashoffset: 62.83;
   transform: rotate(-90deg);
@@ -1055,7 +722,6 @@
   transition: color 0.4s ease;
 }
 
-/* Compare con la prima scheda: prima di quella non c'è niente da numerare. */
 .hotspot-sequence-foot--live {
   opacity: 1;
 }
@@ -1064,20 +730,6 @@
   margin-top: 2px;
 }
 
-/* ── Il ritmo della coda, un'altezza per battuta ──
-   runway: assorbe lo scroll residuo mentre la mappa entra, senza accelerarla;
-   hold:   quanto la sequenza resta agganciata prima di sciogliersi;
-   exit:   la domanda con le bandierine sui luoghi (vedi in fondo al file);
-   slider: quanto lo slider di soglia resta a disposizione;
-   tail:   lo spazio su cui il capitolo dopo sale sopra la mappa agganciata.
-
-   Il conto, misurato sul fondo della scena che sale (100vh = la mappa si
-   stacca): la domanda entra a 347, lo slider a 251, il capitolo dopo comincia a
-   coprire a 200, la mappa si stacca a 100. Quindi 96vh di domanda, 50vh di
-   slider pulito, e gli ultimi 100vh — che prima erano una schermata di carta
-   vuota da scorrere — sono il capitolo dopo che arriva.
-   Chi cambia una di queste altezze cambia quel conto: la sovrapposizione di
-   .causes-section (story.css) è tarata su questi numeri. */
 .hotspot-entry-runway {
   min-height: 70vh;
   flex: none;
@@ -1101,16 +753,12 @@
 
 
 
-/* ── Mobile ── */
 
 @media (max-width: 768px) {
   .hotspot-intro {
     padding: 72px var(--content-pad) 56px;
   }
 
-  /* Su una colonna sola le due vignette diventano il contenuto principale della
-     schermata, e la riga di chiusura arriva prima: senza questo, il fondo
-     scuro se la mangiava a metà. */
   .hotspot-intro-closer {
     margin-top: clamp(64px, 10vh, 96px);
   }
@@ -1124,8 +772,6 @@
     height: 56vh;
   }
 
-  /* The auto-played stack becomes a compact bottom overlay on the (unpinned)
-     mobile map; the hold spacer shrinks so the exit isn't far below. */
   .hotspot-sequence {
     top: auto;
     bottom: 10px;
@@ -1157,10 +803,6 @@
     margin-top: 12px;
   }
 
-  /* Su mobile la mappa non è agganciata: finita lei, gli spaziatori sono solo
-     carta da scorrere. Restano il minimo per far scattare le battute in ordine.
-     Prima qui c'erano oltre tre schermate di vuoto, perché lo spaziatore da
-     180vh della domanda non veniva ridotto insieme agli altri. */
   .hotspot-entry-runway {
     display: none;
   }
@@ -1173,9 +815,6 @@
     min-height: 12vh;
   }
 
-  /* Su mobile la mappa non è agganciata, quindi il capitolo dopo non ha niente
-     sopra cui salire: la sovrapposizione è disattivata (story.css) e questo
-     spaziatore torna a essere solo respiro. */
   .hotspot-tail-hold {
     min-height: 16vh;
   }
@@ -1185,8 +824,6 @@
     padding: 24px var(--content-pad);
   }
 
-  /* Senza mappa agganciata sotto, la domanda è semplicemente un blocco di
-     testo nel flusso: niente colonna a destra, niente card che galleggia. */
   .hotspot-panel--exit {
     min-height: auto;
     justify-content: center;
@@ -1221,9 +858,6 @@
 }
 
 
-/* =============================================
-   Annotations
-   ============================================= */
 
 .annotation-layer {
   position: absolute;
@@ -1295,7 +929,6 @@
   transform: translate(-50%, -50%) scale(1);
 }
 
-/* Single, gentle one-shot ring instead of an infinite pulse */
 .annotation-dot::after {
   content: "";
   position: absolute;
@@ -1397,9 +1030,6 @@
   color: #234c31;
 }
 
-/* ── Hover card (doc 03 §8) — non-permanent info shown while hovering a hot area.
-   A transient dot anchors it; no persistent markers. Both pop in with a small
-   storytelling animation and disappear when the mouse leaves the zone. ── */
 .annotation-hover-dot {
   position: absolute;
   width: 11px;
@@ -1464,23 +1094,13 @@
   color: var(--text-secondary);
 }
 
-/* Qui stavano .hotspot-center-insight e .hotspot-tooltip: due blocchi che
-   nessun JSX montava più (il tooltip aveva ancora il suo componente, orfano da
-   tempo, ed è stato tolto con questo passaggio). Se ne vanno anche due filetti
-   gialli decorativi che 01 § 1.1 assegnava a questa sezione. */
 
 
-/* Staged entrance for the floating map UI (the legend), so it arrives after the
-   heat fills rather than all at once. Distanza e curva sono i token comuni di
-   .hotspot-scene-map: questo è lo stesso movimento delle schede, al contrario. */
 @keyframes hotspot-ui-in {
   from { opacity: 0; transform: translateY(var(--ui-in-shift, 10px)); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* ── Persistence legend — bottom-left, editorial. Explains colour = recurrence
-   and highlights the active range (≥ N estati su 13). The narrative panels sit
-   on the RIGHT, so the legend lives on the free left column. ── */
 .hotspot-legend {
   --legend-x: calc(var(--legend-t, 0) * 100%);
   position: absolute;
@@ -1496,11 +1116,6 @@
   border-radius: 14px;
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14);
   backdrop-filter: blur(8px);
-  /* Senza ritardo in CSS: il ritardo sta nel montaggio (LEGEND_MS), dove sta
-     tutto il resto della coreografia. La legenda viene montata quando la marea è
-     già passata, e da quel momento deve arrivare subito — è la prima cosa che il
-     lettore legge sulla mappa, prima delle descrizioni: tenere il tempo in due
-     posti significa sfasarlo. */
   animation: hotspot-ui-in var(--ui-in-ms) var(--ease-cine) both;
 }
 
@@ -1530,8 +1145,6 @@
   );
 }
 
-/* Scrim over the recurrence range the active stage excludes (1 → threshold), so
-   the lit part of the bar matches exactly the hotspots shown on the map. */
 .hotspot-legend-bar-dim {
   position: absolute;
   inset: 0 auto 0 0;
@@ -1561,9 +1174,6 @@
   color: var(--text-muted);
 }
 
-/* La riga che dice la soglia in scena porta davanti il colore che la mappa ha a
-   quella soglia (--tier, da hotspotPalette): scheda, legenda e mappa dicono la
-   stessa cosa nello stesso momento (05 § 5.5). */
 .hotspot-legend-active {
   display: flex;
   align-items: baseline;
@@ -1610,21 +1220,7 @@
   border-color: var(--talea-green);
 }
 
-/* =============================================
-   Ricorrenza Slider
-   ============================================= */
 
-/* --slider-x è dove sta DAVVERO il centro del cursore. Non è t% della traccia:
-   il cursore è largo 16 px e resta dentro le estremità, quindi il suo centro va
-   da 8 px a (larghezza − 8 px). Da questo dipendevano i numeri sotto, che erano
-   posizionati in percentuale su una riga larga quanto la card mentre la traccia
-   era larga 220 px fissi: due larghezze diverse, e ogni numero finiva lontano
-   dal punto che indicava. Ora la traccia e la riga dei numeri sono larghe
-   uguali e usano lo stesso conto, quindi il numero sta sotto al cursore.
-
-   Nota: la traccia e il cursore sono verdi, ed è l'ultimo verde rimasto in
-   questo capitolo (il resto è passato su carta e caldo). È il colore che aveva
-   in origine e resta finché non si decide il contrario. */
 .hotspot-slider {
   --thumb: 16px;
   --slider-x: calc(var(--thumb) / 2 + var(--slider-t, 0) * (100% - var(--thumb)));
@@ -1673,8 +1269,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Larga quanto la riga dei numeri, non 220 px fissi: è metà della riparazione,
-   perché due larghezze diverse non si possono allineare. */
 .hotspot-slider-row {
   display: block;
 }
@@ -1750,17 +1344,6 @@
 }
 
 
-/* =============================================
-   La domanda d'uscita
-   =============================================
-   Arriva insieme alle bandierine sui luoghi: si vede la mappa che si commenta
-   da sola e nello stesso momento la domanda che quei nomi fanno venire in mente.
-   Si ritira quando arriva lo slider.
-
-   La riparazione di 05 § 5.3: la card stava in una colonna larga 420 px
-   allineata a destra dentro un flusso a tutta larghezza, senza spaziatura, e a
-   schermo usciva dal bordo destro. Ora la colonna è il pannello, la card sta
-   dentro e la spaziatura è quella del resto della pagina: non può più uscire. */
 
 .hotspot-panel--exit {
   position: relative;
@@ -1769,8 +1352,6 @@
   align-items: center;
   justify-content: flex-end;
   padding: 6vh var(--content-pad);
-  /* Click-through: sotto c'è la mappa, e le zone calde si scoprono passandoci
-     sopra il puntatore anche dove la card le copre. */
   pointer-events: none;
   opacity: 0;
   visibility: hidden;
@@ -1819,20 +1400,6 @@
 }
 
 
-/* =============================================
-   I due pannelli: glossario e «Metodo e fonti»
-   =============================================
-
-   Stesso corpo — una scheda che entra dal bordo destro, staccata dai lati
-   della finestra, con la sua ombra sopra la storia — e due contenuti diversi:
-   una parola sola il primo, tutto il metodo il secondo. Quello che i due
-   hanno in comune sta qui in cima, scritto una volta.
-
-   Il glossario è alto quanto il suo testo e sta a metà altezza: una
-   definizione di quattro righe dentro una colonna alta quanto lo schermo era
-   soprattutto vuoto. Il metodo, che di roba ne ha, resta a tutta altezza con
-   la testata ferma e il resto che scorre.
-   ============================================= */
 
 .glossary-backdrop,
 .method-backdrop {
@@ -1871,9 +1438,6 @@
     0 2px 10px rgba(11, 42, 24, 0.07);
 }
 
-/* Il pannello prende il fuoco all'apertura (useDrawer) per far annunciare il
-   titolo del dialogo, ma non è un controllo: il suo anello di fuoco sarebbe
-   un riquadro giallo intorno a tutta la scheda. */
 .glossary-drawer:focus,
 .method-drawer:focus,
 .glossary-drawer:focus-visible,
@@ -1892,7 +1456,6 @@
   to { opacity: 1; }
 }
 
-/* La maniglia della versione a scheda dal basso: invisibile sul desktop. */
 .glossary-grip {
   display: none;
   width: 40px;
@@ -1902,7 +1465,6 @@
   background: color-mix(in srgb, var(--ink) 18%, transparent);
 }
 
-/* La chiusura, tonda, nell'angolo: identica nei due pannelli. */
 .glossary-close,
 .method-close {
   flex: none;
@@ -1930,9 +1492,6 @@
 }
 
 
-/* =============================================
-   Glossario
-   ============================================= */
 
 .glossary-term {
   background: none;
@@ -1949,13 +1508,9 @@
 
 .glossary-term:hover {
   border-bottom-color: var(--talea-blue);
-  /* Elemento in linea: il fondo si accende dietro le lettere e non sposta di
-     un pixel il testo intorno. */
   background: color-mix(in srgb, var(--talea-green) 13%, transparent);
 }
 
-/* Una parola già aperta: il tratteggio diventa linea piena, come un link già
-   visitato. Il colore resta quello che le dà la sua scena. */
 .glossary-term[data-opened] {
   border-bottom-style: solid;
 }
@@ -1994,8 +1549,6 @@
   color: var(--talea-green);
 }
 
-/* Cambiare parola rigioca questa dissolvenza (la `key` sul contenitore), così
-   si vede che il testo sotto è un altro anche quando è lungo uguale. */
 .glossary-drawer-body {
   flex: 1;
   min-height: 0;
@@ -2042,12 +1595,6 @@
   margin-top: 0.85em;
 }
 
-/* ── La scia: le parole già incontrate ──
-   Chi apre «rifugio climatico» a due terzi di storia ha incontrato prima
-   «temperatura di superficie» e «hotspot climatico», e magari è lì proprio
-   perché non se le ricorda più. Le trova in fondo al pannello, nell'ordine in
-   cui la storia gliele ha date e numerate; quella aperta è una riga come le
-   altre, evidenziata, così si vede a che punto è. */
 .glossary-trail {
   flex: none;
   padding: 13px 16px 16px;
@@ -2162,9 +1709,6 @@
 }
 
 
-/* =============================================
-   Metodo e fonti
-   ============================================= */
 
 .method-drawer {
   top: 14px;
@@ -2229,10 +1773,6 @@
   color: var(--ink);
 }
 
-/* ── La riga che dichiara il pannello progressivo ──
-   Sta sotto l'intro, prima di qualunque contenuto: dice che l'elenco segue la
-   lettura e offre subito il modo di scavalcarla. Fondo tenue e non un riquadro
-   d'allarme: è una nota di servizio, non un avviso. */
 .method-progress {
   margin-bottom: 22px;
   padding: 14px 16px 14px;
@@ -2282,10 +1822,6 @@
   font-size: 0.7rem;
 }
 
-/* Le cifre che tornano in tutta la storia. Chi apre questo pannello a metà
-   lettura cerca quasi sempre una di queste, e non deve leggersi cinque
-   paragrafi per trovarla. Seguono la lettura come le voci: all'inizio ce n'è
-   una sola, ed è giusto che occupi la riga da sola. */
 .method-facts {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
@@ -2426,7 +1962,6 @@
 }
 
 
-/* ── Mobile additions ── */
 
 @media (max-width: 768px) {
   .annotation-layer {
@@ -2450,8 +1985,6 @@
     min-height: 0;
   }
 
-  /* Sotto i 768 px i due pannelli diventano una scheda che sale dal basso: da
-     un lato all'altro dello schermo, con la maniglia in cima. */
   .glossary-drawer,
   .method-drawer {
     top: auto;

@@ -1,9 +1,3 @@
-/**
- * Small editorial cutting used below the opening trend title.
- *
- * The drawing deliberately stays quiet: the leaves carry the mark while the
- * long hairline lets it settle into the surrounding typography.
- */
 export function TitleSprig({ className = "" }) {
   const classes = ["title-sprig", className].filter(Boolean).join(" ");
 

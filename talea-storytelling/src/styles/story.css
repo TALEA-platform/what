@@ -1,26 +1,8 @@
-/* =============================================
-   TALEA Storytelling — Story sections
-   Shared styles for narrative content sections
-   ============================================= */
 
-/* ── Hero (scroll-driven zoom into the bridge) ── */
 
-/* Tall wrapper gives the pinned hero room to run the zoom transition. Sits ABOVE
-   the trend section (which is pulled up underneath): as the hero fades, the trend
-   white div + text is already revealed beneath — no blank-white-then-rescroll. */
 .hero-zoom-scroll {
   position: relative;
-  /* Pull the hero up UNDER the sticky header so it starts pinned at the very top
-     (y=0) from the first pixel. Otherwise the header occupies ~62px of flow above
-     it, and the first bit of scroll slides the whole hero up into place BEFORE the
-     zoom engages — reading as the text "creeping up" before the transition. The
-     header is a near-opaque bar that already floats over scenes, so overlaying the
-     hero top is consistent; the content's top padding keeps the copy clear of it. */
   margin-top: calc(-1 * var(--header-height));
-  /* 02 § 2.1 — da 380vh a 300vh. Erano 3,8 schermate per due frasi: metà dello
-     scroll dell'hero non aggiungeva niente al racconto. A 300vh il ponte tiene
-     ancora un plateau di lettura largo (0,48 → 0,90 del progresso, ~84vh di
-     scroll), ma non c'è più il tratto in cui non succede nulla. */
   height: 300vh;
   z-index: 2;
   pointer-events: none;
@@ -32,24 +14,15 @@
   height: 100vh;
   overflow: hidden;
   background: var(--ink-deep);
-  /* Whole hero fades out in the final stretch (--hero-fade from Hero.jsx),
-     dissolving the zoomed rendering into the trend section beneath — and
-     DEFOCUSES as it goes (--hero-exit-blur) so the video goes soft rather than
-     cutting straight to transparent. */
   opacity: var(--hero-fade, 1);
   filter: blur(var(--hero-exit-blur, 0px));
   will-change: opacity, filter;
 }
 
-/* Background layer — scaled (camera push-in) via --hero-scale from the scroll
-   progress in Hero.jsx. */
 .hero-bg {
   position: absolute;
   inset: 0;
   z-index: 0;
-  /* 02 § 2.3 — degrado grazioso. Sotto al video (e sotto al poster) non c'è più
-     un verde piatto ma una sfumatura calda ambra → --ink-deep: se non arriva
-     nessuna immagine, quello che resta dice comunque "città che si scalda". */
   background:
     radial-gradient(ellipse 70% 58% at 66% 42%, rgba(201, 122, 46, 0.34), rgba(201, 122, 46, 0) 46%),
     radial-gradient(ellipse 78% 68% at 18% 82%, rgba(33, 168, 74, 0.14), rgba(33, 168, 74, 0) 52%),
@@ -59,9 +32,6 @@
   will-change: transform;
 }
 
-/* Fotogramma del video (t = 2 s), estratto in public/data/hero/. Entra solo se
-   il video non è pronto in tempo — vedi POSTER_GRACE_MS in Hero.jsx — e resta
-   sotto al video, così se il video arriva dopo gli passa semplicemente sopra. */
 .hero-bg-poster {
   position: absolute;
   inset: 0;
@@ -94,7 +64,6 @@
   opacity: 1;
 }
 
-/* Soft veil keeps title/subtitle legible on top of the 3D rendering */
 .hero-bg-veil {
   position: absolute;
   inset: 0;
@@ -105,11 +74,6 @@
     radial-gradient(ellipse 78% 56% at 54% 50%, rgba(0, 0, 0, 0) 38%, rgba(0, 8, 4, 0.22) 100%);
 }
 
-/* Velo che si rinforza mentre la telecamera entra (--hero-overlay-opacity), per
-   tenere leggibile il ponte sopra il video ingrandito.
-   02 § 2.5 — è scuro VERDE, non scuro grigio: prima il picco a 0,50 su un nero
-   quasi neutro spegneva il video in un grigio-verde. Ora la base è --ink-deep
-   (11, 42, 24) e il picco scende a 0,38: la città resta calda sotto. */
 .hero-zoom-overlay {
   position: absolute;
   inset: 0;
@@ -121,7 +85,6 @@
     linear-gradient(180deg, rgba(11, 42, 24, 0.15) 0%, rgba(11, 42, 24, 0.62) 100%);
 }
 
-/* Content — editorial, left-aligned; fades and rises as the zoom progresses. */
 .hero-content {
   position: absolute;
   inset: 0;
@@ -136,27 +99,20 @@
   align-items: flex-start;
   gap: 22px;
   opacity: var(--hero-text-opacity, 1);
-  /* Zoom-into-the-copy: scales up from its own centre as it dissolves, so the
-     first text flies outward toward the edges rather than just fading up. */
   transform-origin: center center;
   transform: translateY(var(--hero-text-y, 0px)) scale(var(--hero-text-scale, 1));
   will-change: opacity, transform;
 }
 
-/* Bridge preview — fades in (over the strengthened overlay) only after the hero
-   copy has mostly faded out, then holds while pinned so it can be read. */
 .hero-bridge-preview {
   position: absolute;
   inset: 0;
   z-index: 3;
-  /* Centred in the viewport — the closing/resolution moment reads best centred. */
   display: flex;
   align-items: center;
   justify-content: center;
   padding: clamp(80px, 14vh, 160px) var(--content-pad);
   opacity: var(--bridge-opacity, 0);
-  /* Settle-into-focus entrance: arrives slightly zoomed-in + soft, resolving to
-     sharp 1:1 as the hero zoom finishes pushing in. */
   transform-origin: center center;
   transform: translateY(var(--bridge-y, 28px)) scale(var(--bridge-scale, 1.07));
   filter: blur(var(--bridge-blur, 11px));
@@ -177,17 +133,12 @@
   font-family: var(--font-display);
   font-optical-sizing: auto;
   font-size: clamp(52px, 8vw, 108px);
-  /* 500 e non 400 come gli altri titoli: qui il testo sta sopra un video, e il
-     peso più pieno è quello che tiene la lettura senza tornare al bold. */
   font-weight: 500;
   line-height: 1.0;
   letter-spacing: -0.015em;
   color: #ffffff;
   margin: 0;
   max-width: 14ch;
-  /* Layered shadow replaces the old dark vignette: a tight contact shadow for
-     edge definition + a soft bloom for lift, so the copy reads over the bright
-     video without a grey haze behind it. */
   text-shadow:
     0 1px 3px rgba(0, 0, 0, 0.55),
     0 2px 22px rgba(0, 0, 0, 0.45),
@@ -202,23 +153,14 @@
   color: rgba(255, 255, 255, 0.95);
   max-width: 28em;
   margin: 0;
-  /* Just a modest letter shadow for crispness — the readability "alone" itself is
-     the soft dark radial glow behind the block (::before), same as the bridge. */
   text-shadow:
     0 1px 2px rgba(0, 0, 0, 0.5),
     0 1px 14px rgba(0, 0, 0, 0.4);
 }
 
-/* The same soft green-black HALO used behind the second (bridge) copy, sitting
-   behind the subtitle block only — NOT the title. A radial glow, not a boxed
-   plate; anchored left where the left-aligned copy sits. Rides the hero-content
-   opacity, so it fades in/out exactly with the text. */
 .hero-subtitle::before {
   content: "";
   position: absolute;
-  /* LARGE transparent canvas (same idea as the bridge's inset: 18vh 12vw): the
-     radial reaches full transparency far from the text, so the rectangular box
-     edges are never visible — only a soft centred glow. */
   inset: -9em -11em;
   z-index: -1;
   pointer-events: none;
@@ -262,7 +204,6 @@
   text-shadow: 0 1px 14px rgba(0, 0, 0, 0.3);
 }
 
-/* Scroll indicator — left-aligned with the editorial content, higher legibility */
 .hero-scroll {
   margin-top: 30px;
   z-index: 3;
@@ -308,19 +249,14 @@
   100% { transform: translateY(200%); opacity: 0; }
 }
 
-/* ── Reduced motion ──
-   Hero.jsx already pins --hero-scale to 1 (no zoom) and zeroes the translateY,
-   so the transition collapses to a simple cross-fade. Just stop the looping cue. */
 @media (prefers-reduced-motion: reduce) {
   .hero-scroll-line-progress {
     animation: none;
   }
 }
 
-/* ── Mobile ── */
 @media (max-width: 768px) {
   .hero-zoom-scroll {
-    /* Stessa cura del desktop (02 § 2.1), in scala: 100vh di scroll utile. */
     height: 200vh;
   }
 
@@ -339,9 +275,6 @@
 }
 
 
-/* =============================================
-   Hero → bridge content (rendered inside the sticky .hero-bridge-preview)
-   ============================================= */
 
 .hero-bridge-inner {
   max-width: 720px;
@@ -372,27 +305,12 @@
   color: rgba(247, 245, 236, 0.95);
   text-align: center;
   text-wrap: pretty;
-  /* Same green-black halo as the hero subtitle, so both "small" copies read the
-     same over the video. Rides the bridge-preview opacity animation. */
   text-shadow:
     0 1px 2px rgba(0, 10, 6, 0.55),
     0 0 16px rgba(0, 10, 6, 0.5),
     0 0 32px rgba(0, 10, 6, 0.4);
 }
 
-/* ── 02 § 2.7 · Le parole in evidenza del ponte ──
-   Non è la `.kw` di 01 § 1.3: quella è verde scuro su carta, e qui il testo sta
-   sopra un video. L'unico modo per salire è il bianco pieno.
-   Si accendono con ~180 ms di ritardo sul resto della riga, quando il ponte è
-   ormai leggibile (data-bridge-lit, scritto da Hero.jsx): l'occhio le prende
-   per ultime, ed è quello che si ricorda.
-
-   Il peso NON si anima. Il piano (02 § 2.7) diceva 400 → 700, ma far crescere
-   il peso allarga la parola, il paragrafo si riflette e le righe si spostano
-   sotto gli occhi di chi sta leggendo: brutto, e proprio nel punto in cui il
-   lettore decide se restare. La parola sta a 700 fin dall'inizio — solo
-   spenta, più bassa del testo intorno — e ad accendersi è il colore. Il testo
-   non si muove di un pixel. */
 .hero-bridge-inner .hero-kw {
   font-weight: 700;
   color: rgba(255, 255, 255, 0.66);
@@ -410,10 +328,6 @@
     0 0 34px rgba(0, 10, 6, 0.42);
 }
 
-/* Final callout — no box, centred in the column. The first line is a quiet set-up;
-   the resolution is emphasised by WEIGHT (bold), not by a giant size — so the eye
-   reads the whole second view fluidly instead of jumping to a big "titoletto in
-   basso" and skipping the copy above it (doc 02 §2). */
 .hero-bridge-callout {
   margin: clamp(20px, 4vh, 44px) auto 0;
   max-width: 640px;
@@ -427,7 +341,6 @@
   line-height: 1.5;
   font-weight: 500;
   color: rgba(247, 245, 236, 0.88);
-  /* Halo inherited by the bold <strong> line too, keeping the callout cohesive. */
   text-shadow:
     0 1px 2px rgba(0, 10, 6, 0.5),
     0 0 16px rgba(0, 10, 6, 0.46),
@@ -444,13 +357,6 @@
   color: #ffffff;
 }
 
-/* =============================================
-   Section divider — subtle "new chapter" hairline (doc 01, struttura generale)
-   A thin full-width rule at the start of a major section: signals a new
-   argument while keeping continuity. "da testare" → reusable + easy to remove.
-   Width caps to the page content; --section-divider-max lets a review narrow it.
-   Tone adapts to the section background (light bg → dark line; dark bg → light).
-   ============================================= */
 .section-divider {
   position: relative;
   z-index: 1;
@@ -470,38 +376,16 @@
   background: rgba(255, 255, 255, 0.22);
 }
 
-/* =============================================
-   Section 0.5 — Summer Trend (refined)
-   ============================================= */
 
 .trend-section {
   position: relative;
-  /* Pulled up UNDER the hero (z-index 2) by a PARTIAL viewport: the hero fade
-     reveals this white div + text mid-screen, with room left to scroll and read
-     (a full -100vh made the title land at the very top and scroll away). */
   margin-top: -85vh;
   z-index: 1;
-  /* 03 § 3.2 — la sezione era la più corta della storia (0,7 schermate) e il
-     primo dato della storia passava senza che nessuno avesse il tempo di
-     guardarlo. In alto lo spazio resta quello di prima (il titolo deve restare
-     alto, adesso che il testo è più grande); in fondo respira, ed è lì che il
-     verde del capitolo seguente inizia a salire. */
   padding: 128px var(--content-pad) clamp(150px, 18vh, 220px);
   background:
-    /* The reference carries a local green shadow behind and just below the
-       title. Keep both washes away from the top seam so its divider stays
-       crisp and uniform across the section. */
     radial-gradient(ellipse 44% 60% at 16% 40%, rgba(0, 77, 25, 0.085), transparent 68%),
     radial-gradient(ellipse 82% 56% at 9% 29%, rgba(33, 168, 74, 0.105), transparent 62%),
-    /* 03 § 3.1 — l'alone giallo stava a 78 %, cioè addosso alla giunzione: da
-       quel lato la carta virava al caldo mentre l'intro sotto partiva verde, e
-       il confine si vedeva come una riga. Ora sta a metà altezza, lontano. */
     radial-gradient(ellipse 60% 40% at 95% 52%, rgba(255, 230, 4, 0.07), transparent 60%),
-    /* 04 § 4.3 — la sezione sotto non è più verde: scende dall'avorio
-       all'ambra allo scuro. Quindi la cucitura non è più il verde pallido
-       --seam-green ma --paper, che è già il token della carta: un valore solo,
-       usato dai due lati, com'era prima (03 § 3.1). Anche la fermata a 74 %
-       perde la sua punta di verde. */
     linear-gradient(180deg, var(--bg-primary) 0%, #ffffff 46%, #fbf8f1 74%, var(--paper) 100%);
   overflow: hidden;
 }
@@ -570,8 +454,6 @@
 }
 
 .trend-text {
-  /* Cresce con il corpo del testo: a 470px e --fs-body si scendeva a sette
-     parole per riga, sotto il minimo di 01 (§ criteri di accettazione). */
   max-width: 560px;
 }
 
@@ -623,10 +505,6 @@
   opacity: 0.78;
 }
 
-/* I due paragrafi sono lo stesso testo, alla stessa voce: stessa misura e
-   stesso peso. Erano rimasti a ~16 px, cioè a misura da interfaccia, mentre
-   01 § 1.2 porta il corpo della storia a --fs-body (~19-21 px); e il secondo
-   stava a peso 400 contro 500 del primo, così sembrava sbiadito. */
 .trend-lead,
 .trend-body {
   font-size: var(--fs-body);
@@ -639,12 +517,6 @@
   -webkit-hyphens: none;
 }
 
-/* Il colpo finale del raccordo: «Non dove.» Sta nello stesso paragrafo della
-   frase che completa, va a capo da solo e prende il colore del titolo, così la
-   domanda che apre il capitolo seguente si vede senza staccarsi dal
-   ragionamento. Provato come paragrafo a sé, più grande: il testo si spezzava
-   in tre blocchi e la lettura perdeva il filo.
-   `nowrap`: se «Non» e «dove» finiscono su righe diverse il colpo non c'è più. */
 .trend-punch {
   color: var(--talea-dark-green);
   font-weight: 600;
@@ -698,8 +570,6 @@
   width: 100%;
 }
 
-/* No floating card: the chart sits directly on the section's cream, separated
-   only by thin hairlines (meta / source). Reads as part of the page. */
 .trend-chart-frame {
   position: relative;
   padding: 4px 0 0;
@@ -725,13 +595,8 @@
   gap: 2px;
 }
 
-/* ── 03 § 3.3 · L'invito ad allargare la vista ──
-   Era una pillola bordata con un'icona, in alto a destra: si leggeva come un
-   controllo di impostazioni, e infatti nessuno lo apriva. Ora è una riga di
-   testo sotto l'asse x — dentro la lettura, non accanto ad essa. */
 .trend-zoom-invite {
   margin: 16px 0 0;
-  /* Più grande della didascalia: è un invito, e deve farsi vedere. */
   font-size: clamp(1rem, 1.1vw, 1.1rem);
   line-height: 1.5;
   color: var(--ink-soft);
@@ -746,15 +611,10 @@
   font-weight: 700;
   color: var(--talea-dark-green);
   cursor: pointer;
-  /* Il filo sotto è la sola cosa che dice "questo si clicca": sottile e dello
-     stesso verde, non un bottone travestito da link. */
   border-bottom: 1px solid color-mix(in srgb, var(--talea-dark-green) 38%, transparent);
   transition: border-color var(--dur-fast) var(--ease-ui), color var(--dur-fast) var(--ease-ui);
 }
 
-/* La freccia va avanti e indietro, piano: è l'unica cosa in movimento della
-   schermata, e serve a dire «questo si preme». Ferma quando il puntatore è
-   sopra — lì il movimento diventa quello del passaggio del mouse. */
 .trend-zoom-link-arrow {
   display: inline-block;
   margin-left: 0.35em;
@@ -784,7 +644,6 @@
 
 .trend-chart-plot {
   position: relative;
-  /* Cambio di vista 13 ↔ 65 estati: si sfuma, si cambia, si torna. */
   transition: opacity var(--dur-fast) var(--ease-ui);
 }
 
@@ -792,8 +651,6 @@
   opacity: 0.12;
 }
 
-/* Numeri degli assi: cifre di larghezza fissa, così le etichette non ballano
-   quando la vista passa da 13 a 65 estati (03 § 3.4). */
 .trend-chart .recharts-cartesian-axis-tick text,
 .trend-chart .recharts-label {
   font-variant-numeric: tabular-nums;
@@ -949,12 +806,7 @@
   opacity: 0.18;
 }
 
-/* 2022, l'estate più calda della serie: resta rossa e guadagna un anello
-   --focus. È l'unico giallo del grafico ed è un uso legittimo — «guarda qui»
-   — non una decorazione (01 § 1.1). */
 .trend-chart-point--max .trend-chart-point-mark {
-  /* Filo sottile: a 2,5 px l'anello aveva più area del punto e il rosso
-     spariva sotto il giallo. Deve dire «guarda qui», non «sono selezionato». */
   box-shadow: 0 0 0 1.6px color-mix(in srgb, var(--focus) 92%, transparent);
 }
 
@@ -962,8 +814,6 @@
   opacity: 0.16;
 }
 
-/* Full-history view packs 65 marks on the line: keep them light and unobtrusive
-   so the shape reads, while hover still surfaces each year's value. */
 .trend-chart-hit-layer--dense .trend-chart-point-mark {
   border-width: 1.2px;
 }
@@ -1043,40 +893,13 @@
 
 
 
-/* =============================================
-   Section 2 — Cause ("Perché proprio qui?")
-   Editorial light/cream scene. The map is a framed crop on Bologna centro that
-   slides left↔right with the reading (verde vs materiali) and centres for the
-   compare. Replaces the old dark full-screen .pd-scene sequence.
-   ============================================= */
 
 :root {
   --causes-cream: var(--paper);
-  /* Le descrizioni usano lo stesso inchiostro del resto della webapp.
-     Le parole chiave restano distinte tramite `.kw` e i relativi pesi/colori. */
   --causes-ink: var(--ink);
-  /* Il tempo del ritaglio. Gemello CSS di CROP_MS in PhysicalDriversSection:
-     la transizione del riquadro, la camera che lo ricentra e il timer che la
-     posa sono lo stesso movimento visto da tre posti, e devono durare uguale.
-     Non è una camera narrativa e quindi NON prende --dur-camera (01 § 1.5):
-     a 2 s la scivolata sinistra↔destra, che è il gesto di questa scena,
-     diventerebbe molle. */
   --causes-crop-ms: 900ms;
 }
 
-/* Il capitolo sale SOPRA la mappa degli hotspot, che in quel momento è ancora
-   agganciata: gli ultimi 100vh della scena precedente erano una schermata di
-   carta vuota da scorrere, e adesso sono questa pagina che arriva.
-
-   Tre cose servono tutte e tre insieme:
-   - `margin-top` negativo di 100vh: tanto quanto dura l'aggancio della mappa,
-     così la copertura finisce esattamente quando la mappa si stacca;
-   - `z-index: 3`: `.hotspot-scene` non crea un contesto di impilamento, quindi
-     la sua mappa (z 1) e i suoi spaziatori (z 2) vivono nel contesto radice.
-     Senza z-index qui, questa sezione ci passerebbe SOTTO;
-   - fondo opaco: è lui che copre la mappa.
-   Il conto delle battute che ci sta a monte è in maps.css, su
-   .hotspot-sequence-hold. */
 .causes-section {
   position: relative;
   z-index: 3;
@@ -1086,9 +909,6 @@
   isolation: isolate;
 }
 
-/* Un solo richiamo all'hero, confinato all'apertura del capitolo. Il PNG è
-   usato come maschera alpha e prende il colore dai token TALEA già mescolati
-   alla carta: è una filigrana editoriale, non un simbolo dentro le mappe. */
 .causes-intro-leaf {
   position: absolute;
   z-index: 0;
@@ -1117,8 +937,6 @@
   transform: rotate(8deg) scale(1.08);
 }
 
-/* Il bordo d'attacco: la pagina non arriva con un taglio netto sopra la mappa,
-   ci sale sopra sfumando. Stessa idea del fronte della marea in entrata. */
 .causes-section::before {
   content: "";
   position: absolute;
@@ -1131,9 +949,6 @@
 }
 
 @media (max-width: 768px) {
-  /* Su schermo stretto la mappa degli hotspot non è agganciata: non c'è niente
-     sopra cui salire, e la sovrapposizione mangerebbe soltanto la coda della
-     scena precedente. */
   .causes-section {
     margin-top: 0;
   }
@@ -1142,30 +957,17 @@
     display: none;
   }
 
-  /* La colonna mobile occupa quasi tutta la larghezza: la filigrana sparisce. */
   .causes-intro-leaf {
     display: none;
   }
 }
 
-/* Qui c'era la banda verde che apriva il capitolo, in coppia con il velo verde
-   che chiudeva la mappa degli hotspot. Tolti tutti e due: il verde è il secondo
-   tempo della storia, e questo è ancora il primo (il ragionamento per esteso
-   sta in maps.css, dove stava il velo d'uscita). Anticipa una decisione che
-   apparterrebbe a 06: se questo capitolo vuole riaprire con una banda, la banda
-   deve nascere dalla carta, non dal verde. */
 
-/* (1) Apertura — titolo + testo, colonna centrata; sta SOTTO la banda verde. */
 .causes-intro {
   position: relative;
   z-index: 1;
   overflow: hidden;
   isolation: isolate;
-  /* Il respiro sopra il titolo è anche il tempo che il titolo impiega ad
-     affacciarsi mentre la pagina sale sopra la mappa: più è alto, più a lungo
-     si guarda salire un rettangolo di carta vuota. Accorciato di un terzo.
-     Tighter bottom: the first map scene follows close after "Andiamo a
-     scoprirle…" instead of leaving a tall empty band. */
   padding: clamp(104px, 17vh, 210px) var(--content-pad) clamp(24px, 4vh, 56px);
 }
 
@@ -1182,7 +984,6 @@
   z-index: 1;
 }
 
-/* Stessa taglia/peso del titolo di capitolo della sezione 1 (.trend-title). */
 .causes-title {
   font-family: var(--font-display);
   font-optical-sizing: auto;
@@ -1195,10 +996,6 @@
   text-wrap: balance;
 }
 
-/* Font matched to the Section-1 reference paragraph ("Se l'aria avvolge…",
-   .hotspot-intro-body); justified so the text starts AND ends at the same
-   position. Column width ~ the title's width (a touch wider) so the block reads
-   balanced under the heading (doc 04 §2 follow-up). */
 .causes-aperture {
   max-width: var(--measure-narrow);
   margin: 0 auto;
@@ -1206,47 +1003,28 @@
   line-height: 1.66;
   color: var(--causes-ink);
   white-space: pre-line;
-  /* Left-aligned (ragged right): natural word spacing, no stretched gaps, no
-     hyphenation. Lines all START at the same point and END where they naturally do. */
   text-align: left;
   hyphens: none;
   -webkit-hyphens: none;
 }
 
-/* "Tra le diverse cause…" a capo con uno spazietto (stile della Sezione 1). */
 .causes-aperture--break {
   margin-top: 22px;
 }
 
-/* Ultima frase dell'apertura: staccata + grassetto — stesso device delle altre sezioni. */
 .causes-aperture-close {
   max-width: var(--measure-narrow);
   margin: clamp(18px, 2.6vh, 30px) auto 0;
-  /* Aveva una scala sua, di poco più piccola del corpo. In questo capitolo ogni
-     testo che si legge sta a --fs-body: apertura, annuncio, descrizioni delle
-     mappe, sintesi finale. Il ruolo lo dicono il peso e il colore, non la
-     misura, o si finisce con quattro corpi diversi che nessuno ha deciso. */
   font-size: var(--fs-body);
   font-weight: 700;
   line-height: 1.45;
   color: var(--talea-dark-green);
 }
 
-/* (2–5) Scena: ritaglio sticky pilotato dalla colonna di testo. */
 .causes-scene {
   position: relative;
   z-index: 1;
 
-  /* ── La composizione della scena ──────────────────────────────────────────
-     Ritaglio, un vuoto, colonna di testo: tre misure che vanno insieme, e il
-     blocco che ne esce sta al centro della pagina.
-
-     Prima non era così: il ritaglio era spinto a un bordo (±25vw) e la colonna
-     incollata all'altro, e in mezzo restava tutto quello che avanzava. Su un
-     portatile erano ~310 px di vuoto, su uno schermo grande oltre 450 — e più
-     lo schermo era largo, peggio andava, perché le due cose si allontanavano
-     mentre il testo restava della stessa larghezza. Adesso il vuoto è un
-     valore dichiarato, e le due cose si allontanano dai BORDI, non fra loro. */
   --crop-w: min(50vw, 720px);
   --causes-col: min(520px, 42vw);
   --causes-gap: clamp(28px, 5vw, 132px);
@@ -1262,9 +1040,6 @@
   z-index: 1;
 }
 
-/* La carta non cambia identità, ma prende appena il tono della lente attiva.
-   Due velature indipendenti permettono al confronto di contenerle entrambe
-   senza introdurre un nuovo colore o un fondale decorativo. */
 .causes-stage::before,
 .causes-stage::after {
   content: "";
@@ -1319,14 +1094,10 @@
   );
 }
 
-/* Il ritaglio: finestra sul centro, PARTE dello sfondo (niente bordo, ombra
-   appena accennata). Scivola sx↔dx↔centro animando il solo transform. */
 .causes-crop {
   position: absolute;
   top: calc(50% + 20px);
   left: 50%;
-  /* Large, slid firmly to ONE side — the opposite side stays clear for the narrow
-     description column (no text-over-map) with a real gap for the connector to span. */
   width: var(--crop-w);
   height: min(72vh, 680px);
   --crop-x: 0px;
@@ -1335,7 +1106,7 @@
   overflow: visible;
   background: transparent;
   box-shadow: none;
-  opacity: 0; /* rivelato dall'entrata della scena */
+  opacity: 0;
   z-index: 1;
   transition:
     transform var(--causes-crop-ms) var(--ease-cine),
@@ -1343,14 +1114,6 @@
     height var(--causes-crop-ms) var(--ease-cine);
 }
 
-/* (06 § 6.4) La campitura che occupa il riquadro finché la mappa non ha finito
-   di disegnarsi. Prima il ritaglio entrava vuoto: una grande card avorio
-   arrotondata senza niente dentro per tutto il tempo di caricamento dei tile,
-   cioè la prima impressione della scena era un rettangolo vuoto.
-
-   Volutamente ferma. Un luccichio che scorre avvisa che si sta caricando
-   qualcosa, ma è un'animazione infinita in una pagina che ne ha bandite, e
-   qui non serve: il riquadro dura meno di un secondo. */
 .causes-crop-wash {
   position: absolute;
   inset: 0;
@@ -1363,11 +1126,6 @@
   opacity: 0;
 }
 
-/* Il ritaglio si mette al suo posto DENTRO la composizione: il blocco
-   «ritaglio + vuoto + colonna» è centrato, e a sinistra o a destra cambia solo
-   quale dei due estremi occupa. Il movimento resta quello di prima — una sola
-   `transform` che scivola — ma adesso la sua ampiezza dipende dalla colonna di
-   testo invece che da una frazione fissa della finestra. */
 .causes-stage--pos-left .causes-crop {
   --crop-x: calc((var(--crop-w) - var(--causes-duo)) / 2);
 }
@@ -1379,8 +1137,6 @@
   top: 50%;
 }
 
-/* "End of albedo": the lens crop fades away (no hard cut) as the synthesis text
-   rises, opening a clean cream reading beat before the comparison map comes out. */
 .causes-crop--leaving {
   animation: none !important;
   opacity: 0 !important;
@@ -1392,8 +1148,6 @@
 
 .causes-compare-crop {
   position: absolute;
-  /* Anchored LOWER (not centred) so the sticky description sits freely above it.
-     Large, occupying the lower portion. Opacity + transform driven inline. */
   top: 62%;
   left: 50%;
   width: min(72vw, 1120px);
@@ -1417,8 +1171,6 @@
   pointer-events: auto;
 }
 
-/* Slower fade on the way OUT: the compare map lingers as it drifts up, so it
-   bridges toward the shadow chapter's title instead of leaving an empty gap. */
 .causes-compare-crop--exiting {
   transition:
     opacity 2400ms ease,
@@ -1440,9 +1192,6 @@
   border-radius: 0;
 }
 
-/* I soli raster tematici, senza basemap rettangolare, si moltiplicano sulla
-   carta: i chiari si fondono nel fondo e resta la sagoma irregolare di Bologna,
-   come inchiostro stampato direttamente sulla pagina. */
 .causes-crop-map .maplibregl-canvas-container,
 .causes-compare-base-map .maplibregl-canvas-container,
 .causes-compare-overlay .maplibregl-canvas-container {
@@ -1455,8 +1204,6 @@
   background: transparent;
 }
 
-/* L'attribuzione resta sopra il velo e viene spostata appena verso il centro,
-   dove mantiene contrasto anche con i bordi dissolti. */
 .causes-crop .maplibregl-ctrl-bottom-left,
 .causes-compare-crop .maplibregl-ctrl-bottom-left {
   left: 12px;
@@ -1464,13 +1211,6 @@
   z-index: 7;
 }
 
-/* Entrance (§3, §9): the NDVI map fades + scales in once the stage is pinned. The
-   description texts rise from below via the panel active-state (scroll-driven,
-   below) — no one-time animation fighting the scroll opacity ("random" text).
-
-   Due tempi, non uno (06 § 6.4): il **riquadro** arriva con l'entrata della
-   scena e porta la sua campitura, la **mappa** entra quando è disegnata. Prima
-   erano la stessa cosa, e la mappa si «apriva» su niente. */
 .causes-scene--entered .causes-crop {
   animation: causes-map-in 760ms var(--ease-cine) both;
 }
@@ -1489,10 +1229,6 @@
   to { opacity: 1; transform: scale(1); }
 }
 
-/* ── Indice sticky dei due temi (06 § 6.3) ────────────────────────────────────
-   Nessuna capsula e nessun fondo da controllo: è un indice tipografico. Si trova
-   sotto l'header globale e sopra la mappa; le parole visibili arrivano qui come
-   copie animate dei termini nell'apertura. */
 .causes-topic-header {
   position: absolute;
   top: calc(var(--header-height) + clamp(24px, 4vh, 44px));
@@ -1588,8 +1324,6 @@
   }
 }
 
-/* NDVI / albedo colour-scale legend — anchored bottom-RIGHT so it never overlaps
-   the bottom-left OpenFreeMap attribution (§4). */
 .causes-maplegend {
   position: absolute;
   right: 14px;
@@ -1623,7 +1357,6 @@
   color: var(--talea-dark-green);
 }
 
-/* Compare: hotspot-only legend (the NDVI/albedo scales were shown above, §9). */
 .causes-hotspot-legend {
   position: absolute;
   right: 14px;
@@ -1655,10 +1388,6 @@
   color: var(--talea-dark-green);
 }
 
-/* Colonna testo: lato opposto al ritaglio (swap per-stage). Il contenitore va a
-   tutta larghezza perché le colonne si posizionano dentro la composizione della
-   scena, non dentro la griglia editoriale: devono stare accanto al ritaglio, e
-   il ritaglio non conosce la griglia. */
 .causes-panels {
   position: relative;
   z-index: 2;
@@ -1673,15 +1402,10 @@
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  /* Sits low so the description enters from the BOTTOM and rises. */
   width: var(--causes-col);
   padding-bottom: 16vh;
 }
 
-/* verde → testo a DESTRA; materiali → testo a SINISTRA. In tutti e due i casi
-   la colonna è centrata nella fascia che il ritaglio lascia libera: l'aria a
-   destra e a sinistra del testo è la stessa, e il vuoto verso la mappa è
-   --causes-gap, cioè un numero deciso. */
 .causes-panel--clue-green {
   margin-left: calc(50vw + (var(--causes-duo) / 2) - var(--causes-col));
   margin-right: 0;
@@ -1691,20 +1415,12 @@
   margin-right: 0;
 }
 
-/* confronto → blocco di testo centrato che SCORRE dal basso verso l'alto (come la
-   colonna degli indizi), poi esce in alto: solo allora compare la mappa. */
 .causes-panel--compare {
   width: min(720px, 88vw);
   margin: 0 auto;
   text-align: center;
 }
 
-/* Pinned scroll budget for the compare beat. The padding-top gives the previous
-   (albedo) description room to scroll up and clear; the compare caption then rises in
-   FROM THE LOWER-MIDDLE of the view (it activates higher — see the 0.64*vh line in
-   PhysicalDriversSection) so only a short scroll is needed before the comparison map
-   reveals below it. The caption then STICKS near the top, the map holds (slider), and
-   it all transitions out before the un-pin. */
 .causes-panel--compare.causes-panel--last {
   min-height: 176vh;
   justify-content: flex-start;
@@ -1712,8 +1428,6 @@
   padding-bottom: 0;
 }
 
-/* I massimi originali lasciavano fasce molto ampie sui monitor desktop grandi.
-   Qui cresce soprattutto la mappa; sui portatili la composizione non cambia. */
 @media (min-width: 1600px) {
   .causes-scene {
     --crop-w: min(46vw, 840px);
@@ -1727,24 +1441,14 @@
   padding-bottom: 40vh;
 }
 
-/* Testo indizi: misurato (non grande), valorizzato dalla sola riga-accento
-   ambra sull'attivo. */
 .causes-panel-body {
   margin: 0;
-  /* Stava a --fs-map, la misura riservata a ciò che sta SOPRA una mappa: qui
-     però il testo sta accanto alla mappa, in una colonna sua, e si legge di
-     seguito all'apertura del capitolo. Con due corpi diversi nella stessa
-     sezione la differenza non si legge come una gerarchia, si legge come una
-     svista. Tutto il capitolo sta a --fs-body. */
   font-size: var(--fs-body);
   line-height: 1.62;
   font-weight: 400;
-  /* Stesso inchiostro dell'apertura "Per capire perché il caldo si accumuli…".
-     Le parole chiave conservano il verde e il peso definiti da `.kw`. */
   color: var(--causes-ink);
   pointer-events: auto;
   white-space: pre-line;
-  /* Left-aligned (ragged right) — natural spacing, no stretched gaps, no hyphens. */
   text-align: left;
   hyphens: none;
   -webkit-hyphens: none;
@@ -1753,35 +1457,17 @@
   transition: opacity 520ms ease, transform 760ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* Qui c'era la riga-accento che si apriva sopra il paragrafo attivo (prima
-   gialla, poi ambra). L'ha sostituita l'indice in alto (06 § 6.3, § 6.8): il
-   filetto diceva «questo blocco è attivo», che è esattamente il mestiere
-   dell'indice, e due segni per la stessa cosa nella stessa schermata sono uno
-   di troppo. Il connettore si attacca adesso alla prima riga vera del testo. */
 
 .causes-panel-body--active {
   opacity: 1;
   transform: none;
 }
 
-/* (06 § 6.7) La didascalia del confronto era un paragrafo allineato a sinistra
-   con un filetto sopra e molta aria intorno: si leggeva come un pannello, cioè
-   come interfaccia, proprio nel momento in cui è invece la frase che tiene
-   insieme tutta la scena. Ora sono due righe centrate, alla misura della frase
-   guida, senza filetto e senza sfondo: sta sopra il confronto come una
-   didascalia sta sopra una fotografia.
-
-   Resta appiccicata in alto mentre la mappa tiene sotto — ma più in basso di
-   prima, perché sopra di lei adesso c'è l'indice. */
 .causes-panel--compare .causes-panel-body {
   width: 100%;
   max-width: min(700px, 92%);
   margin-left: auto;
   margin-right: auto;
-  /* Il § 6.7 la voleva a --fs-lead. Non entra: è l'ultimo testo del capitolo e
-     deve avere il corpo degli altri, o la coerenza che si è appena guadagnata
-     si perde proprio sull'ultima riga. A distinguerla bastano la posizione
-     (centrata, sopra il confronto) e l'aria intorno. */
   line-height: 1.6;
   text-align: center;
   text-wrap: pretty;
@@ -1789,7 +1475,6 @@
   top: clamp(148px, 17vh, 192px);
 }
 
-/* ── Confronto split: maniglia trascinabile e usabile da tastiera ── */
 .causes-compare-overlay {
   position: absolute;
   inset: 0;
@@ -1815,7 +1500,6 @@
   pointer-events: none;
 }
 
-/* Decorative Talea connector between the map crop and the active description. */
 .causes-connector {
   position: absolute;
   inset: 0;
@@ -1830,14 +1514,6 @@
   opacity: 1;
 }
 
-/* (06 § 6.8) Il connettore era giallo e spesso 2,6 px, cioè usava il colore che
-   in questa storia significa una cosa sola — «questo è ciò che stai
-   guardando» — per fare da decorazione. Ora è un filo di inchiostro tenue,
-   tratteggiato lungo: si vede se lo si cerca, non chiama.
-
-   Il tratteggio e il disegno progressivo non stanno sullo stesso elemento (il
-   disegno È un dasharray animato), quindi il tratto visibile è fermo e a
-   scoprirlo è la maschera qui sotto. */
 .causes-connector-path {
   fill: none;
   stroke: var(--ink-soft);
@@ -1849,8 +1525,6 @@
   opacity: 0.75;
 }
 
-/* La stessa curva, bianca e spessa, dentro una maschera: quello che copre si
-   vede. Il dashoffset da 1 a 0 la scopre dall'inizio alla fine. */
 .causes-connector-reveal {
   fill: none;
   stroke: #ffffff;
@@ -1865,8 +1539,6 @@
   animation: causes-connector-draw 940ms var(--ease-cine) both;
 }
 
-/* Node dot anchored to the description's first line — the line reads as growing out
-   of the text (prompt §1). */
 .causes-connector-node {
   fill: var(--ink-soft);
   stroke: var(--paper);
@@ -1880,7 +1552,6 @@
   animation: causes-connector-node-pop 460ms cubic-bezier(0.34, 1.56, 0.64, 1) 120ms both;
 }
 
-/* Open ring where the line meets the map crop. */
 .causes-connector-target {
   fill: none;
   stroke: var(--ink-soft);
@@ -1977,9 +1648,6 @@
   opacity: 0;
 }
 
-/* Micro-hint "trascina" SULLA maniglia (mai nel corpo del racconto). Held back
-   until the first-view intro sweep has finished, so the handle's motion lands
-   first and the word arrives to name what the reader has just seen. */
 .causes-compare-handle-hint {
   position: absolute;
   top: calc(50% + 32px);
@@ -2005,9 +1673,6 @@
   transform: translateX(-50%) translateY(0);
 }
 
-/* While the intro plays the handle is moving under rAF, so it must NOT carry a
-   CSS transition on `left` (that would lag and smear the sweep). The knob just
-   sits proud, as if held. */
 .causes-compare-handle--demo {
   cursor: ew-resize;
 }
@@ -2017,9 +1682,6 @@
   box-shadow: 0 0 0 4px rgba(255, 230, 4, 0.55), 0 6px 18px -6px rgba(0, 0, 0, 0.45);
 }
 
-/* (6) Uscita: raccordo morbido verso la sezione ombra (.shadow-focus sta sulla stessa carta, --paper).
-   Slim — just enough to resolve the cream into the next section right after the map's
-   out transition (the next section should follow soon, not after a tall gap). */
 .causes-exit {
   position: relative;
   z-index: 1;
@@ -2027,7 +1689,6 @@
   background: linear-gradient(180deg, var(--causes-cream) 0%, var(--paper) 100%);
 }
 
-/* ── Mobile: ritaglio sopra (centrato in alto), testo sotto. ── */
 @media (max-width: 768px) {
   .causes-crop,
   .causes-compare-crop,
@@ -2058,9 +1719,6 @@
     margin-bottom: 5px;
   }
 
-  /* Su schermo stretto il ritaglio sta sopra e il testo sotto: la composizione
-     a due colonne non c'è, e le colonne tornano a tutta larghezza dentro il
-     margine di pagina. */
   .causes-panels {
     padding: 0 var(--content-pad);
   }
@@ -2108,11 +1766,9 @@
     max-width: 100%;
     text-align: center;
     text-wrap: pretty;
-    /* No sticky caption on mobile (the map stacks above the text instead). */
     position: static;
   }
 
-  /* Mobile keeps the compare beat compact (the map stacks above the text). */
   .causes-panel--compare.causes-panel--last {
     min-height: 200vh;
     justify-content: flex-end;
@@ -2123,7 +1779,6 @@
 
 
 
-/* ── Legacy comparator styles (no longer rendered; kept inert) ── */
 .compare-section--unused-legacy,
 .compare-section {
   position: relative;
@@ -2361,7 +2016,6 @@
   box-shadow: 0 8px 22px rgba(0, 0, 0, 0.22), 0 0 0 3px var(--talea-yellow);
 }
 
-/* ── Shade focus block (after comparator) ── */
 .drivers-shade-focus {
   background: #ffffff;
   padding: 110px var(--content-pad) 30px;
@@ -2437,29 +2091,6 @@
 }
 
 
-/* =============================================
-   Ombra — il paradosso del cuore del centro (07)
-
-   È la coda del capitolo sulle cause, non un capitolo nuovo: nel DOM sta subito
-   dopo `.causes-section`, e sul ramo di sinistra ha comunque il suo fiore,
-   perché il lettore la vede come un cambio di scena (`chapters.js`).
-
-   In quattro tempi:
-     .sf-intro      il paradosso, dentro il vicolo di cui parla
-     .sf-scene      la mappa agganciata, con le due schede
-     .sf-aftermath  la chiusura, ancora sullo scuro da cui si esce
-     .sf-numbers    i numeri del cuore del centro, sulla carta
-
-   UN SOLO SCURO (07 § 7.1). Prima ce n'erano tre — `#06231a` per la mappa,
-   `#1f2d2a` per la sezione, `#04180f` per la chiusura — e a schermo si
-   leggevano come tre neri sporchi invece che come una scelta. Ora è
-   `--ink-deep` ovunque. Restano hex propri solo le fermate dei gradienti di
-   giunzione, che per definizione stanno fra due colori e non sono nessuno dei
-   due.
-
-   LA RAMPA ROSSO → BLU DEL DATO NON SI TOCCA: rosso = più sole, blu = più
-   ombra si legge senza legenda (07, rev. 2).
-   ============================================= */
 
 .shadow-focus {
   position: relative;
@@ -2467,20 +2098,6 @@
   color: #eef4ee;
 }
 
-/* ── Apertura: il paradosso, dentro il vicolo ────────────────────────────────
-   Il disegno non sta ACCANTO al testo, sta DIETRO: il lettore si trova dentro
-   la scena di cui il capitolo parla, e legge nella fessura di cielo fra le due
-   facciate. Da qui il fatto che il blocco sia centrato e stretto come tutte le
-   altre aperture di capitolo della storia (`.causes-intro`, `.hotspot-intro`) e
-   non a due colonne: due colonne facevano di questa sezione un oggetto a sé in
-   una pagina che apre sempre allo stesso modo.
-
-   La carta resta CHIARA per tutto il blocco. La discesa nello scuro sta in una
-   fascia sua, `::after`, di altezza dichiarata: un gradiente steso su un blocco
-   di altezza variabile fa cadere il testo sulla parte torbida a certe finestre
-   e non ad altre — ed è la stessa ragione per cui il disegno vive tutto
-   sull'avorio (in `multiply` sullo scuro sparirebbe, e con lui il calore che
-   sale dal selciato, che è il punto). */
 .sf-intro {
   position: relative;
   z-index: 1;
@@ -2492,16 +2109,12 @@
     clamp(118px, 16vh, 180px);
   background: linear-gradient(
     180deg,
-    /* parte sul colore su cui finisce `.causes-exit`: un valore solo, usato dai
-       due lati (03 § 3.1) */
     var(--paper) 0%,
     #EFEDE6 26%,
     #E3E6E5 100%
   );
 }
 
-/* La discesa verso la mappa. Chiude su --ink-deep, che è anche il fondo della
-   carta della scena: la mappa non compare, ci si entra dentro. */
 .sf-intro::after {
   content: "";
   position: absolute;
@@ -2521,14 +2134,7 @@
   pointer-events: none;
 }
 
-/* Il vicolo è un fondale, non una colonna separata: resta leggermente più
-   piccolo del blocco e il testo gli passa sopra sull'asse z. La maschera
-   alleggerisce proprio la fessura centrale in cui si legge. */
 .sf-intro-scene {
-  /* Era #4A4438, l'unico inchiostro diverso in tutto il sito. Le altre vignette
-     usano #3a352a: la mano deve essere la stessa anche quando il disegno sta al
-     56% dietro il testo. La consolidazione in un token unico di theme.css resta
-     da fare (PIANO_VIGNETTE.md, Fase 1.1). */
   --vg-ink: #3a352a;
   position: absolute;
   inset:
@@ -2540,44 +2146,7 @@
   opacity: 0;
   mix-blend-mode: multiply;
   transition: opacity var(--dur-slow) var(--ease-cine);
-  /* ── TRE MASCHERE MOLTIPLICATE, MA SOLO UNA TOGLIE DAVVERO ───────────────
-     1 · la radiale: SCHIARISCE il centro, non i bordi. È al contrario di una
-         vignettatura, e serve a una cosa sola — sotto il centro passa il testo
-         d'apertura, e il disegno lì deve farsi da parte.
-     2 · il bordo ALTO. Prima non c'era: la radiale arriva a #000 pieno sul
-         perimetro, quindi il cielo era tagliato di netto da una riga orizzontale
-         lunga quanto la pagina, e il disegno leggeva come un rettangolo
-         incollato.
-     3 · i due fianchi, quattro punti soltanto: giusto per smussare i due tagli
-         verticali senza intaccare le facciate, che sono il soggetto.
-
-     ── LE RAMPE SONO CORTE, ED È IL PUNTO ──
-     `mask-composite: intersect` MOLTIPLICA, quindi ogni livello toglie densità a
-     tutti gli altri, e qui la densità È il contenuto: questa vignetta racconta
-     un vicolo in ombra. Un primo tentativo sfumava in alto dal 22 %, in basso
-     dal 74 % e ai fianchi dal 9 %, e ne usciva un vicolo schiarito — soprattutto
-     perché le due facciate stanno in alto ai lati e l'ombra proiettata sta in
-     basso, cioè esattamente sotto le tre rampe. Dieci punti in alto bastano a
-     togliere la riga, e in basso non serve niente: lì ci pensa già la maschera
-     dentro l'SVG (`sfv-fade`), che arriva a metà densità sul bordo.
-     Il 56 % di opacità di prima era tarato su un disegno senza rampe; ora che
-     una parte se ne va sui bordi, il corpo del disegno ne chiede un po' di più
-     per pesare come pesava (vedi `.sf-intro-scene.drawn` qui sotto).
-
-     Vanno in CSS e NON dentro l'SVG, ed è una scelta obbligata: quell'SVG ha
-     `preserveAspectRatio="…slice"`, quindi il viewBox viene ritagliato per
-     coprire la scatola e di quanto lo sia dipende dalla larghezza della finestra
-     (a 1800 px si perdono già 160 unità sopra e 160 sotto). Una sfumatura
-     disegnata nel viewBox finirebbe fuori quadro proprio dove serve. Qui invece
-     le percentuali sono quelle della scatola vera, a qualunque larghezza. */
   mask-image:
-    /* ── LA RADIALE SI È ALZATA E STRETTA ──────────────────────────────────
-       Era `ellipse 42% 44% at 50% 40%`: centrata al 40 % con raggio verticale
-       44 %, quindi schiariva fino all'84 % dell'altezza. Ma il testo
-       d'apertura finisce al 54 %, e dal 53 % in giù corre l'ombra proiettata:
-       trenta punti percentuali di schiarita spesi esattamente sul soggetto
-       della vignetta. Adesso copre lo 0-68 %, cioè il testo e basta, e la
-       fascia bassa torna a piena densità. */
     radial-gradient(
       ellipse 40% 36% at 50% 32%,
       rgba(0, 0, 0, 0.18) 24%,
@@ -2589,10 +2158,6 @@
   mask-composite: intersect;
 }
 
-/* Era 0,56, tarato su un disegno che arrivava a piena densità fino al bordo.
-   Con le rampe della maschera qui sopra una parte del disegno se ne va, e a
-   parità di opacità il vicolo si legge schiarito — che in una vignetta il cui
-   soggetto è l'ombra è il difetto peggiore possibile. */
 .sf-intro-scene.drawn { opacity: 0.63; }
 
 .sf-intro-scene svg {
@@ -2601,8 +2166,6 @@
   height: 100%;
 }
 
-/* Il tratto: più spesso che nelle altre vignette perché il riquadro è largo
-   1600 unità invece di 640, e a parità di spessore sparirebbe. */
 .sf-intro-scene .ink path,
 .sf-intro-scene .ink circle {
   fill: none;
@@ -2625,8 +2188,6 @@
 .sf-intro-scene .il[data-d="5"] * { transition-delay: 1.14s; }
 .sf-intro-scene .il[data-d="6"] * { transition-delay: 1.36s; }
 
-/* Tratti che non sono contorno. Stanno DOPO la regola generica di .ink: stessa
-   specificità, vince l'ultima. */
 .sf-intro-scene .paving path {
   stroke: color-mix(in srgb, var(--vg-ink) 38%, transparent);
   stroke-width: 2;
@@ -2638,15 +2199,11 @@
   stroke-width: 2.6;
 }
 
-/* Il bordo freddo rende esplicito il gesto del palazzo che proietta l'ombra
-   sulla strada, senza trasformare la vignetta in una legenda. */
 .sf-intro-scene .cast-shadow path {
   stroke: #315873;
   stroke-width: 3.2;
 }
 
-/* Il calore che continua a salire dal selciato in ombra: è il punto della
-   scena, ed è l'unico tratto caldo. */
 .sf-intro-scene .rise path {
   stroke: #B84E1B;
   stroke-width: 3.4;
@@ -2669,7 +2226,6 @@
   }
 }
 
-/* Il testo: colonna stretta e centrata, come ogni altra apertura di capitolo. */
 .sf-intro-inner {
   position: relative;
   z-index: 3;
@@ -2678,7 +2234,6 @@
   text-align: center;
 }
 
-/* L'attacco: una riga sola, sottovoce, che apre la domanda. */
 .sf-opening {
   margin: 0 0 clamp(8px, 1.2vh, 13px);
   font-size: var(--fs-body);
@@ -2686,9 +2241,6 @@
   color: var(--ink-soft);
 }
 
-/* «L'ombra» era un grassetto in mezzo a una frase: la parola che dà il nome al
-   capitolo, detta di sfuggita (07 § 7.3). Stessa taglia, stesso peso e stesso
-   colore dei titoli di capitolo della storia (`.causes-title`). */
 .sf-title {
   margin: 0 0 clamp(12px, 1.8vh, 20px);
   font-family: var(--font-display);
@@ -2712,8 +2264,6 @@
   -webkit-hyphens: none;
 }
 
-/* Livello «frase-perno» (01 § 1.3): riga a sé, più grande, NON in grassetto.
-   È l'unica cosa che il lettore deve portarsi via da questa schermata. */
 .sf-pivot {
   max-width: var(--measure-narrow);
   margin: clamp(14px, 2.2vh, 24px) auto 0;
@@ -2724,23 +2274,10 @@
   text-wrap: balance;
 }
 
-/* ── La scena agganciata ─────────────────────────────────────────────────────
-   NESSUN VELO D'INGRESSO (07 § 7.6). La mappa hotspot *si rivela*: un sipario
-   che si alza. Se anche questa si rivelasse sarebbe la stessa messa in scena
-   due volte — ed è il difetto che il report chiama «lo stesso trucco ripetuto
-   cinque volte». Questa si *avvicina*: lo scuro in fondo all'apertura e il
-   fondo della carta sono lo stesso `--ink-deep`, quindi la mappa non compare,
-   ci si entra dentro; poi la camera fa il resto in due tempi.
-
-   Le SCHEDE invece sono le stesse della scena hotspot, ed è voluto: quelle
-   sono interfaccia, non regia (vedi il commento nel JSX). */
 .sf-scene {
   position: relative;
   background: var(--ink-deep);
   color: #f3f7f3;
-  /* mappa agganciata (100vh) + l'attesa che tiene la sequenza (88vh) + lo
-     spazio in cui si sgancia (34vh). L'attesa è più corta di prima (96vh)
-     perché la sequenza dura ~10,5 s invece di ~15. */
   min-height: 222vh;
   scroll-margin-top: calc(var(--header-height) + 28px);
 }
@@ -2760,9 +2297,6 @@
   inset: 0;
 }
 
-/* Vignettatura: il modo più economico per far sembrare una mappa
-   un'inquadratura invece che un dato (07 § 7.1). Molto leggera: se si vede, è
-   troppa. */
 .sf-scene-frame {
   position: absolute;
   inset: 0;
@@ -2775,7 +2309,6 @@
   );
 }
 
-/* Il sipario d'uscita: resta perché consegna la mappa alla chiusura chiara. */
 .sf-scene-exit-veil {
   position: absolute;
   inset: 0;
@@ -2791,16 +2324,6 @@
   opacity: 1;
 }
 
-/* La legenda dice il SOGGETTO, non la scala (00 § 3.2): il verde e il blu
-   ricorrono con significati diversi in scene diverse, e «basso → alto» non
-   direbbe di cosa. È una scheda di carta come le altre di questa scena: una
-   sola famiglia per schermo, che è la ragione per cui in `05` le schede della
-   mappa hotspot sono passate dal vetro scuro alla carta. */
-/* Misure: quelle della legenda della mappa hotspot (.hotspot-legend in
-   maps.css) — stessa larghezza, stesso padding, stesso corpo del titolo, stessa
-   altezza della barra. Là era leggibile e qui era rimpicciolita senza motivo. Il
-   posto invece resta questo, in alto a destra: le schede occupano la colonna
-   sinistra, e la legenda là sotto non ci sta. */
 .sf-scene-legend {
   position: absolute;
   top: clamp(92px, 13vh, 150px);
@@ -2849,7 +2372,6 @@
   width: 100%;
   height: 13px;
   border-radius: 999px;
-  /* La rampa del dato, invariata. */
   background: linear-gradient(
     90deg,
     #9c2a05 0%,
@@ -2887,17 +2409,13 @@
   border-color: rgba(255, 255, 255, 0.72);
 }
 
-/* ── Le schede, come quelle della mappa hotspot ──────────────────────────────
-   Stessa carta, stesso quadratino di colore davanti alla prima parola, stessa
-   entrata (la colonna intera, una volta sola, dall'alto), stesso comportamento
-   attiva/spenta. Stanno a sinistra perché la legenda sta a destra. */
 .sf-sequence {
   position: absolute;
   z-index: 5;
   top: clamp(92px, 13vh, 150px);
   left: clamp(84px, 7vw, 112px);
   width: min(430px, 33vw);
-  pointer-events: none; /* la mappa resta interrogabile; le schede si riprendono il puntatore */
+  pointer-events: none;
   transition:
     opacity var(--dur-mid) var(--ease-cine),
     transform var(--dur-mid) var(--ease-cine);
@@ -2913,8 +2431,6 @@
     visibility 0s;
 }
 
-/* `visibility: hidden` alla fine della dissolvenza, e non solo opacità: schede
-   invisibili ma cliccabili ruberebbero il puntatore alla mappa sotto. */
 .sf-sequence--out {
   opacity: 0;
   transform: translateY(-10px);
@@ -2938,8 +2454,6 @@
   text-align: left;
   font: inherit;
   color: #f0f4ee;
-  /* Lo spazio a sinistra è il posto del quadratino: le righe rientrano con la
-     prima, come una nota con il suo segno. */
   padding: 20px 24px 21px 46px;
   background-color: rgba(3, 27, 16, 0.88);
   background-image:
@@ -2963,7 +2477,6 @@
   cursor: default;
 }
 
-/* Il quadratino porta il colore con cui la mappa marca quella tappa. */
 .sf-seq-item::before {
   content: "";
   position: absolute;
@@ -2984,9 +2497,6 @@
     0 0 0 1px color-mix(in srgb, var(--tier, #1272B7) 26%, transparent);
 }
 
-/* Ad arretrare è l'INCHIOSTRO, non la carta: abbassare l'opacità dell'intera
-   scheda la renderebbe translucida e la mappa filtrerebbe attraverso le parole
-   proprio dove il testo è già secondario. */
 .sf-seq-item.is-dim {
   color: rgba(232, 239, 232, 0.7);
   transform: scale(0.982);
@@ -3013,12 +2523,10 @@
   text-wrap: pretty;
 }
 
-/* La riga di stacco: sta nella stessa scheda ma non è la stessa voce. */
 .sf-seq-item .sf-line--secondary {
   margin-top: 9px;
 }
 
-/* Il piede: la pastiglia di carta che contiene i pallini e la didascalia. */
 .sf-sequence-foot {
   width: fit-content;
   margin-top: 16px;
@@ -3035,7 +2543,6 @@
   gap: 8px;
 }
 
-/* Compare con la prima scheda: prima di quella non c'è niente da numerare. */
 .sf-sequence-foot--live {
   opacity: 1;
 }
@@ -3044,7 +2551,6 @@
   margin-top: 2px;
 }
 
-/* Il tratto di scroll che tiene ferma la sequenza, e poi la lascia andare. */
 .sf-scene-flow {
   position: relative;
   z-index: 2;
@@ -3063,9 +2569,6 @@
   pointer-events: none;
 }
 
-/* ── La chiusura, ancora sullo scuro ─────────────────────────────────────────
-   «L'ombra c'è. Il calore resta.» arriva meglio sul buio da cui si sta
-   uscendo che su una carta già accesa. */
 .sf-aftermath {
   position: relative;
   padding:
@@ -3081,7 +2584,6 @@
   text-align: center;
 }
 
-/* Quattro parole che valgono tutto il capitolo (07 § 7.9). */
 .sf-final-pivot {
   margin: 0 0 clamp(22px, 3vh, 34px);
   font-family: var(--font-display);
@@ -3104,7 +2606,6 @@
   -webkit-hyphens: none;
 }
 
-/* Il ritorno alla luce, in una fascia di altezza dichiarata. */
 .sf-handoff {
   height: clamp(120px, 15vh, 170px);
   background: linear-gradient(
@@ -3117,8 +2618,6 @@
   );
 }
 
-/* ── I numeri del cuore del centro (07 § 7.8) ────────────────────────────────
-   Chiude sul bianco su cui apre il capitolo dopo. */
 .sf-numbers {
   position: relative;
   isolation: isolate;
@@ -3127,8 +2626,6 @@
   color: var(--ink);
 }
 
-/* L'ultima traccia della transizione continua dietro l'intestazione e il primo
-   tratto dei dati. È già molto diluita: collega, senza velare i numeri. */
 .sf-numbers::before {
   content: "";
   position: absolute;
@@ -3167,8 +2664,6 @@
   margin: clamp(18px, 2.4vh, 24px) auto 0;
 }
 
-/* Nessuna card esterna: il confronto è disegnato direttamente sulla pagina
-   con sole regole editoriali. */
 .sf-strip {
   --sf-data-gap: clamp(60px, 7vw, 112px);
   display: grid;
@@ -3183,9 +2678,6 @@
   text-align: left;
 }
 
-/* Che si parlasse del centro, finora, era scritto solo nell'`aria-label`:
-   invisibile a chi vede. Il `boundary.label` esisteva nel JSON e non veniva
-   mostrato da nessuna parte. */
 .sf-strip-head {
   grid-column: 1;
   grid-row: 1 / span 3;
@@ -3215,9 +2707,6 @@
   text-wrap: pretty;
 }
 
-/* Le quattro celle non erano pari e la vecchia striscia le trattava come se lo
-   fossero: quattro riquadri identici, stesso verde, stessa misura. Le prime due
-   SONO il paradosso e stanno grandi; le altre due lo spiegano. */
 .sf-strip-lead {
   position: relative;
   grid-column: 2;
@@ -3231,8 +2720,6 @@
   border-bottom: 1px solid color-mix(in srgb, var(--ink) 14%, transparent);
 }
 
-/* Il filo verticale fra i due numeri: li tiene affiancati come due termini di
-   un confronto invece che come due schede. */
 .sf-strip-lead::before {
   content: "";
   position: absolute;
@@ -3248,9 +2735,6 @@
   );
 }
 
-/* La cerniera del paradosso, e prima non c'era: senza di lei le due
-   percentuali si leggevano come due dati affiancati invece che come una
-   contraddizione. La pastiglia copre il filo, così la parola ci sta dentro. */
 .sf-strip-hinge {
   position: absolute;
   left: 50%;
@@ -3282,8 +2766,6 @@
   font-weight: 400;
   letter-spacing: -0.035em;
   line-height: 1;
-  /* Il colore del dato di cui parla: il blu dell'ombra, il rosso del caldo.
-     Sono i due colori con cui la mappa qui sopra li disegna, non colori nuovi. */
   color: var(--tone, var(--talea-dark-green));
 }
 
@@ -3299,9 +2781,6 @@
   text-wrap: balance;
 }
 
-/* Le `note` erano già nel JSON e non le mostrava nessuno. Dicono dentro che
-   cosa è misurata ogni percentuale — ed è qui che «9 estati su 13» compare come
-   scelta dichiarata, non come regola. */
 .sf-lead-note {
   max-width: 17em;
   font-size: clamp(0.95rem, 1.05vw, 1.05rem);
@@ -3326,9 +2805,6 @@
   white-space: nowrap;
 }
 
-/* I due numeri piccoli: una riga sola, sotto un filo, che si legge come una
-   frase. Prima erano due colonne con le loro note, cioè due altri blocchi da
-   leggere — ed è il punto in cui la striscia si disperdeva. */
 .sf-strip-because {
   grid-column: 2;
   grid-row: 2;
@@ -3365,9 +2841,6 @@
   padding: 2px clamp(18px, 3vw, 38px) 4px;
 }
 
-/* Le due metriche occupano colonne identiche: numero sopra, descrizione sotto.
-   La gerarchia resta la stessa anche quando le etichette hanno lunghezze
-   diverse, senza spostare il baricentro del gruppo. */
 .sf-support-cell + .sf-support-cell::before {
   content: "";
   position: absolute;
@@ -3415,7 +2888,6 @@
 }
 
 @media (max-width: 900px) {
-  /* La legenda scende sotto le schede: affiancate non ci stanno più. */
   .sf-scene-legend {
     top: auto;
     bottom: 20px;
@@ -3446,9 +2918,6 @@
 }
 
 @media (max-width: 720px) {
-  /* Con il rapporto stretto del telefono, `slice` taglierebbe entrambe le
-     facciate. Una finestra bassa conserva invece l'intera larghezza del vicolo
-     e lo mantiene come fondale dietro al testo. */
   .sf-intro-scene {
     inset: auto 10px;
     top: 50%;
@@ -3461,8 +2930,6 @@
     text-wrap: balance;
   }
 
-  /* La mappa si sgancia: su uno schermo alto e stretto una scena bloccata da
-     100vh con le schede sopra lascia al disegno una fessura. */
   .sf-scene { min-height: auto; }
   .sf-scene-map {
     position: relative;
@@ -3486,9 +2953,6 @@
   .sf-seq-item .sf-line { font-size: var(--fs-body); line-height: 1.5; }
   .sf-sequence-hold { min-height: 54vh; }
   .sf-scene-buffer { min-height: 20vh; }
-  /* Sul telefono la legenda è una fascia in alto e le schede cominciano a
-     148px: qui il corpo cresce solo di quanto sta in quei 72px, e la riga di
-     descrizione resta fuori. */
   .sf-scene-legend {
     bottom: auto;
     top: 76px;
@@ -3508,9 +2972,6 @@
     white-space: nowrap;
   }
 
-  /* I due numeri grandi vanno uno sotto l'altro, e «Eppure» torna nel flusso
-     fra i due: è il posto che ha nel markup, quindi basta smettere di
-     posizionarla. */
   .sf-strip-lead {
     grid-template-columns: 1fr;
     row-gap: clamp(20px, 3.4vh, 30px);
@@ -3543,9 +3004,6 @@
   }
 }
 
-/* =============================================
-   Section 3 — Vulnerability / CRAF
-   ============================================= */
 
 .vulnerability-section {
   position: relative;
@@ -3558,8 +3016,6 @@
   );
   color: var(--ink);
   overflow-x: clip;
-  /* Il titolo sale leggermente e il capitolo usa la stessa cornice larga delle
-     composizioni Aria, Cause e Rifugi climatici. */
   padding: clamp(72px, 7.4vw, 104px) var(--content-pad) clamp(32px, 3.5vw, 48px);
 }
 
@@ -3814,9 +3270,6 @@
 }
 
 .vulnerability-vignette {
-  /* Inchiostro della vignetta. Rinominato da --ink: ora --ink è un token
-     globale (il testo su chiaro) e un'ombreggiatura locale con lo stesso nome
-     è una trappola per chi passerà di qui dopo. */
   --vg-ink: #3a352a;
   position: relative;
   isolation: isolate;
@@ -3833,25 +3286,6 @@
     transform var(--dur-mid) var(--ease-cine) 100ms;
 }
 
-/* ── LA LUCE DEL SOLE È LA CARTA ────────────────────────────────────────────
-   Stessa tecnica di `.hotspot-intro-panel::before` in maps.css, e per la stessa
-   ragione: dentro l'SVG la luce era un'ellisse piena, e un'ellisse piena ha un
-   contorno — attorno a un sole un contorno visibile dice «macchia disegnata».
-   Soprattutto finiva dove finisce il riquadro, cioè disegnava proprio il bordo
-   del rettangolo che tutta questa vignetta lavora per far sparire.
-
-   ── L'ANCORAGGIO, che è la parte da non rompere ──
-   Il sole sta a (cx 650, cy 82) di un viewBox 760 × 400, cioè all'85,53 % della
-   larghezza della figura e al 10,79 % della stessa larghezza in altezza (il
-   disegno è alto 400/760 = 0,5263 volte la propria larghezza).
-   In larghezze di figura F:  sole = (0,8553 F ; 0,1079 F).
-   L'elemento è largo 2,4 F e alto 2,4 × 0,5263 F = 1,2632 F, e il `translate` in
-   percentuale si misura sulla SUA scatola: per portargli il centro sul sole
-   servono −(1,2 − 0,8553)/2,4 = −14,36 % in x e −(0,6316 − 0,1079)/1,2632 =
-   −41,46 % in y. Se il sole si sposta nell'SVG vanno ricalcolati, altrimenti la
-   luce esce da un punto in cui non c'è niente.
-   La sfumatura si spegne al 92 %, cioè PRIMA del bordo della scatola: se
-   arrivasse a 100 % ricomparirebbe il bordo netto che stiamo togliendo. */
 .vulnerability-vignette::before {
   content: "";
   position: absolute;
@@ -3870,14 +3304,8 @@
     rgba(232, 150, 80, 0.04) 74%,
     rgba(232, 150, 80, 0) 92%
   );
-  /* Un filo di sfocatura, non per sfumare — ci pensano le fermate — ma per
-     togliere le bande che un alfa così basso disegna su fondo chiaro. */
   filter: blur(18px);
   opacity: 0;
-  /* Sale INSIEME al colore, non prima: il tratto parte a 0 s, il colore a 0,9 s
-     e finisce di salire a 2,1 s. Con 1,6 s da +0,5 s la carta si scalda esatta-
-     mente mentre la vignetta si riempie. Una luce che precede il proprio sole è
-     la cosa che si stava togliendo. */
   transition: opacity 1.6s var(--ease-cine) 0.5s;
 }
 
@@ -3937,8 +3365,6 @@
   opacity: 1;
 }
 
-/* Segni di materia aggiunti alle campiture: il tratteggio resta leggero e
-   localizzato, cosi' la scena acquista mano senza sporcare i personaggi. */
 .vulnerability-vignette .material-hatch {
   fill: none;
   stroke-linecap: round;
@@ -3983,9 +3409,6 @@
   margin: clamp(18px, 2vw, 24px) auto 0;
 }
 
-/* La coppia illustrata resta ampia finché c'è spazio sufficiente. Su tablet
-   passa a una sequenza verticale prima che la vignetta venga compressa troppo;
-   anche il dato torna a una sola colonna mantenendo la lettura a sinistra. */
 @media (max-width: 1000px) {
   .vulnerability-intro {
     width: min(800px, 100%);
@@ -4014,9 +3437,6 @@
   }
 }
 
-/* =============================================
-   Section 4 — Climate Shelters
-   ============================================= */
 
 .shelters-section {
   background: var(--paper);
@@ -4307,9 +3727,6 @@
 }
 
 
-/* =============================================
-   Section 5 — Shade / SCI
-   ============================================= */
 
 .shade-section {
   background: #ffffff;
@@ -4641,7 +4058,6 @@
   }
 }
 
-/* ── Trend Mobile ── */
 @media (max-width: 768px) {
   .trend-section {
     padding: 70px var(--content-pad) 56px;
@@ -4900,12 +4316,6 @@
   }
 }
 
-/* Il blocco reduced-motion di questo capitolo stava annidato dentro il
-   @media (max-width: 768px) qui sopra, quindi valeva solo su schermo stretto.
-   Ora sta al livello giusto — e chiede molto meno: l'ingresso del titolo e il
-   disegno della vignetta sono la messa in scena del capitolo e restano (la
-   sezione è marcata data-motion="story", vedi theme.css); si fermano solo i
-   cicli ambientali, che non raccontano niente. */
 @media (prefers-reduced-motion: reduce) {
   .vulnerability-vignette .haze,
   .vulnerability-vignette .heat path {
@@ -4914,12 +4324,6 @@
 }
 
 
-/* =============================================
-   Chapter — Il sollievo climatico
-   (rifugi climatici → 3-30-300 → NBS → corridoi → portici)
-   One continuous flowing chapter. Ported from
-   talea_capitolo_sollievo_climatico.html and retuned to the TALEA palette.
-   ============================================= */
 
 .relief-chapter {
   --relief-ink: #3a352a;
@@ -4929,14 +4333,10 @@
   position: relative;
   background: var(--paper);
   color: var(--relief-body);
-  /* clip (NOT hidden): contains the wide vignettes' horizontal overflow without
-     turning the chapter into a scroll container — `overflow: hidden` here would
-     break every position:sticky inside it (the figure + both maps). */
+  /* `hidden` would create a scroll container and break descendant sticky scenes. */
   overflow-x: clip;
 }
 
-/* Reading columns + light "field" bands between the heavy (map / figure) beats,
-   so the chapter breathes the way the rest of the story does. */
 .relief-flow {
   max-width: 680px;
   margin: 0 auto;
@@ -4947,9 +4347,6 @@
   max-width: 640px;
 }
 
-/* Body copy uses the shared editorial scale. Applied via a class (not a greedy
-   `.relief-chapter p`) so the lead and heading classes below win cleanly
-   without specificity fights. */
 .relief-body {
   font-size: var(--fs-body);
   line-height: 1.72;
@@ -4968,10 +4365,6 @@
 
 .relief-soft-start,
 .relief-opening {
-  /* Seam with the fragility section stays neutral (#e5eee1), then — lower down,
-     already inside the relief chapter — a soft sage-green swell rises and melts
-     into the fresh, pale opening. That's the "stacco sfumato": a gentle colour
-     break that lives in the new section, not on the fragility text above. */
   background: linear-gradient(
     180deg,
     #e5eee1 0%,
@@ -4991,15 +4384,6 @@
   background: linear-gradient(180deg, #eef3ec 0%, #f5f8f3 100%);
 }
 
-/* Il ponte fra la mappa REALE dei rifugi e lo scenario ILLUSTRATIVO. Non introduce
-   un'altra tesi: dichiara soltanto che cambia il tipo di immagine, così la pianta
-   successiva non viene scambiata per una nuova cartografia dei cantieri. */
-/* ── Dalla mappa alla pianta: il cambio di registro ──────────────────────────
-   Stessa impostazione della chiusura del capitolo dell'ombra (`.sf-aftermath`):
-   una fascia con il testo in ALTO, che si legge appena entra. Prima era un
-   blocco di 84svh con il testo centrato, cioè quasi mezza schermata di vuoto
-   prima delle due righe e altrettanto dopo: chi usciva dalla mappa scorreva a
-   lungo su un campo verde muto e trovava il testo troppo in basso, troppo tardi. */
 .plan-intro {
   padding:
     clamp(84px, 12vh, 132px)
@@ -5010,9 +4394,6 @@
     linear-gradient(180deg, #edf4e9 0%, #f1f4eb 50%, #edf4e9 100%);
 }
 
-/* Largo abbastanza perché la riga d'apertura stia su UNA riga sul desktop: a
-   680px si spezzava a metà di una frase corta, che è il modo peggiore di
-   mandare a capo sette parole. Il testo sotto ha una misura sua, più stretta. */
 .plan-intro-inner {
   width: min(760px, 100%);
   margin: 0 auto;
@@ -5039,9 +4420,6 @@
   text-wrap: pretty;
 }
 
-/* "A Bologna questi luoghi esistono già" — a full-height transition that
-   starts right at the top edge, carries the vignette's final sage tone, and
-   keeps shifting all the way to the bottom of the block. */
 .relief-field--rifugi {
   background: linear-gradient(
     180deg,
@@ -5053,8 +4431,6 @@
   );
 }
 
-/* The move from the illustrated refuge to the real city changes rhythm, but
-   keeps one clear reading axis: statement, context, invitation to the map. */
 .relief-flow--rifugi {
   max-width: min(1240px, var(--content-max));
   display: block;
@@ -5109,9 +4485,6 @@
   text-wrap: pretty;
 }
 
-/* ── Chapter opening: editorial H2 (same scale as the other section titles) +
-   lead. Centred head, left-aligned reading column below. Nessun kicker: gli
-   altri capitoli non ne hanno, e uno solo qui sarebbe un'incoerenza (09 § 9.1). ── */
 .relief-title {
   font-family: var(--font-display);
   font-optical-sizing: auto;
@@ -5134,8 +4507,6 @@
   margin: 0 0 22px;
 }
 
-/* Chapter thesis — the bold stand-out close to the opening (same device the
-   other sections use for their last opening line). */
 .relief-thesis {
   margin: 0;
   padding-top: 18px;
@@ -5149,10 +4520,6 @@
   border-bottom-color: rgba(0, 77, 25, 0.4);
 }
 
-/* The punchy first line that opens each field block (rifugi / 3-30-300 / "after"). */
-/* «A Bologna questi luoghi esistono già.» (`10` § 10.4-bis). Un gradino sotto
-   il titolo di capitolo: è la testata di una scena, non l'apertura del capitolo,
-   che qui è già «Gli spazi verdi sono la soluzione.» due schermate più su. */
 .rifugi-title {
   font-family: var(--font-display);
   font-optical-sizing: auto;
@@ -5180,21 +4547,10 @@
   text-wrap: balance;
 }
 
-/* ── Sticky explainer: a street becomes a climate refuge, layer by layer ── */
 
 .relief-explainer {
   position: relative;
   transition: background 1.1s ease;
-  /* Before the scene enters, the section carries the same neutral as
-     .relief-chapter above, so there is NO seam — it flows out of the previous
-     block. On entry the warm sky tint cross-fades in (via this background
-     transition) together with the drawing, instead of popping in as a hard block.
-     The vignette's sky (SVG y 0–330) is fully transparent, so whatever colour
-     sits here shows straight through — it IS the vignette's sky. Flat colour, not
-     a gradient: the figure is position:sticky, so a gradient on this 7744px-tall
-     element would slide out of alignment with it. Warms at the hot, shadeless
-     opening and cools to sage as the refuge greens up; the last step matches
-     .relief-field below. */
   background: #e5eee1;
 }
 
@@ -5207,8 +4563,6 @@
 .relief-explainer--entered[data-step="6"] { background: #e7efe0; }
 .relief-explainer--entered[data-step="7"] { background: #e7f0e1; }
 
-/* Sticky stage: pins the whole scene (figure + swapping text) while the build
-   auto-plays; the hold spacer below sets how long it stays pinned. */
 .relief-explainer-stage {
   position: sticky;
   top: var(--header-height);
@@ -5243,18 +4597,10 @@
   opacity: 0;
 }
 
-/* La scena condivide ora la cornice larga delle composizioni Aria e Cause:
-   testo e vignetta continuano ad avere misure leggibili proprie, ma insieme
-   occupano lo schermo invece di fermarsi in una fascia centrale. Sopra i
-   1520 px la cornice si arresta, come le altre scene editoriali, così il
-   disegno non diventa dispersivo sui monitor molto larghi. */
 .relief-explainer-inner {
   position: relative;
   z-index: 1;
   width: 100%;
-  /* Allargata da 1520 per il plastico: un modello che si gira chiede più
-     respiro di una vignetta ferma, perché ruotando mostra il fianco lungo
-     della piazza dove prima mostrava solo il fronte. */
   max-width: 1620px;
   margin: 0 auto;
   padding: clamp(154px, 18vh, 184px) max(var(--content-pad), 34px) 0;
@@ -5265,16 +4611,6 @@
     minmax(0, 0fr);
   gap: clamp(24px, 2.8vw, 42px);
   align-items: center;
-  /* ── Sei decimi ─────────────────────────────────────────────────────────
-     Era un secondo — troppo, perché è l'unica finestra in cui si paga davvero
-     il plastico: mentre le colonne cambiano larghezza va ridisegnato a ogni
-     fotogramma, migliaia di poligoni SVG sotto un filtro che non si compone in
-     GPU, ed è lì che questa transizione si impuntava. Portarlo a un terzo di
-     secondo ha tolto il problema ma ha creato l'opposto: la scena scattava.
-
-     Sei decimi è il punto in cui sta in piedi tutto. Coincide con l'entrata
-     del plastico (rifugio-model3d.css), così la riorganizzazione delle colonne
-     e il disegno che si posa sono un movimento solo invece che due. */
   transition:
     grid-template-columns 0.6s var(--ease-cine),
     padding-top 0.55s var(--ease-cine);
@@ -5290,9 +4626,6 @@
 
 .relief-intro-heading {
   position: absolute;
-  /* Un po' più alto rispetto alla coppia testo/disegno: crea il respiro che
-     nelle scene precedenti separa il titolo dal contenuto senza aggiungere
-     spazio verticale all'intero sticky. */
   top: clamp(-52px, -5.2vh, -38px);
   left: 50%;
   width: min(820px, calc(100% - 64px));
@@ -5319,16 +4652,10 @@
 .relief-intro-copy {
   grid-column: 1;
   min-width: 0;
-  /* La misura resta vicina a quella editoriale già approvata. La cornice più
-     larga serve soprattutto a distribuire testo e vignetta, non a dilatarli:
-     cresce solo quel tanto che basta a evitare ritorni a capo troppo precoci. */
   width: min(100%, clamp(420px, 30.5vw, 480px));
   justify-self: start;
   overflow: hidden;
   opacity: 1;
-  /* Il ramo narrativo occupa il primo margine della pagina: il testo si apre
-     verso sinistra, ma conserva una fascia di sicurezza e non gli finisce
-     sotto sui portatili. */
   transform: translateX(clamp(18px, 1.8vw, 26px));
   transition:
     opacity 0.45s ease,
@@ -5405,30 +4732,11 @@
   pointer-events: none;
 }
 
-/* Figure column = status line + vignette + recipe strip. The stage pins it, so
-   it no longer needs its own sticky/scroll-settle transform — just a small left
-   nudge so the figure sits as part of the scene. */
-/* ── PERCHÉ UN polygon() E NON UN inset() ───────────────────────────────────
-   Il sipario d'ingresso era `inset(18% 0 0 0)` → `inset(0)`, e faceva il suo
-   lavoro. Il guaio è quello che restava dopo: `inset(0)` ritaglia sulla scatola,
-   e la scatola della figura è esattamente il riquadro del disegno — quindi la
-   luce del sole (`.relief-figure::before` più sotto) veniva tagliata di netto,
-   cioè ricompariva esattamente il rettangolo che si sta cercando di togliere.
-   `inset()` non serve allo scopo perché i browser azzerano gli offset negativi.
-   Un poligono sì: le sue coordinate possono uscire dalla scatola, e due poligoni
-   con lo stesso numero di vertici si interpolano, quindi il sipario resta
-   identico.
-   I valori dei lati sono TARATI sul lavaggio e su nient'altro (−23 % / +127 % in
-   larghezza, −59 % in altezza: vedi il calcolo nella nota di
-   `.relief-figure::before`) più un paio di punti di margine. Non sono generici:
-   allargarli a caso vorrebbe dire far uscire il disegno dalla propria colonna e
-   finirgli addosso al testo.
-   A sequenza avviata si torna a ritagliare sulla scatola: lì c'è il plastico,
-   che è un altro disegno e non deve sbordare. */
 .relief-figure-stage {
   grid-column: 2;
   min-width: 0;
   width: 100%;
+  /* Polygon coordinates may extend outside the box; negative inset offsets are clamped. */
   clip-path: polygon(-26% 18%, 130% 18%, 130% 112%, -26% 112%);
   opacity: 0;
   filter: saturate(0.78);
@@ -5449,9 +4757,6 @@
   transition-delay: 0.16s, 0.12s, 0.12s, 0.12s;
 }
 
-/* Nell'apertura la vignetta si apre verso destra, mentre la colonna più larga
-   prende spazio verso sinistra. Appena parte la sequenza il nudge scompare:
-   figura e testo delle tappe tornano sulla griglia sticky condivisa. */
 .relief-explainer--entered:not(.relief-explainer--engaged) .relief-figure-stage {
   transform: none;
 }
@@ -5472,33 +4777,6 @@
   margin: 0;
 }
 
-/* ── LA LUCE DEL SOLE ESCE DAL RIQUADRO ─────────────────────────────────────
-   Dentro l'SVG la luce era prima un'ellisse piena (contorno visibile =
-   «macchia disegnata») e poi un gradiente radiale (niente contorno, ma comunque
-   una luce che finisce dove finisce il riquadro): il giallo restava incastrato
-   nel bordo. Portata sulla carta, il bordo non ce l'ha.
-
-   ── MA È UN ALONE, NON UN LAVAGGIO DI PAGINA ──
-   Qui la differenza con «fragilità» e con la vignetta hotspot, dove lo stesso
-   elemento è largo 2,4 volte la figura. Là la luce PUÒ prendersi la pagina: il
-   fondo di quelle sezioni è fermo. Qui no — lo sfondo di questa sezione cambia
-   colore a ogni tappa (`.relief-explainer--entered[data-step]`), e una luce
-   grande quanto lo schermo se lo mangerebbe, cancellando proprio il passaggio da
-   caldo a fresco che la sequenza racconta. 1,5 volte la figura è quanto basta
-   perché l'alone respiri appena oltre la cornice invece di sbatterci contro.
-
-   ── L'ANCORAGGIO, che è la parte da non rompere ──
-   Il sole sta a (cx 540, cy 70) di un viewBox 1040 × 430, cioè al 51,92 % della
-   larghezza della figura e al 6,73 % della stessa larghezza in altezza (il
-   disegno è alto 430/1040 = 0,4135 volte la propria larghezza).
-   In larghezze di figura F:  sole = (0,5192 F ; 0,0673 F).
-   L'elemento è largo 1,5 F e alto 1,5 × 0,4135 F = 0,6202 F, e il `translate` in
-   percentuale si misura sulla SUA scatola: per portargli il centro sul sole
-   servono −(0,75 − 0,5192)/1,5 = −15,38 % in x e −(0,3101 − 0,0673)/0,6202 =
-   −39,15 % in y. Da questi due numeri esce anche il poligono che ritaglia lo
-   stage (vedi sopra): il lavaggio arriva a −23 % / +127 % in larghezza e a
-   −59 % / +91 % in altezza rispetto al riquadro.
-   La sfumatura si spegne al 92 %, prima del bordo della propria scatola. */
 .relief-figure::before {
   content: "";
   position: absolute;
@@ -5522,9 +4800,6 @@
   transition: opacity 1.6s var(--ease-cine) 0.3s;
 }
 
-/* Arriva col disegno, non prima. E poi si spegne tappa dopo tappa insieme al
-   sole che la produce (`.hotsun` più sotto porta gli stessi valori): la strada
-   diventa un rifugio, e il caldo addosso cala. */
 .relief-explainer--entered .relief-figure::before { opacity: 1; }
 .relief-explainer--entered[data-step="1"] .relief-figure::before { opacity: 0.78; }
 .relief-explainer--entered[data-step="2"] .relief-figure::before { opacity: 0.62; }
@@ -5534,7 +4809,6 @@
 .relief-explainer--entered[data-step="6"] .relief-figure::before { opacity: 0.32; }
 .relief-explainer--entered[data-step="7"] .relief-figure::before { opacity: 0.28; }
 
-/* ── "What's new" status above the vignette ── */
 .relief-status {
   display: inline-flex;
   align-items: center;
@@ -5575,10 +4849,6 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* ── Indicative temperature badges over the vignette ──
-   Number only (e.g. "36°"), set beside each zone rather than on the figures, so
-   the reader gets the sun/shade/water gap at a glance without a label covering
-   the drawing. Compact so they tuck into open space. */
 .relief-temp {
   position: absolute;
   display: inline-flex;
@@ -5595,8 +4865,6 @@
   border: 1px solid rgba(255, 255, 255, 0.45);
   opacity: 0;
   transform: translateY(8px);
-  /* The numbers settle in a beat AFTER their zone has drawn — a slower, delayed
-     ease so the reading feels like it's being taken, not stamped on. */
   transition:
     opacity 1s ease 0.55s,
     transform 1.1s cubic-bezier(0.22, 1, 0.36, 1) 0.55s;
@@ -5608,23 +4876,12 @@
   transform: translateY(0);
 }
 
-/* Placed beside each zone, clear of the figures. The sun badge sits on the open
-   sunny street just right of the people; when the pergola arrives the portico
-   badge takes that exact spot, now under cover; shade tucks beside the left
-   canopy, water by the fountain. */
 .relief-temp--sun { left: 73%; top: 58%; background: rgba(180, 84, 48, 0.9); }
 .relief-temp--portico { left: 73%; top: 45%; background: rgba(26, 90, 86, 0.9); }
 .relief-temp--shade { left: 3%; top: 44%; background: rgba(0, 77, 25, 0.88); }
 .relief-temp--water { left: 55%; top: 48%; background: rgba(18, 114, 183, 0.88); }
-/* Final scene reading — sits where the water badge was, so 32° → 31° reads as the
-   number settling lower in place once the refuge is complete. */
 .relief-temp--final { left: 55%; top: 48%; background: rgba(18, 114, 183, 0.88); }
 
-/* ── Cumulative recipe line under the vignette ──
-   Una riga, non sei pillole: la sintesi concettuale del capitolo si legge come
-   una formula, e ogni ingrediente si accende quando la sua tappa lo aggiunge
-   (09 § 9.4). Le pillole erano grafica da filtri di e-commerce, e occupavano
-   due righe di spazio che ora vanno alla vignetta. */
 .relief-recipe {
   max-height: 0;
   margin: 0 0 0 clamp(6px, 1vw, 14px);
@@ -5664,8 +4921,6 @@
   line-height: 1.5;
 }
 
-/* Upcoming ingredients wait in the soft ink; each one lights up as its step
-   arrives, and the one just added is the darkest thing on the line. */
 .relief-recipe-item {
   display: inline;
   color: var(--ink-soft);
@@ -5689,12 +4944,6 @@
   opacity: 1;
 }
 
-/* L'ultimo arrivato: stesso colore, con un filetto sotto. È un'ombra interna,
-   non un peso maggiore: far crescere il peso allargherebbe la parola e
-   sposterebbe tutte le altre della riga sotto gli occhi di chi legge, lo stesso
-   difetto già corretto sul ponte dell'hero (02, deviazione 1).
-   Sta sullo span interno e non sul <li>: il punto separatore è un ::before del
-   <li>, quindi il filetto se lo sarebbe preso dentro. */
 .relief-recipe-word {
   box-shadow: none;
   transition: box-shadow 0.55s ease;
@@ -5704,16 +4953,6 @@
   box-shadow: inset 0 -2px 0 0 var(--talea-green);
 }
 
-/* Qui c'era una `mask-image` radiale al 128 % × 122 % con la fermata piena al
-   72 %: sulla carta doveva sfumare il bordo del disegno, in pratica non toglieva
-   niente — il raggio pieno arrivava a 0,92 volte la larghezza dal centro, cioè
-   ben oltre il bordo della scatola, e il disegno restava tagliato di netto su
-   tre lati. Il bordo adesso lo fa l'SVG con la maschera `rifugio-edge`, che è
-   l'unico posto in cui si può dosare: là si sa QUALI elementi sbordano davvero
-   (il selciato e il prato) e quali devono restare a fuoco fino al contorno (gli
-   alberi e il chiosco, che arrivano a filo dei lati e sfumati verrebbero
-   amputati). `overflow: visible` resta e serve: il suolo è disegnato oltre la
-   cornice apposta, per avere materia da dissolvere. */
 .relief-figure svg {
   width: 100%;
   height: auto;
@@ -5786,9 +5025,6 @@
   transform: scaleX(1);
 }
 
-/* Arrow navigation keeps the construction gesture reversible. The layer stays
-   logically on while its stroke and colour run back to the hidden state; JS
-   removes it only after this transition has completed. */
 .relief-figure .layer.undraw .i * {
   stroke-dashoffset: 1;
   transition: stroke-dashoffset 0.95s ease;
@@ -5800,11 +5036,6 @@
   transition-delay: 0s;
 }
 
-/* The sun, heat-haze and hills are pure colour (no ink to pencil-draw), so they
-   bloom in with opacity/scale rather than sketching. They're DELAYED behind the
-   ink sketch so the opening reads as "the street + people draw from zero, then
-   the hot sky fills in" — instead of the sun/hills being fully present before
-   the sketch has even started (which read as "a part already there"). */
 .relief-figure .heat,
 .relief-figure .hotsun {
   opacity: 0;
@@ -5848,8 +5079,6 @@
 .relief-explainer--entered[data-step="6"] .relief-figure .heat,
 .relief-explainer--entered[data-step="7"] .relief-figure .heat { opacity: 0; }
 
-/* The sun never leaves the scene: it just gets lighter as the refuge is built
-   (the harsh heat-wash above fades out instead). */
 .relief-explainer--entered[data-step="0"] .relief-figure .hotsun { opacity: 1; }
 .relief-explainer--entered[data-step="1"] .relief-figure .hotsun { opacity: 0.76; }
 .relief-explainer--entered[data-step="2"] .relief-figure .hotsun { opacity: 0.6; }
@@ -5859,29 +5088,11 @@
 .relief-explainer--entered[data-step="6"] .relief-figure .hotsun { opacity: 0.32; }
 .relief-explainer--entered[data-step="7"] .relief-figure .hotsun { opacity: 0.28; }
 
-/* Bologna backdrop (colli + Due Torri) breathes in LAST, after the sketch and
-   the sky, so the opening builds up from zero rather than starting half-drawn.
-   Poi ARRETRA, tappa dopo tappa (09 § 9.11): la città resta lì, ma smette di
-   essere il problema mentre il rifugio prende forma. Non sparisce del tutto:
-   resta la memoria del punto di partenza.
-
-   La discesa è più ripida di prima (0,9 → 0,24 invece di 0,9 → 0,38) perché la
-   scena si riempie: alla settima tappa sopra questo fondale ci sono due alberi,
-   un pergolato, un portico, panche, una fontana, un chiosco e cinque persone.
-   Un fondale che alla fine pesa ancora un terzo non è più uno sfondo, è un
-   nono elemento che compete con gli altri otto. Le opacità delle sagome dentro
-   il gruppo sono già tarate sul fondale di «fragilità» (vedi la nota nell'SVG),
-   quindi questi valori scaricano un fondo che parte già leggero. */
 .relief-figure .bolo {
   opacity: 0;
   transition: opacity 1.3s ease 0.62s;
 }
 
-/* Il tratto del fondale, con gli stessi valori di `.bologna-backdrop-ink` nella
-   vignetta della fragilità: più sottile e più chiaro dell'inchiostro di scena,
-   perché è quello che tiene una torre lontana lontana. `fill: none` non è
-   pignoleria — questi percorsi non portano l'attributo, e senza finirebbero
-   riempiti di nero. */
 .relief-figure .bolo-ink {
   fill: none;
   stroke: var(--relief-ink);
@@ -5895,8 +5106,6 @@
   opacity: 0.9;
 }
 
-/* Il ritardo di 0,62 s serve solo all'ingresso: da lì in poi lo sfondo arretra
-   insieme alla tappa, senza aspettare. */
 .relief-explainer--entered:not([data-step="0"]) .relief-figure .bolo {
   transition: opacity 1.3s ease;
 }
@@ -5909,7 +5118,6 @@
 .relief-explainer--entered[data-step="6"] .relief-figure .bolo { opacity: 0.29; }
 .relief-explainer--entered[data-step="7"] .relief-figure .bolo { opacity: 0.24; }
 
-/* Object shadows: follow the sun — present from the start, softer late. */
 .relief-figure .shad {
   transition: opacity 1.2s ease;
 }
@@ -5920,9 +5128,6 @@
   opacity: 0.08;
 }
 
-/* ── Faces: strokes drawn over the coloured figures. fxa (adult + child) smile
-   as soon as shade and shelter arrive; fxb (wheelchair + pregnant) once water
-   completes the pause. Flat mouths cross-fade out as the smiles come in. ── */
 .relief-figure .fx {
   fill: none;
   stroke: var(--relief-ink);
@@ -5957,8 +5162,6 @@
   opacity: 0;
 }
 
-/* Standing elderly figure is swapped for a seated one once the "seat" beat
-   (step 3) arrives. */
 .relief-figure .eld-stand,
 .relief-figure .eld-seat { transition: opacity 0.9s ease; }
 .relief-figure .eld-seat { opacity: 0; }
@@ -5999,7 +5202,6 @@
   animation: relief-jetbob 1.8s ease-in-out infinite;
 }
 
-/* ── Text column: the active step's copy, swapping in sync with the build ── */
 .relief-explainer-text {
   grid-column: 3;
   min-width: 0;
@@ -6025,9 +5227,6 @@
   transition-delay: 0.25s, 0.1s, 0s;
 }
 
-/* La distribuzione più larga appartiene al layout affiancato. Sotto i 1100 px
-   la scena si impila e torna a usare tutta la larghezza disponibile, senza
-   nudge o massimi da desktop. */
 @media (min-width: 1101px) {
   .relief-explainer--entered:not(.relief-explainer--engaged) .relief-figure-stage {
     width: min(800px, 100%);
@@ -6035,32 +5234,18 @@
     transform: translateX(clamp(28px, 3vw, 46px));
   }
 
-  /* Il massimo era 820 px, tarato sulla vignetta piatta. Il plastico gira, e
-     girando mostra il fianco lungo della piazza dove il disegno fermo mostrava
-     solo il fronte: gli serve più larghezza, e la colonna gliela dava già. */
   .relief-explainer--engaged .relief-figure-stage {
     width: min(980px, 100%);
     justify-self: start;
     transform: translateX(-14px);
   }
 
-  /* ── Il testo si avvicina al disegno ──────────────────────────────────────
-     Con il modello in scena l'occhio sta tutto lì, e una colonna di testo
-     staccata di due spanne non viene proprio guardata: si legge quello che sta
-     VICINO alla cosa che si sta guardando. Fra il bordo del plastico e la riga
-     della tappa c'erano 260 px di niente; ora ce ne sono ottanta, che bastano a
-     tenerli separati e non a farli ignorare l'uno dall'altro. Il plastico più
-     largo ha fatto quasi tutto il lavoro: qui resta un accostamento. */
   .relief-explainer--engaged .relief-explainer-text {
     width: min(430px, 100%);
     justify-self: start;
     transform: translateX(40px);
   }
 
-  /* Durante la costruzione le tappe sono brevi: centrarle verticalmente le
-     faceva scendere rispetto alla vignetta. La colonna sale finché la sequenza
-     è in corso e torna, con la transizione già esistente, nella posizione
-     finale quando compare la sintesi più lunga. */
   .relief-explainer--engaged .relief-explainer-text--playing {
     transform: translate(40px, clamp(-48px, -5vh, -34px));
   }
@@ -6075,10 +5260,6 @@
   50% { box-shadow: 0 0 0 5px rgba(33, 168, 74, 0.16); }
 }
 
-/* Swap stage: the step cards are absolutely stacked here and cross-fade; the
-   body reserves height for the tallest so the stepper below never jumps.
-   Riservata meno altezza: con le tappe in una frase l'una, la vecchia misura
-   lasciava un buco sotto il testo e rubava larghezza alla figura. */
 .relief-seq-body {
   position: relative;
   min-height: clamp(196px, 30vh, 276px);
@@ -6098,13 +5279,11 @@
   opacity: 1;
   transform: translateY(0);
 }
-/* Not yet reached — waits below, then rises up into place. */
 .relief-seq-step.is-future {
   opacity: 0;
   transform: translateY(40px);
   pointer-events: none;
 }
-/* Already read — lifted up and away. */
 .relief-seq-step.is-past {
   opacity: 0;
   transform: translateY(-26px);
@@ -6115,7 +5294,6 @@
   max-width: 34em;
 }
 
-/* Green accent rule on the active card (echoes the old active-step device). */
 .relief-seq-card::before {
   content: none;
 }
@@ -6154,11 +5332,6 @@
   margin-bottom: 0;
 }
 
-/* La riga chiave delle tappe che aggiungono un pezzo. È grande e corta apposta:
-   deve prendersi in un colpo d'occhio, perché il resto della battuta serve a
-   guardare il disegno. Stessa voce del lead del capitolo (verde scuro, peso
-   500), così si legge come una didascalia editoriale e non come un paragrafo
-   rimasto a metà. */
 .relief-seq-card--key .relief-seq-text {
   font-size: var(--fs-lead);
   line-height: 1.32;
@@ -6168,9 +5341,6 @@
   text-wrap: balance;
 }
 
-/* La sintesi conclusiva torna alla voce editoriale delle Cause: stesso corpo,
-   interlinea e colore. A cambiare è il contenuto, non una nuova gerarchia
-   tipografica introdotta soltanto per l'ultima vignetta. */
 .relief-seq-card--prose .relief-seq-text {
   font-size: var(--fs-body);
   line-height: 1.66;
@@ -6179,17 +5349,10 @@
   color: var(--causes-ink);
 }
 
-/* Il cue di fine sequenza vive sotto lo stepper, dentro la colonna di testo:
-   entra quando la sequenza è conclusa, quindi non c'è nulla da nascondere. */
 .relief-seq-cue {
   margin-top: -6px;
 }
 
-/* Scroll region that pins the auto-play, then releases into the next block.
-   Da 185vh a 130vh (09 § 9.2): era la permanenza più lunga della pagina, e ora
-   che la sequenza dura ~19,7 s invece di 28 lo spazio in più sarebbe stato solo
-   scroll a vuoto. È anche la corsa su cui è misurato l'avanzamento a scorrimento
-   in RifugioExplainer.jsx: accorciarlo rende più ripido quel gesto. */
 .relief-explainer-intro-hold {
   min-height: 62vh;
   pointer-events: none;
@@ -6200,9 +5363,6 @@
   pointer-events: none;
 }
 
-/* ── Sticky ortophoto maps (rifugi + 3-30-300) ──
-   Static camera; the imagery is revealed by a soft veil as the scene engages and
-   covered again as it leaves — the same reveal device the hotspot/shadow maps use. */
 
 .relief-map-section {
   position: relative;
@@ -6246,8 +5406,6 @@
     radial-gradient(ellipse 88% 74% at 58% 48%, rgba(255, 255, 255, 0) 46%, rgba(0, 77, 25, 0.22) 100%);
 }
 
-/* Entry veil: covers the map (matching the light field above) and fades out once
-   the scene engages, cross-fading the clean ortophoto in. */
 .relief-map-veil {
   position: absolute;
   inset: 0;
@@ -6266,25 +5424,6 @@
   opacity: 0;
 }
 
-/* ── Il velo d'uscita ────────────────────────────────────────────────────────
-   Sale mentre la scena se ne va e riconsegna al campo color carta che segue.
-
-   La sua opacità è `--map-exit`: un numero fra 0 e 1 che le due scene sticky
-   (RifugiMapScene, ZonesMapScene) scrivono sulla sezione a ogni fotogramma,
-   ricavato da quanto della mappa è ancora sullo schermo. NON è una transizione
-   a tempo, e non deve tornare a esserlo.
-
-   Prima era una classe con una dissolvenza di 760 ms. Il difetto non era la
-   durata: era che la dissolvenza finiva molto prima della mappa. Scattava
-   quando dell'inquadratura c'era ancora l'82%, si consumava in tre quarti di
-   secondo, e per tutto il resto dell'uscita — quasi una schermata intera di
-   scorrimento — il lettore trascinava un rettangolo di colore che non
-   rispondeva a niente. Legandola allo scroll, ogni pixel di gesto sposta
-   qualcosa e l'ultima striscia di mappa arriva già color carta sulla giunzione
-   col capitolo dopo, che è l'unica cosa che il velo doveva fare.
-
-   `transition: none` è una scelta, non una dimenticanza: una transizione qui
-   inseguirebbe lo scorrimento con un fotogramma di ritardo. */
 .relief-map-veil-exit {
   position: absolute;
   inset: 0;
@@ -6303,7 +5442,6 @@
 
 .relief-map-canvas .maplibregl-ctrl-attrib a { color: #3a5a47; }
 
-/* Metric scale bar: quiet, on-palette — gives the 300 m a physical size. */
 .relief-map-canvas .maplibregl-ctrl-scale {
   background: rgba(250, 253, 246, 0.78);
   border: 1px solid rgba(0, 77, 25, 0.34);
@@ -6372,7 +5510,6 @@
   overscroll-behavior: contain;
 }
 
-/* Search and information leave the map as one lower-left dock. */
 .relief-map-dock--gone {
   opacity: 0;
   transform: translateY(10px);
@@ -6404,7 +5541,6 @@
   color: var(--talea-dark-green);
 }
 
-/* Invitation hint: fades in over the overview, retires after the first action. */
 .relief-map-hint {
   position: absolute;
   top: clamp(20px, 9vh, 90px);
@@ -6450,7 +5586,6 @@
   100% { box-shadow: 0 0 0 0 rgba(255, 230, 4, 0); }
 }
 
-/* Return state: calmer (no pulse), with a yellow edge — yellow = "your focus". */
 .relief-map-hint--return { border-color: rgba(255, 230, 4, 0.5); }
 .relief-map-hint--return .relief-map-hint-dot { animation: none; }
 
@@ -6458,23 +5593,11 @@
   margin-top: 0;
 }
 
-/* ── «E casa mia?»: la ricerca, in alto a destra (2026-08-06) ──
-   Stava dentro il dock, incolonnata sotto i due numeri e il link del Comune:
-   tre cose di natura diversa in un riquadro solo, e il lettore non capiva più
-   dove finiva la spiegazione della mappa e dove cominciava quello che poteva
-   fare lui. Ora la ricerca è un oggetto suo, all'angolo opposto: l'informazione
-   in basso a sinistra, la DOMANDA in alto a destra, la città in mezzo libera.
-   La sponda verde è a destra, speculare a quella del dock: si leggono come due
-   pannelli agganciati ai due bordi opposti della stessa mappa. */
 .relief-map-find {
   position: absolute;
   top: clamp(82px, 11vh, 126px);
   right: clamp(16px, 5vw, 70px);
   z-index: 7;
-  /* Larghezza tenuta da due cose che si vedono subito quando manca: il campo,
-     che deve contenere «Viale Antonio Aldini 24» senza farlo scorrere via, e i
-     suggerimenti, dove sotto i 350px «Giardini Margherita» si tronca contro
-     l'etichetta RIFUGIO DEL COMUNE. */
   width: min(480px, 39vw);
   padding: 15px 18px 17px;
   background: rgba(250, 253, 246, 0.94);
@@ -6502,9 +5625,6 @@
   pointer-events: none;
 }
 
-/* La riga è il titolo del pannello, non una didascalia: è l'unica frase che dice
-   che cosa ci si può fare, e in grassetto si legge prima del campo invece che
-   dopo averlo già guardato. */
 .relief-map-find-prompt {
   margin: 0 0 11px;
   font-size: var(--fs-map);
@@ -6527,16 +5647,11 @@
 .relief-map-find .relief-map-search { margin: 0; gap: 9px; }
 .relief-map-find .relief-map-message { text-align: left; }
 
-/* Il campo respira: il testo digitato è un indirizzo, non una parola chiave. */
 .relief-map-find .relief-map-search input {
   padding: 11px 16px;
   border-color: rgba(0, 77, 25, 0.28);
 }
 
-/* Il bottone è l'azione principale del pannello e si dichiara: verde pieno, la
-   tinta con cui la mappa segna i rifugi del Comune. Prima era un secondo campo
-   bianco accanto al primo, e a colpo d'occhio non si capiva quale dei due si
-   toccava. */
 .relief-map-find .relief-map-search button {
   padding: 10px 17px;
   border-color: transparent;
@@ -6548,14 +5663,8 @@
   background: var(--talea-green);
 }
 
-/* I suggerimenti scendono verso il basso: sopra c'è il bordo della mappa (la
-   regola generale di .relief-suggest, che qui non va più ribaltata). */
 
 @media (max-width: 1240px) {
-  /* Sotto questa larghezza il pannello di ricerca arriva vicino alla metà dello
-     schermo e l'invito, che è centrato, gli finirebbe addosso: passa sotto. Il
-     valore è l'ingombro del pannello (30px dall'alto + ~135px di altezza) più un
-     margine. */
   .relief-map-hint {
     top: 176px;
   }
@@ -6573,17 +5682,10 @@
   pointer-events: none;
 }
 
-/* Empty pinned runway: the overview breathes and the reader can search / tap
-   without immediately handing off to the next chapter. */
 .relief-map-explore-buffer {
   min-height: 210vh;
 }
 
-/* ── Un contatore, non una legenda (`10` § 10.3) ──
-   La domanda che un cittadino si fa davanti a questa mappa è «quanti sono?», e
-   fino a oggi la scena non la nominava mai. I due numeri sono anche la legenda:
-   ognuno porta il pallino del suo strato, quindi non serve una seconda riga che
-   spieghi i colori. Il numero è nel display: è la cosa da portarsi via. */
 .relief-count {
   display: grid;
   grid-template-columns: auto 1fr;
@@ -6632,9 +5734,6 @@
   color: #607468;
 }
 
-/* I due strati, detti dal pallino accanto al loro numero: la spilla scura è un
-   rifugio riconosciuto dal Comune, la macchia verde un parco che ne ha le
-   caratteristiche. Stesso segno che si vede sulla mappa, stessa forma. */
 .relief-count-dot {
   display: inline-block;
   width: 10px;
@@ -6725,7 +5824,6 @@
   min-height: 1.2em;
 }
 
-/* Focus card (the tapped refuge / the searched point) inside the panel. */
 .relief-focus-card {
   margin-top: 14px;
   border-top: 1px solid rgba(0, 77, 25, 0.16);
@@ -6738,12 +5836,6 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* ── Le schede della mappa (`10` § 10.4) ──
-   Prima erano una rastrelliera di chip: sei pillole tutte uguali, di cui una
-   («ombra del verde») accesa sempre, quindi senza informazione. Ora sono due
-   righe e una: che cos'è, dov'è, e che cosa ci trovi. Il corpo passa a
-   `--fs-map`, la scala che `01` § 1.2 riserva al testo sopra le mappe e che
-   restava da portare qui (`01`, deviazione 6). */
 .r-card-name {
   display: block;
   font-family: var(--font-display);
@@ -6773,9 +5865,6 @@
   color: #2d6a43;
 }
 
-/* Il badge dei rifugi ufficiali: verde scuro pieno, la stessa tinta della
-   spilla sulla mappa, così la scheda dichiara da sola a quale strato appartiene.
-   Niente giallo: qui non è «selezionato», è «riconosciuto». */
 .r-card-badge {
   display: inline-block;
   margin-bottom: 8px;
@@ -6789,8 +5878,6 @@
   text-transform: uppercase;
 }
 
-/* Acqua e bagni, per intero: la sfumatura («non accessibili ai disabili», «a
-   pagamento») è proprio l'informazione che serve, e un chip la perderebbe. */
 .r-facts { margin-top: 11px; }
 
 .r-fact {
@@ -6816,9 +5903,6 @@
   color: #3a4f44;
 }
 
-/* Gli orari del rifugio del Comune e la panoramica di Street View del parco: due
-   uscite dalla scheda verso la cosa che la mappa non può mostrare (quando apre,
-   com'è davvero). Stesso segno, così si riconoscono come la stessa azione. */
 .r-card-hours,
 .r-card-street {
   display: inline-block;
@@ -6841,15 +5925,12 @@
   color: #6c8073;
 }
 
-/* Rare-standout note (CSI >= 0.7) — a small on-brand note, not a graded score,
-   so it never implies the other refuges "failed". */
 .r-card-foot--standout {
   margin-top: 9px;
   color: #2d6a43;
   font-weight: 700;
 }
 
-/* ── La scheda della ricerca: quanto dista il sollievo da qui (`11` § 11.3) ── */
 .r-near { margin-top: 13px; }
 
 .r-near-head {
@@ -6884,7 +5965,6 @@
   white-space: nowrap;
 }
 
-/* ── Search suggestions (rifugi per nome + indirizzi con civico) ── */
 .relief-search-wrap {
   position: relative;
 }
@@ -6947,14 +6027,10 @@
   color: #6f8f7c;
 }
 
-/* MapLibre popups (rifugi hover + 3-30-300 click). The hover popup is anchored
-   to the feature's centre, so it can sit under the cursor. MapLibre's own CSS
-   sets the popup CONTENT to `pointer-events:auto`, so the card would capture the
-   pointer and trigger a mouseleave→remove→mouseenter→re-add flicker loop over the
-   map layer. Force the whole popup (container + content + tip) non-interactive. */
 .relief-map-canvas .maplibregl-popup,
 .relief-map-canvas .maplibregl-popup-content,
 .relief-map-canvas .maplibregl-popup-tip {
+  /* Prevent hover popups from stealing the pointer and entering a flicker loop. */
   pointer-events: none;
 }
 
@@ -6982,81 +6058,24 @@
   color: #53695b;
 }
 
-/* Anteprima di un rifugio del Comune: il filetto scuro a sinistra è lo stesso
-   verde della spilla, così anche il popup dice a quale dei due strati appartiene
-   quello che c'è sotto il cursore. */
 .relief-map-canvas .story-popup--ufficiale {
   border-left: 3px solid var(--talea-dark-green);
   padding-left: 9px;
   margin-left: -2px;
 }
 
-/* =============================================================================
-   LA PIANTA — la rete del fresco che si costruisce sopra un quartiere (12)
-
-   Prende il posto del nastro assonometrico (`.city-scene`, rimosso). Quello
-   disegnava una strada con delle case, e dei tre concetti che questa sezione deve
-   far arrivare a un cittadino non ne arrivava nessuno. Il motivo non era il
-   disegno: era il punto di vista. «Dove non c'è, si può costruire» è un BUCO nella
-   copertura; un «corridoio climatico» è una LINEA fra due punti; i «portici» sono
-   una RETE che esiste già. Sono tutte e tre DISTANZE, e le distanze si vedono solo
-   dall'alto.
-
-   ── È uno SFONDO, ma con una regola ────────────────────────────────────────
-   La pianta è lo sfondo della sezione e il testo ci sta sopra: è quello che rende
-   la scena una cosa sola invece di due. Una stesura intermedia la chiudeva in un
-   riquadro di carta con l'ombra ed è stata scartata — «troppo distaccato»: il
-   disegno diventava un oggetto appoggiato sulla pagina invece della pagina stessa.
-
-   La regola è che NON arriva ai bordi dello schermo. A schermo pieno ci vanno solo
-   le mappe vere (hotspot, ombra, rifugi, aree pilota); un disegno che prendesse lo
-   schermo come loro rischierebbe di essere letto come un rilevamento, ed è l'unico
-   equivoco che un atlante sul caldo non si può permettere. Quindi sta dentro la
-   fascia larga del resto del capitolo e SFUMA sui fianchi. La maschera tiene il
-   disegno dentro i limiti; un alone di carta separato e circoscritto alle parole
-   rende leggibile il testo senza appoggiarci un velo bianco a mezza schermata.
-
-   ── Prestazioni: le tre regole che non vanno rotte ─────────────────────────
-     1. NIENTE opacità sui gruppi `.pl-l--*`. Un gruppo SVG con opacità
-        frazionaria grande quanto la tavola obbliga il browser a un buffer fuori
-        schermo e a rasterizzarlo a ogni fotogramma mentre la telecamera si muove.
-        La filigrana è nei COLORI, premiscelati dal generatore (`veil()`).
-     2. NIENTE che si muova mentre si scorre. La telecamera cambia solo quando
-        cambia la battuta: sette volte in tutta la sezione. Fra un cambio e
-        l'altro il browser non ha nulla da ridisegnare.
-     3. Il tessuto di fondo si accende a ONDATE (`WAVES` nel generatore), non
-        elemento per elemento: quattrocento transizioni di opacità insieme erano
-        quattrocento buffer fuori schermo, e si vedevano.
-   ============================================================================= */
 
 .plan-scene {
   --plan-entry: 0;
   --plan-exit: 0;
-  /* LA FASCIA. Esattamente quella dell'apertura sull'aria (`--content-max` meno
-     il respiro laterale), che e' il limite di tutto il capitolo. Ci stanno dentro
-     TUTTI e tre: il disegno, il testo e i primi piani.
-
-     Prima ci stava solo il disegno: il testo era posizionato sul palco, cioe' a
-     `--plan-edge` dal bordo dello SCHERMO, e su un monitor largo finiva
-     quattrocento pixel fuori dal disegno — due cose separate sulla stessa riga. */
   --plan-band: min(var(--content-max, 1600px), calc(100% - 2 * var(--content-pad, 24px)));
   --plan-col: min(370px, 25vw);
-  /* Stretto apposta. Il testo stava troppo dentro il disegno: una colonna larga a
-     distanza comoda dal bordo occupa la meta' centrale della tavola, cioe' proprio
-     dove il disegno ha qualcosa da dire. Accostato al bordo occupa il margine, che
-     e' anche il punto in cui la sfumatura lo tiene leggibile. */
   --plan-edge: clamp(14px, 1.8vw, 34px);
   position: relative;
-  /* Raccoglie il velo di uscita della mappa dei rifugi (#edf4e9) e lo consegna a
-     .talea-chapter, che apre su #e6efe1. Due valori soli, usati dai due lati delle
-     giunzioni (`03` § 3.1): chi ne cambia uno cambi anche l'altro. */
   background: linear-gradient(180deg, #edf4e9 0%, #f4f2e8 12%, #f1f2e9 82%, #e6efe1 100%);
   isolation: isolate;
 }
 
-/* Il cambio di registro non coincide piu' con il bordo di due rettangoli. Questa
-   rampa sale sopra la testa della pianta e prende il colore dell'introduzione;
-   il velo scroll-driven sotto completa il passaggio quando il disegno entra. */
 .plan-scene::before {
   content: "";
   position: absolute;
@@ -7079,17 +6098,9 @@
   height: 100svh;
   overflow: hidden;
   z-index: 1;
-  /* La scena e' una scatola chiusa: quello che c'e' dentro non partecipa al
-     layout ne' al paint del resto della pagina. Su una pagina di quarantamila
-     pixel con cinque canvas MapLibre piu' su, e' la differenza fra uno scroll
-     che tocca solo questa scatola e uno che ne ridisegna la meta'. */
   contain: layout paint;
 }
 
-/* La temperatura cromatica segue il RACCONTO, non l'arrivo differito degli
-   elementi sulla pianta. Appena comincia la costruzione il caldo arretra e una
-   luce fresca, molto chiara e appena azzurrina, entra per gradi. Il blu resta
-   desaturato: deve suggerire sollievo, non acqua. */
 .plan-stage[data-story-beat="2"] {
   --plan-warm-air: 0.055;
   --plan-cool-air: 0.1;
@@ -7120,8 +6131,6 @@
   --plan-map-wash: 0.27;
 }
 
-/* La sintesi, invece, continua a seguire la pianta: una voce entra soltanto
-   quando il relativo modello ha terminato il passaggio di consegna. */
 .plan-stage[data-beat="2"] {
   --legend-veil: 0.34;
 }
@@ -7202,28 +6211,12 @@
     #e6efe1;
 }
 
-/* ── Lo sfondo, dentro i suoi limiti ──
-   La pianta NON arriva ai bordi dello schermo: a tutta pagina ci vanno solo le
-   mappe vere, e un disegno che prendesse lo schermo come loro rischierebbe di
-   essere letto come un rilevamento. Sta quindi nella stessa fascia larga del
-   resto del capitolo (`min(1520px, 100%)`, come .vulnerability-wrap e le
-   composizioni Aria e Cause) e sfuma sui fianchi.
-
-   Non è un riquadro: nessun bordo, nessun raggio, nessuna ombra, nessun fondo.
-   Una stesura intermedia lo chiudeva in una card di carta con l'ombra, ed è stata
-   scartata — «troppo distaccato»: il disegno diventava un oggetto appoggiato
-   sulla pagina invece della pagina stessa. */
 .plan-bleed {
   position: absolute;
   inset: 0;
   z-index: 1;
-  /* Il contenitore supera la fascia narrativa: la dissolvenza vive dentro questa
-     abbondanza e non termina più sul bordo verticale della fascia. La telecamera
-     continua a scalarsi sulla larghezza di `.plan-band` nel componente. */
   width: min(calc(100% - 12px), calc(var(--plan-band) + clamp(150px, 18vw, 340px)));
   margin: 0 auto;
-  /* La dissolvenza è solo orizzontale: sopra e sotto la tavola può respirare,
-     mentre sui due fianchi l'inchiostro arriva davvero a zero prima del limite. */
   -webkit-mask-image: linear-gradient(
     90deg,
     transparent 0%,
@@ -7250,10 +6243,6 @@
   mask-repeat: no-repeat;
 }
 
-/* Il bagliore fresco deve attraversare anche la pianta, non restare soltanto
-   dietro ai suoi margini. Una velatura chiara e poco satura neutralizza per
-   gradi il beige caldo dei tetti senza cambiarne il colore materiale; nello 07
-   la tavola risulta piu' luminosa e fresca, ma non azzurra come se fosse acqua. */
 .plan-bleed::after {
   content: "";
   position: absolute;
@@ -7269,9 +6258,6 @@
   transition: opacity 1.2s var(--ease-cine);
 }
 
-/* La fascia dei contenuti: testo, primi piani e richiami. Non disegna niente, e'
-   solo il riquadro di riferimento — ma e' quello che tiene tutto dentro i limiti
-   della pagina invece che attaccato ai bordi dello schermo. */
 .plan-band {
   position: absolute;
   inset: 0;
@@ -7281,10 +6267,6 @@
   pointer-events: none;
 }
 
-/* Annotazioni contestuali, non una seconda legenda. Il bersaglio vive nelle
-   coordinate della pianta, mentre testo e linea restano in pixel di schermo:
-   così la scritta conserva la stessa voce editoriale su desktop e telefono.
-   Il doppio tratto riprende esattamente i richiami dei primi piani. */
 .plan-annotation {
   position: absolute;
   width: 0;
@@ -7357,8 +6339,6 @@
   );
 }
 
-/* Il prima non usa il verde dell'intervento: deve leggere come stato esistente,
-   non come una soluzione già realizzata. */
 .plan-annotation--parking { color: #77684f; }
 .plan-annotation--parking .plan-annotation-label { color: #665b47; }
 
@@ -7366,17 +6346,6 @@
   to { stroke-dashoffset: 0; }
 }
 
-/* ── La sfumatura del lato del testo ──
-   Fa UN lavoro solo: rendere leggibili le parole senza appoggiarci sotto un velo
-   bianco a mezza schermata (una stesura precedente lo faceva, e copriva meta'
-   della finestra). Il bordo del disegno non e' piu' affar suo — lo chiude la
-   maschera di `.plan-bleed`, che e' agganciata all'estensione vera
-   dell'inchiostro e quindi si comporta uguale su ogni monitor. Il velo, invece,
-   e' agganciato allo schermo: e' li' che sta il testo.
-
-   Due elementi statici invece di un gradiente pilotato da variabili, perche' i
-   gradienti CSS non si interpolano: al cambio di lato si scambiano in
-   dissolvenza, e nel frattempo non c'e' niente da ridisegnare. */
 .plan-veil {
   --veil-pad: clamp(32px, 4vw, 64px);
   position: absolute;
@@ -7389,9 +6358,6 @@
   transition: opacity 150ms linear;
   --pg: 244, 242, 233;
   transform: translateY(-50%);
-  /* Una chiazza di carta solo sotto le parole. Prima il velo occupava l'intera
-     altezza e quasi metà palco: il lato del testo sembrava cancellato invece che
-     reso leggibile. */
   background: radial-gradient(
     ellipse at center,
     rgba(var(--pg), 0.84) 0%,
@@ -7402,8 +6368,6 @@
   );
 }
 
-/* Il velo inferiore non anticipa la sintesi: nasce con il primo elemento e si
-   allunga, senza creare una card, mentre la lista mette in relazione i luoghi. */
 .plan-veil::after {
   content: "";
   position: absolute;
@@ -7427,7 +6391,6 @@
   );
 }
 
-/* testo a sinistra → rampa a sinistra, vignetta spostata a destra */
 .plan-veil--l {
   left: calc(
     (100% - var(--plan-band)) / 2
@@ -7437,7 +6400,6 @@
 }
 .plan-stage--left .plan-veil--l { opacity: 1; }
 
-/* testo a destra → la stessa cosa specchiata */
 .plan-veil--r {
   right: calc(
     (100% - var(--plan-band)) / 2
@@ -7450,30 +6412,13 @@
   opacity: calc(1 - var(--copy-swap, 0));
 }
 
-/* La scatola è grande quanto la pianta in unità di disegno e il suo (0,0) sta al
-   centro del riquadro: `scale(--zc) translate(-cx,-cy)` porta quindi il punto
-   (cx,cy) del disegno esattamente al centro, e le ancore che esporta il
-   generatore si usano senza conversioni. */
 .plan-camera {
   position: absolute;
   left: calc(50% + var(--sx, 0px));
   top: calc(50% + var(--sy, 0px));
   transform-origin: 0 0;
-  /* NESSUNA transizione, e nessun `will-change`: questa `transform` si scrive al
-     montaggio e al resize, e mai più. Era animata a ogni battuta — con zoom,
-     inclinazione e rotazione — e costava ~11 ms a colpo su duemila elementi, oltre
-     a rendere illeggibile ogni cambio perché si muoveva tutto insieme. Adesso la
-     pianta è un fondale: si muove solo quello che ci compare sopra. */
   transform: scale(var(--zc, 0.65))
     translate(calc(var(--cx, 1180) * -1px), calc(var(--cy, 745) * -1px));
-  /* Tenuta su un livello suo per scelta, e non e' gratis: la scatola e' grande
-     2400x1500 unita' e alla battuta piu' stretta la sua texture arriva a qualche
-     decina di megabyte. Si paga volentieri, perche' l'alternativa e' che il
-     browser ridisegni duemila elementi a ogni fotogramma dei mille e sei
-     dell'inquadratura che scivola, e quello si vede. Misurato: un cambio
-     d'inquadratura costa ~11 ms di ricalcolo (era 23 prima di togliere il
-     `calc()` su `--zc` dal tratto e di unire le chiome in pochi path), cioe' un
-     fotogramma solo, una volta per battuta. */
 }
 
 .plan-figure {
@@ -7484,25 +6429,11 @@
   height: 100%;
 }
 
-/* Overflow visibile: il tessuto è generato oltre il bordo della tavola (BLEED), e
-   in campo lungo deve sfumare nella carta invece di finire con una riga netta di
-   case allineate al margine. Il riquadro ritaglia. */
 .plan-figure svg {
   display: block;
   overflow: visible;
 }
 
-/* Il tratto: spessore costante SULLO SCHERMO, non nel disegno, così stringendo
-   la pianta non diventa un fumetto coi bordi neri.
-
-   Lo fa `vector-effect`, non un `calc()` su `--zc`, e la differenza è enorme.
-   Con `stroke-width: calc(1.15px / var(--zc))` ogni cambio d'inquadratura
-   cambiava una variabile ereditata da tremila elementi dell'SVG: il browser
-   ricalcolava lo stile di tutti e tre, e `stroke-width` è geometria, quindi
-   rifaceva anche il layout. Misurato: 22 ms per cambio di battuta, cioè un
-   fotogramma e mezzo buttato ogni volta, ed era la causa principale dello scroll
-   a scatti. Con `non-scaling-stroke` il conto lo fa il renderer per conto suo e
-   `--zc` resta usato da UN solo elemento, la scatola della telecamera. */
 .plan-figure .pl-ink {
   fill: none;
   stroke: var(--relief-ink, #3a352a);
@@ -7512,16 +6443,6 @@
   stroke-linejoin: round;
 }
 
-/* ── Come si accende ──
-   `is-on` = questo esiste adesso. `is-now` = sta arrivando in questa battuta, ed è
-   l'unico che si prende il ritardo `--d`: senza la distinzione, chi risale si
-   rivedrebbe rifare la scala di ritardi di ogni battuta già passata. Una volta
-   disegnato, un pezzo resta: la pianta è la memoria di quello che si è letto.
-
-   Il tratto del tessuto NON si disegna a matita. Ci aveva provato: animare
-   `stroke-dashoffset` su una sessantina di path lunghi vuol dire un repaint per
-   fotogramma. La sola cosa che DEVE crescere sotto gli occhi — la fascia d'ombra e
-   l'itinerario — passa da `.pl-sweep` qui sotto. */
 .plan-figure .pl-i {
   opacity: 0;
   transition: opacity 0.8s var(--ease-cine);
@@ -7530,11 +6451,6 @@
 .plan-figure .pl-i.is-on { opacity: 1; }
 .plan-figure .pl-i.is-now { transition-delay: var(--d, 0ms); }
 
-/* Le chiome crescono dal punto in cui sono piantate: con i ritardi del generatore
-   un filare si allunga da un capo all'altro, ed è quello a dire «collegamento»
-   senza che nessuno lo scriva. Solo per gli alberi che SONO il contenuto di una
-   battuta (`pl-pop`): quelli del tessuto di fondo arrivano con la loro ondata, e
-   una transizione di `transform` per ciascuno costava più di quanto rendeva. */
 .plan-figure .pl-pop {
   transform: scale(0.3);
   transform-box: fill-box;
@@ -7547,8 +6463,6 @@
 .plan-figure .pl-pop.is-on { transform: none; }
 .plan-figure .pl-pop.is-now { transition-delay: var(--d, 0ms); }
 
-/* Il cerchio dei minuti a piedi si allarga invece di comparire: è un raggio, e un
-   raggio si legge se lo si vede crescere. */
 .plan-figure .pl-ring {
   transform: scale(0.66);
   transform-box: fill-box;
@@ -7560,14 +6474,8 @@
 
 .plan-figure .pl-ring.is-on { transform: none; }
 
-/* Il velo del caldo: due rettangoli bucati dai cerchi, uno con i posti di oggi e
-   uno con quelli di domani. Il cambio a fine sezione è una dissolvenza fra i due,
-   e si legge come «i buchi si sono chiusi». */
 .plan-figure .pl-wash { transition: opacity 1.5s var(--ease-cine); }
 
-/* Le tre occasioni segnate in ambra: l'ambra è il colore del problema in questa
-   storia (theme.css), e il giallo resta riservato a «questo è ciò che stai
-   guardando» (`01` § 1.1). */
 .plan-figure .pl-site {
   transform: scale(0.92);
   transform-box: fill-box;
@@ -7579,9 +6487,6 @@
 
 .plan-figure .pl-site.is-on { transform: none; }
 
-/* L'ombra che si chiude e l'itinerario finale: si scoprono da un capo all'altro,
-   nella direzione in cui camminerebbe una persona. Nessuna dissolvenza — se
-   sfumassero e si scoprissero insieme non si capirebbe che stanno crescendo. */
 .plan-figure .pl-sweep { opacity: 1; }
 
 .plan-figure .pl-sweep path:not(.pl-route-dash) {
@@ -7592,9 +6497,6 @@
 
 .plan-figure .pl-sweep.is-on path:not(.pl-route-dash) { stroke-dashoffset: 0; }
 
-/* La tratteggiatura bianca sopra l'itinerario NON si scopre: il suo tratteggio è
-   un attributo, e un `stroke-dasharray` di CSS lo sostituirebbe. Arriva dopo, a
-   corsa finita, e trasforma la linea in un percorso. */
 .plan-figure .pl-sweep .pl-route-dash {
   opacity: 0;
   transition: opacity 0.9s ease 2s;
@@ -7620,9 +6522,6 @@
     filter 1s var(--ease-cine);
 }
 
-/* Nella battuta che nomina i portici, la pianta non si limita ad accenderli:
-   una sola respirazione verde ne segue le campate. Cosi' si capisce subito a
-   quali segni si riferisce il primo piano, senza aggiungere etichette. */
 .plan-figure .pl-portico-on.is-now {
   animation: plan-portico-focus 2.7s var(--ease-cine) both;
 }
@@ -7644,27 +6543,7 @@
   }
 }
 
-/* =============================================================================
-   I PRIMI PIANI — tre disegni assonometrici che si disegnano
 
-   La pianta dice DOVE stanno le cose e quanto sono lontane. Non sa dire com'è
-   FATTA una cosa: dall'alto un portico è una fascia con dei puntini, un albero un
-   disco, un cantiere un rettangolo grigio. Ci pensano questi.
-
-   Un tentativo precedente inclinava la pianta stessa. Non funzionava: una pianta
-   piegata di taglio resta una pianta storta, si muoveva tutto insieme e nessun
-   movimento si leggeva, e trasformare duemila elementi costava ~11 ms a colpo.
-   Questi disegni sono ~80 path ciascuno, e per questo si possono DISEGNARE.
-   ============================================================================= */
-
-/* La scatola si misura in ALTEZZA, non in larghezza: in isometrica una scena lunga
-   scende in diagonale, quindi il disegno viene quasi quadrato qualunque cosa
-   rappresenti (rapporti ~0,86-1,03). Vincolandolo in larghezza diventava piu' alto
-   della finestra. Il rapporto arriva dal generatore, che lo misura sul disegno.
-
-   La scatola viene misurata mentre è ferma. Soltanto dopo il cambio di battuta il
-   componente la trasforma verso l'ancora; durante quel gesto non vengono più
-   eseguite letture di layout. */
 .plan-vignette {
   position: absolute;
   height: min(46svh, 400px);
@@ -7675,15 +6554,9 @@
   pointer-events: none;
 }
 
-/* Sta nella meta' OPPOSTA alla sua ancora: quale sia lo decide il componente,
-   perche' dipende da dove cade il punto sulla pianta. Con una posizione fissa il
-   disegno finiva sopra il proprio cerchio di richiamo, e un richiamo che parte e
-   arriva nello stesso posto non indica niente. */
 .plan-vignette--top { top: clamp(14px, 5vh, 58px); }
 .plan-vignette--bottom { bottom: clamp(14px, 5vh, 58px); }
 
-/* Sta sul fianco opposto al testo: il testo nomina la cosa, il disegno la mostra,
-   e in mezzo non si pestano i piedi. */
 .plan-vignette--left {
   --vig-l: var(--plan-edge);
   --vig-r: auto;
@@ -7702,9 +6575,6 @@
   overflow: visible;
 }
 
-/* L'entrata. Il modello resta poi completo finché il lettore non cambia battuta:
-   l'uscita verso l'ancora è gestita dal componente, perché dipende dallo scroll e
-   dalle coordinate misurate del richiamo. */
 .plan-vignette-art {
   position: relative;
   isolation: isolate;
@@ -7731,13 +6601,6 @@
   filter: drop-shadow(0 8px 7px rgba(58, 53, 42, 0.08));
 }
 
-/* ── IL RICHIAMO ──
-   Un cerchio sul punto della pianta e una linea che lo unisce al primo piano:
-   la chiamata di un dettaglio, come in una tavola d'architettura — che e' poi il
-   linguaggio in cui l'intera scena e' disegnata.
-
-   Compare SUBITO, insieme al disegno. È lui a dire di dove si sta parlando e
-   rimane fino al cambio di battuta, quando riceve l'uscita del modello. */
 .plan-link {
   position: absolute;
   inset: 0;
@@ -7761,9 +6624,6 @@
 .plan-link-ring { animation-delay: 0.34s; }
 .plan-link-ticks { animation-delay: 0.52s; }
 
-/* L'alone di carta sotto il segno. Non e' un vezzo: il richiamo corre sopra una
-   mappa fatta di linee, e una linea sottile sopra altre linee sottili non si
-   vede — si perde nel disegno esattamente dove deve essere piu' chiara. */
 .plan-link-halo .plan-link-lead,
 .plan-link-halo .plan-link-ring,
 .plan-link-halo .plan-link-ticks {
@@ -7804,9 +6664,6 @@
   to { opacity: 0.5; }
 }
 
-/* Quando il disegno è completo, il cerchio si accende appena. Non dice al lettore
-   di fare qualcosa: conferma che la trasformazione ha finito di comporsi e che
-   ora può continuare a scorrere. */
 .plan-link.is-ready .plan-link-ink .plan-link-ring {
   stroke: var(--relief-green, #004d19);
   stroke-width: 2;
@@ -7836,19 +6693,12 @@
   50% { opacity: 0.9; }
 }
 
-/* ── Come si disegnano ──
-   Ogni pezzo ha due figli: il TRATTO, che corre, e il COLORE, che entra dopo. È la
-   stessa grammatica della vignetta del rifugio in `09`, e produce la cosa che serve
-   qui: sembra una mano che disegna, non una diapositiva che compare. */
 .plan-vignette .pv-l path {
   fill: none;
   stroke: var(--relief-ink, #3a352a);
   stroke-width: 1.9;
   stroke-linecap: round;
   stroke-linejoin: round;
-  /* Da quando il generatore emette il colore SOTTO il tratto, del tratto si vede
-     tutta la larghezza e non piu' la sola meta' esterna: a 2,2 il disegno diventava
-     un fumetto. */
   opacity: 0.44;
   stroke-dasharray: 1;
   stroke-dashoffset: 1;
@@ -7857,8 +6707,6 @@
 
 .plan-vignette .pv-i.is-on .pv-l path { stroke-dashoffset: 0; }
 
-/* Il colore entra col tratto già mezzo corso: aspettare che il tratto finisca fa
-   due gesti separati, entrare insieme ne fa uno solo che non si legge. */
 .plan-vignette .pv-c {
   opacity: 0;
   transition: opacity 0.5s var(--ease-cine) 0.2s;
@@ -7866,8 +6714,6 @@
 
 .plan-vignette .pv-i.is-on .pv-c { opacity: 1; }
 
-/* Lo stato zero non viene "costruito": strada, piazza, auto ed edifici sono gia'
-   presenti quando il dettaglio entra. L'animazione comincia solo dal cantiere. */
 .plan-vignette .pv-i[data-step="0"] .pv-l path {
   stroke-dashoffset: 0;
   transition: none;
@@ -7879,25 +6725,17 @@
   transition: none;
 }
 
-/* Il suolo e l'architettura di contesto restano un passo indietro. Gli elementi
-   che spiegano il cambiamento entrano invece a colore pieno: la gerarchia è nel
-   disegno, non in una nuova scatola o in un'etichetta. */
 .plan-vignette .pv-i[data-step="0"].is-on .pv-c,
 .plan-vignette .pv-i[data-step="1"].is-on .pv-c {
   opacity: 0.82;
   filter: saturate(0.76);
 }
 
-/* Quello che se ne VA: le auto, le transenne, le chiazze d'ombra staccate. Senza
-   qualcosa che sparisce, «si costruisce» non ha un prima. */
 .plan-vignette .pv-i.is-gone {
   opacity: 0;
   transition: opacity 0.75s var(--ease-cine);
 }
 
-/* La fascia d'ombra del corridoio si chiude da un capo all'altro invece di
-   comparire: è l'unica cosa della vignetta che deve CRESCERE, e cresce nella
-   direzione in cui una persona cammina. */
 .plan-vignette .pv-sweep .pv-c {
   clip-path: inset(0 100% 0 0);
   opacity: 1;
@@ -7906,29 +6744,7 @@
 
 .plan-vignette .pv-sweep.is-on .pv-c { clip-path: inset(0 0 0 0); }
 
-/* ── La pianta NON si spegne quando c'e' un primo piano ──
-   Ci aveva provato: `--closeup` la portava a 0,34 mentre il primo piano si
-   disegnava. Era un errore vero, e va scritto perche' non lo rifaccia nessuno.
-   Sotto quel velo continuava ad avvenire il CONTENUTO della battuta — il rifugio
-   che si apre, il corridoio che cresce — e non si vedeva: si spegneva la cosa piu'
-   importante per far posto al suo commento.
 
-   La gerarchia la fa il DISEGNO, non l'opacita': la pianta e' una filigrana quasi
-   monocroma, il primo piano e' a colori pieni e con le ombre. Non c'e' niente da
-   spegnere. */
-
-/* ── La colonna del testo ──
-   Sta SOPRA il disegno, sul fianco dove la sfumatura lo ha portato quasi a zero:
-   è la stessa cosa che tiene il disegno dentro i limiti a renderlo leggibile, e
-   non serve nessun velo in più.
-
-   L'alone di carta sulle lettere fa l'ultimo pezzo di lavoro. È un `text-shadow`
-   e non un fondo: segue la forma delle parole invece di disegnare un rettangolo,
-   quindi il disegno continua a vedersi FRA le righe e la scena resta una cosa
-   sola. Un fondo, anche tenue, rimetterebbe la card che è stata scartata.
-
-   Cambia lato tre volte in sette battute, quando cambia il tema del racconto
-   (`side` in cityPlanScene.js). */
 .plan-copy {
   position: absolute;
   top: 50%;
@@ -7979,9 +6795,6 @@
   background: color-mix(in srgb, var(--relief-ink, #3a352a) 14%, transparent);
 }
 
-/* Un lampo molto quieto attraversa il solo indicatore durante il cambio. Non
-   aggiunge informazioni, ma rende percepibile che lo scroll sta consegnando una
-   nuova frase anche nel breve istante in cui entrambe sono spente. */
 .plan-step-track::after {
   content: "";
   position: absolute;
@@ -8017,9 +6830,6 @@
 }
 
 @media (min-width: 861px) {
-  /* Il lato sinistro resta sopra il centro della pianta, ma non piu' appeso
-     subito sotto l'header: cosi' alterna con la colonna destra senza sembrare un
-     elemento di navigazione staccato dal disegno. */
   .plan-copy--left {
     top: clamp(150px, 19vh, 206px);
     width: min(330px, var(--plan-col));
@@ -8038,12 +6848,6 @@
 
 }
 
-/* Il portico (06) e il campo lungo conclusivo (07) condividono la stessa sede
-   alta a destra: cosi' il riepilogo non deve cambiare quota proprio mentre
-   compare. Testo e sintesi restano lontani dal percorso, dai nodi e dalla nuova
-   piazza. La posizione segue `data-story-beat`, cioe' il testo stesso, non
-   `data-beat` (la pianta che arriva piu' tardi): era quel doppio orologio a far
-   scattare il blocco prima in alto e poi in basso. */
 @media (min-width: 901px) {
   .plan-stage[data-story-beat="5"] .plan-copy--right,
   .plan-stage[data-story-beat="6"] .plan-copy--right {
@@ -8057,13 +6861,8 @@
   }
 }
 
-/* Con un primo piano in scena la colonna si stringe: sono due cose sulla stessa
-   riga, e l'aria fra loro va dichiarata invece che sperata. */
 .plan-copy.is-narrow { width: min(370px, var(--plan-col)); }
 
-/* Tutte le battute nella stessa cella di griglia: il blocco è alto quanto la più
-   lunga, quindi cambiando battuta il testo non salta e la legenda sotto non si
-   sposta di riga in riga. */
 .plan-copy-body { display: grid; }
 
 .plan-beat {
@@ -8073,9 +6872,6 @@
   opacity: var(--copy-opacity);
   filter: blur(calc(var(--copy-blur) * 1.8px));
   will-change: opacity, filter;
-  /* L'opacita' e' gia' interpolata con smoothstep dal progresso di scroll.
-     Un secondo easing CSS lascerebbe il testo uscente visibile mentre entra il
-     successivo, violando la sequenza exit-before-enter. */
   transition: filter 90ms linear;
 }
 
@@ -8083,9 +6879,6 @@
   --copy-opacity: 1;
 }
 
-/* Una frase sola, come negli altri passaggi narrativi della webapp. L'apertura
-   resta riconoscibile ma non si stacca in un titolo: l'occhio percorre il testo
-   senza il piccolo stop da diapositiva che c'era prima. */
 .plan-text {
   max-width: 31ch;
   font-size: clamp(1.05rem, 1.28vw, 1.22rem);
@@ -8124,10 +6917,6 @@
   text-decoration-thickness: 0.12em;
 }
 
-/* ── La legenda che cresce ──
-   Non è una legenda di servizio: è la somma della sezione che si compone mentre la
-   si legge, come la "ricetta" del rifugio in `09`. Alla fine sono le tre cose da
-   portarsi via, e sono esattamente le tre che la sezione deve far capire. */
 .plan-legend {
   opacity: 0;
   transform: translateY(10px);
@@ -8143,9 +6932,6 @@
   transform: none;
 }
 
-/* Quando il racconto cambia lato, la sintesi del lato vecchio non deve restare
-   sospesa dopo la frase. L'entrata conserva il ritmo disteso; l'uscita segue il
-   testo e chiude rapidamente anche il suo piccolo alone di carta. */
 .plan-copy:not(.is-current) .plan-legend {
   transition:
     opacity 0.18s linear,
@@ -8191,8 +6977,6 @@
   transform: none;
 }
 
-/* La voce appena entrata è l'unica in verde scuro: la legenda dice anche a che
-   punto è il racconto, non solo cosa vuol dire un colore. */
 .plan-legend-item.is-now {
   color: var(--relief-green, #004d19);
   font-weight: 600;
@@ -8208,9 +6992,6 @@
 .plan-legend-item--green .plan-legend-swatch { background: #7ea766; }
 .plan-legend-item--shade .plan-legend-swatch { background: rgba(44, 90, 59, 0.5); }
 
-/* Il campione ripete lo stesso segno della tavola: fascia d'ombra, grandi campate
-   curve e colonne ad anello. Anche da piccolo deve dire "portico", non
-   "tratteggio". */
 .plan-legend-item--portico .plan-legend-swatch {
   position: relative;
   height: 11px;
@@ -8242,15 +7023,6 @@
     0 50% / 12px 3px repeat-x;
 }
 
-/* ── Lo scorrimento ──
-   Un hold per battuta, e sono loro a misurare tutto: la battuta è quanti hold
-   hanno passato la linea di lettura. L'arrivo ha uno spazio autonomo, così la
-   prima frase resta quasi una schermata intera; l'ultimo hold lascia respirare il
-   campo lungo finale prima che la scena si stacchi.
-
-   Sette battute a 68vh più l'arrivo fanno poco meno di sei schermate. Erano
-   sette e mezzo: la sezione è il pagamento di tutta la storia, ma non deve
-   diventare la sua metà. */
 .plan-arrival-hold {
   height: 52vh;
   height: 52svh;
@@ -8258,17 +7030,9 @@
 
 .plan-hold { height: 68vh; }
 
-/* Le tre battute con un primo piano: il disegno più lungo impiega poco più di
-   sette secondi a completarsi e poi resta visibile. La classe viene applicata
-   all'hold PRECEDENTE, perche' lo stato cambia
-   quando il bordo superiore dell'hold passa la linea di lettura: e' quindi
-   l'altezza di un hold a dare tempo alla battuta successiva. */
 .plan-hold--wide { height: 104vh; }
 .plan-hold:last-child { height: 86vh; }
 
-/* ── Schermi stretti ──
-   Il riquadro non ha più un fianco libero: si centra in alto e il testo va
-   sotto. */
 @media (max-width: 900px) {
   .plan-intro {
     padding: clamp(64px, 9vh, 96px) 22px clamp(56px, 8vh, 84px);
@@ -8289,8 +7053,6 @@
     --plan-edge: 16px;
   }
 
-  /* Su schermo stretto la sfumatura non lavora più sui fianchi ma in basso: il
-     testo sta in fondo, e il disegno gli si spegne sotto. */
   .plan-veil--l,
   .plan-veil--r {
     opacity: 1;
@@ -8322,7 +7084,6 @@
     gap: 11px;
   }
 
-  /* Il primo piano prende la larghezza e sta in alto; il testo resta in fondo. */
   .plan-vignette,
   .plan-stage--right .plan-vignette {
     --vig-l: 10px;
@@ -8332,8 +7093,6 @@
     transform: none;
   }
 
-  /* La linea lunga attraverserebbe il testo, ma l'ancora resta: anche su telefono
-     deve essere chiaro quale punto della pianta viene mostrato da vicino. */
   .plan-link-lead { display: none; }
 
   .plan-copy.is-narrow { width: auto; }
@@ -8359,10 +7118,6 @@
   .plan-legend-item { font-size: 0.85rem; }
 }
 
-/* Con "riduci animazioni" il disegno resta (è il contenuto, `data-motion="story"`
-   sulla figura) ma i due movimenti d'insieme no: una telecamera che scivola per
-   sei schermate e un riquadro che traversa la pagina sono esattamente il tipo di
-   movimento che dà fastidio. La pianta cambia inquadratura di taglio. */
 @media (prefers-reduced-motion: reduce) {
   .plan-camera,
   .plan-veil,
@@ -8405,7 +7160,6 @@
   .plan-step { transition: none; }
 }
 
-/* ── Close ── */
 
 .relief-closing-block { background: linear-gradient(180deg, #eef3ec 0%, #e9f1e4 100%); }
 
@@ -8423,17 +7177,7 @@
   font-weight: 600;
 }
 
-/* ── Explainer del rifugio: si impila prima delle altre scene ──
-   La figura pesa il 64 % dello stage (09 § 9.8): sotto i 1100 px la colonna di
-   testo scenderebbe a ~300 px e le tappe tornerebbero a quattro righe. Qui la
-   vignetta va a piena larghezza e il testo sotto. La stessa soglia è replicata
-   in RifugioExplainer.jsx (`mobileLayout`), che la usa per abbassare la linea di
-   aggancio: vanno cambiate insieme.
-   È un blocco a sé e non il breakpoint a 860 px più sotto, perché quello impila
-   anche le mappe e i beat illustrati, che a 1100 px stanno ancora bene. */
 @media (max-width: 1100px) {
-  /* Su schermo stretto la scena resta davvero sticky: disegno e testo stanno
-     nello stesso viewport, quindi gli hold non diventano spazio vuoto. */
   .relief-explainer-stage {
     position: sticky;
     top: var(--header-height);
@@ -8585,7 +7329,6 @@
   }
 }
 
-/* ── Mobile ── */
 
 @media (max-width: 860px) {
   .relief-flow--rifugi {
@@ -8660,8 +7403,6 @@
     max-height: none;
   }
 
-  /* I due contatori restano affiancati anche ora che il link sta in mezzo a loro
-     nel DOM: la posizione nella griglia è dichiarata, non lasciata all'ordine. */
   .relief-map-panel--dock .relief-count {
     display: block;
     grid-column: 1;
@@ -8703,7 +7444,6 @@
     grid-column: 1 / -1;
   }
 
-  /* Sotto i due contatori affiancati, il link torna una riga intera. */
   .relief-map-panel--dock .relief-map-link {
     grid-row: 2;
     margin-top: 11px;
@@ -8713,9 +7453,6 @@
     grid-row: 3;
   }
 
-  /* Su telefono la ricerca prende tutta la larghezza in cima: nessuno spazio per
-     un pannello di fianco, e il testo di accompagnamento lascia il posto al
-     placeholder, che dice già che cosa si può scrivere. */
   .relief-map-find {
     top: 46px;
     left: 12px;
@@ -8732,7 +7469,6 @@
   }
 
   .relief-map-hint {
-    /* Sotto la barra di ricerca, che qui occupa i primi 89px dello schermo. */
     top: 104px;
     font-size: 12px;
     padding: 8px 13px 8px 11px;
@@ -8757,11 +7493,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  /* Il rifugio si costruisce da solo su un timer: il suo disegno è contenuto e
-     resta (la figura è marcata data-motion="story", vedi theme.css). Tutte le
-     durate che questo blocco prima si ricomprava con !important sono tornate a
-     valere da sole. Qui restano soltanto i cicli ambientali — acqua, foschia,
-     getti, lo stato che lampeggia — che non raccontano niente e si fermano. */
   .relief-figure .layer.on .water,
   .relief-figure .layer.on .mist ellipse,
   .relief-figure .layer.on .jets path {
@@ -8778,9 +7509,6 @@
   }
 }
 
-/* =============================================================================
-   CLOSING ARC — TALEA project + open-data close
-   ============================================================================= */
 
 .talea-chapter,
 .closing-chapter {
@@ -8790,13 +7518,6 @@
   --closing-ink: #3a4a40;
 }
 
-/* ── Il capitolo è UNA superficie, non tre bande ──────────────────────────────
-   C'erano tre fondi diversi in tre schermate consecutive (hero verde, blocco
-   partecipazione verde, ponte verde) separati da due gradienti che tornavano
-   ogni volta sull'avorio: il capitolo si leggeva come tre sezioni scollegate.
-   Ora è un solo gradiente, e i due estremi sono i valori di giunzione già
-   dichiarati altrove (`03` § 3.1): #e6efe1 è dove chiude `.plan-scene`,
-   #eef4ea è dove apre `.zones-scene`. Chi ne cambia uno cambi anche l'altro. */
 .talea-chapter {
   --talea-handoff: clamp(190px, 22svh, 320px);
   background: linear-gradient(
@@ -8808,9 +7529,6 @@
   );
 }
 
-/* La carta verde del capitolo successivo risale sopra l'ultimo tratto di mappa:
-   la pianta non viene piu' tagliata da una linea orizzontale, ma si scioglie
-   gradualmente nella pagina su cui compare il progetto. */
 .talea-chapter::before {
   content: "";
   position: absolute;
@@ -8823,19 +7541,6 @@
   background: linear-gradient(180deg, rgba(230, 239, 225, 0), #e6efe1 96%);
 }
 
-/* ── Le talee che crescono, in sottofondo ─────────────────────────────────────
-   Cinque talee lungo la stessa riga di terra, ognuna un passo più avanti della
-   precedente: il ramo appena piantato, le radici, le prime foglie, la pianta
-   giovane, l'alberello. Sta in fondo al capitolo, dietro la riga che consegna
-   alla mappa, a tutta larghezza.
-
-   Sottofondo vuol dire due cose, e sono tutte e due qui: opacità bassa, e una
-   maschera che spegne il disegno verso l'alto, dove c'è il testo. Senza la
-   maschera il tratto passerebbe dietro le parole a piena forza — che è esattamente
-   il difetto della vignetta che questo disegno sostituisce.
-
-   `slice` e non `meet`: su schermi bassi il disegno viene tagliato ai lati
-   invece di rimpicciolirsi fino a diventare un francobollo in mezzo al vuoto. */
 .talea-growth {
   position: absolute;
   left: 0;
@@ -8845,10 +7550,6 @@
   z-index: 0;
   pointer-events: none;
   opacity: 0.6;
-  /* La maschera parte da 0.35 e non da zero: le chiome delle talee più alte
-     stanno nel primo terzo del riquadro, e con una sfumatura che partiva dal
-     trasparente le piante restavano senza testa. Da qui in giù il disegno è
-     pieno; sopra si alleggerisce, e basta a non farlo finire di netto. */
   -webkit-mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.35) 0%, #000 30%, #000 100%);
   mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.35) 0%, #000 30%, #000 100%);
 }
@@ -8859,9 +7560,6 @@
   height: 100%;
 }
 
-/* Ogni tratto porta il proprio ritardo su `--d` (in ms), scritto nel JSX: i
-   ritardi crescono da sinistra a destra, così il disegno si legge come una
-   crescita e non come cinque piante che compaiono insieme. */
 .talea-growth .tg-draw {
   fill: none;
   stroke: color-mix(in srgb, var(--talea-dark-green) 52%, transparent);
@@ -8886,26 +7584,19 @@
 
 .talea-growth .tg-stem {
   --dur-draw: 1000ms;
-  /* Lo spessore lo scrive il JSX e cresce con la pianta: un alberello alto 240
-     unità con lo stesso filo di una talea alta 48 sembra un filo di ferro. */
 }
 
-/* I rami laterali: un gradino sotto il tronco, come in una pianta vera. */
 .talea-growth .tg-arm {
   --dur-draw: 620ms;
   stroke: color-mix(in srgb, var(--talea-dark-green) 44%, transparent);
 }
 
-/* Le radici stanno un gradino indietro rispetto allo stelo: sono sotto terra, e
-   se hanno lo stesso peso la riga del terreno smette di leggersi come terreno. */
 .talea-growth .tg-root {
   --dur-draw: 760ms;
   stroke-width: 1.7;
   stroke: color-mix(in srgb, var(--talea-dark-green) 34%, transparent);
 }
 
-/* Le radichette che si staccano dalle radici principali: più fini, altrimenti
-   il ventaglio sotto terra pesa quanto la pianta sopra. */
 .talea-growth .tg-rootlet {
   --dur-draw: 520ms;
   stroke-width: 1.1;
@@ -8918,7 +7609,6 @@
   stroke: color-mix(in srgb, var(--talea-green) 40%, transparent);
 }
 
-/* La gemma in punta: stesso verde della foglia, perché è quello che diventerà. */
 .talea-growth .tg-bud {
   --dur-draw: 380ms;
   stroke-width: 2;
@@ -8939,9 +7629,6 @@
   transition: opacity 620ms var(--ease-cine) calc(var(--d, 0) * 1ms);
 }
 
-/* La nervatura arriva dopo la foglia: prima la forma si chiude, poi si vede di
-   che cosa è fatta. Lo spessore lo scrive il JSX, diviso per la scala del
-   gruppo. */
 .talea-growth .tg-rib {
   fill: none;
   stroke: color-mix(in srgb, var(--talea-green) 78%, var(--talea-dark-green));
@@ -8950,8 +7637,6 @@
   transition: opacity 420ms var(--ease-cine) calc(var(--d, 0) * 1ms);
 }
 
-/* Il nodo del taglio: pieno, con un alone di carta attorno, così si stacca dallo
-   stelo invece di ingrossarlo. */
 .talea-growth .tg-node {
   fill: color-mix(in srgb, var(--talea-green) 62%, transparent);
   stroke: var(--paper);
@@ -8989,16 +7674,6 @@
   }
 }
 
-/* ── L'impaginazione ──────────────────────────────────────────────────────────
-   `.talea-frame` è la cornice comune al capitolo e ai crediti: stessa larghezza
-   e stesso margine, così il finale della storia si legge come un pezzo unico.
-
-   Dentro, colonna centrata (`.talea-intro`): è la forma con cui aprono gli altri
-   capitoli (`.relief-title` + corpo centrato, `.sources-head`). Il capitolo era
-   impaginato su due colonne, con una vignetta a destra; da quando il disegno è
-   passato in sottofondo (`.talea-growth`) quella griglia lasciava mezza
-   schermata vuota. Sono sparite con lei `.talea-inner` e `.talea-copy`, che
-   ricopiavano la griglia della sezione sull'aria e non le usa più nessuno. */
 .talea-frame {
   position: relative;
   z-index: 1;
@@ -9029,9 +7704,6 @@
   text-wrap: balance;
 }
 
-/* La spiegazione del nome torna a misura di lettura: centrata, ma non larga
-   quanto la cornice. Oltre i ~62 caratteri per riga l'occhio perde il capo
-   riga, e il testo centrato lo perde prima di quello allineato a sinistra. */
 .talea-meaning {
   max-width: 62ch;
   margin: clamp(30px, 3.4vw, 44px) auto 0;
@@ -9063,9 +7735,6 @@
   border-bottom-color: rgba(0, 77, 25, 0.4);
 }
 
-/* Il nome del progetto, subito sotto il titolo. La riga che lo introduce è
-   testo normale, non un occhiello maiuscolo: nel resto della webapp non ce ne
-   sono. */
 .talea-lockup {
   margin: clamp(26px, 3vw, 38px) 0 0;
   display: flex;
@@ -9098,29 +7767,10 @@
   outline-offset: 8px;
 }
 
-/* ── Il logo che si disegna ───────────────────────────────────────────────────
-   È lo stesso tracciato della schermata d'ingresso (`#talea-boot`, in
-   index.html): stessi path, stesso ordine, stesse durate. Cambia solo il momento
-   in cui parte, che qui è l'ingresso nello schermo (`.is-drawn`, messa da
-   `TaleaLogoDraw`). Chi apre la storia e chi ci arriva scorrendo vedono nascere
-   la stessa cosa.
-
-   Il prefisso è `tl-` e non `tb-` di proposito: le regole del loader stanno in
-   <head>, sono globali e restano nel documento anche dopo che il loader è stato
-   tolto. Riusarle vorrebbe dire far partire il disegno al montaggio del
-   componente, cioè mentre il capitolo è ancora tre schermate più in basso.
-
-   Qui c'era la vignetta della talea (`.talea-cutting`): un disegno a tratto
-   largo 760 px con lo stelo, il terreno, le radici, due foglie e due repliche
-   più piccole. Era la cosa più grande e più colorata della schermata, quindi la
-   prima che si guardava, e non diceva niente che la riga di testo accanto non
-   dicesse meglio in dodici parole. */
 .talea-logomark {
   display: block;
   width: 100%;
   height: auto;
-  /* Il tratto è spesso e i cerchi arrivano al bordo del viewBox: senza questo,
-     il bordo esterno viene tagliato a metà spessore. */
   overflow: visible;
 }
 
@@ -9129,8 +7779,6 @@
 .tl-branch,
 .tl-vein {
   fill: none;
-  /* pathLength="1" su ogni tratto: la lunghezza reale non conta più, il disegno
-     si anima con un solo valore per tutti. */
   stroke-dasharray: 1;
   stroke-dashoffset: 1;
 }
@@ -9170,10 +7818,6 @@
   fill: #17361c;
 }
 
-/* L'animazione sta sul GRUPPO, non sul path: una `transform` messa via CSS
-   sostituisce in blocco l'attributo `transform` dell'elemento, e la scritta
-   perderebbe il proprio translate finendo fuori dai cerchi. Sul gruppo invece
-   si compone, perché il gruppo non ne ha uno suo. */
 .tl-word-g {
   opacity: 0;
   transform-box: fill-box;
@@ -9194,8 +7838,6 @@
 @keyframes tl-appear {
   from {
     opacity: 0;
-    /* Solo scala: una traslazione qui erediterebbe il flip verticale della
-       matrice di root e salirebbe dalla parte sbagliata. */
     transform: scale(0.94);
   }
   to {
@@ -9210,8 +7852,6 @@
   }
 }
 
-/* La talea germoglia: prima il ramo, poi le venature che spuntano, poi i due
-   cerchi che si chiudono attorno e la scritta che emerge. */
 .talea-logomark.is-drawn .tl-branch {
   animation: tl-draw 460ms 40ms cubic-bezier(0.33, 0, 0.2, 1) forwards;
 }
@@ -9220,7 +7860,6 @@
   animation: tl-draw 240ms cubic-bezier(0.33, 0, 0.2, 1) forwards;
 }
 
-/* Le venature spuntano una dopo l'altra: i ritardi sono quelli del loader. */
 .talea-logomark.is-drawn .tl-p3 { animation-delay: 380ms; }
 .talea-logomark.is-drawn .tl-p4 { animation-delay: 418ms; }
 .talea-logomark.is-drawn .tl-p5 { animation-delay: 456ms; }
@@ -9245,9 +7884,6 @@
   animation: tl-fade 260ms 1180ms linear forwards;
 }
 
-/* Chi ha chiesto meno movimento vede il logo finito, non il logo a metà: senza
-   questo blocco i tratti resterebbero con `stroke-dashoffset: 1`, cioè
-   invisibili. */
 @media (prefers-reduced-motion: reduce) {
   .talea-logomark .tl-blue,
   .talea-logomark .tl-yellow,
@@ -9264,16 +7900,6 @@
   }
 }
 
-/* ── La scheda: i fatti verificabili ───────────────────────────────────────────
-   Erano tre etichette maiuscole in fila, che si leggevano come uno slogan; e il
-   fatto che più conta per la fiducia (chi lo realizza, con quali fondi) stava
-   nascosto dietro il "+" dei partner, dopo la mappa. Il valore è in display
-   come i numeri del resto della storia, ma in verde e non in ambra: l'ambra è
-   il colore dell'allarme, questa è la parte in cui si risponde.
-
-   Sta dove stava, sotto il filo, ma centrata: è la chiusura di una colonna
-   centrata, e allineata a sinistra sotto un blocco simmetrico si leggeva come
-   un pezzo rimasto dell'impaginazione precedente. */
 .talea-rule {
   border: 0;
   border-top: 1px solid var(--border-soft);
@@ -9326,12 +7952,7 @@
   color: var(--ink-soft);
 }
 
-/* La riga che annuncia la mappa. Niente fondo suo: il capitolo è una superficie
-   sola e questa è solo l'ultima battuta prima della scena. Centrata come il
-   raccordo che chiude la sezione sull'aria. */
 .talea-bridge-wrap {
-  /* Sopra le talee di sfondo: senza `position`, `z-index` non fa niente e il
-     tratto passa davanti alle parole. */
   position: relative;
   z-index: 1;
   padding: clamp(74px, 9vw, 122px) var(--content-pad) clamp(96px, 12vw, 168px);
@@ -9351,21 +7972,10 @@
   text-wrap: balance;
 }
 
-/* Il chevron sotto la riga di ponte. Stessa distanza dal testo che hanno gli
-   altri due cue di fine capitolo (`.sf-chapter-cue`,
-   `.vulnerability-chapter-cue`): sono lo stesso oggetto nello stesso punto
-   della pagina, e devono stare alla stessa altezza. */
 .talea-bridge-cue {
   margin: clamp(18px, 2.2vh, 26px) auto 0;
 }
 
-/* ── Partecipare: dopo la mappa, non prima ───────────────────────────────────
-   Un titolo, una riga, un link, al centro. Erano un titolo indiretto, un
-   occhiello e due paragrafi di processo su due colonne: quattro blocchi per una
-   informazione sola, nel punto della storia in cui il lettore esce da una mappa
-   e ha l'attenzione al minimo.
-   Finisce in verde (#eef3e8) e i partner cominciano in carta: la giunzione non
-   è più continua, è uno stacco voluto (vedi `.talea-partners`). */
 .talea-participation {
   position: relative;
   overflow-x: clip;
@@ -9400,29 +8010,6 @@
   text-wrap: pretty;
 }
 
-/* ── Partner ─────────────────────────────────────────────────────────────────
-   Impaginazione presa dalla piattaforma TALEA: una griglia di schede, le città
-   di replica separate, la dichiarazione di finanziamento europeo in fondo con
-   l'emblema. Le schede sono la stessa famiglia di quelle degli strumenti in
-   chiusura (`.source-card`).
-
-   Erano tre colonne di righe da 0.86 rem, cioè crediti scritti per non essere
-   letti. Qui il nome è l'oggetto della scheda e ha lo spazio per esserlo.
-
-   ── Una stanza sua ──
-   Il fondo era una sfumatura che PARTIVA dal verde in cui finisce la
-   partecipazione: le due sezioni erano lo stesso campo continuo, e la parola
-   «Partner» compariva a metà di un colore che era già lì. Nessuno stacco, e
-   quindi nessuna sezione.
-
-   Ora è carta piena fra due campi verdi — la partecipazione sopra, la chiusura
-   sotto. È la stessa alternanza con cui la pagina distingue i capitoli dai loro
-   apparati, e i loghi dei partner, che sono a colori, hanno finalmente un fondo
-   neutro sotto. Chi cambia il fondo della partecipazione o della chiusura
-   guardi anche questo: il senso della regola è la DIFFERENZA con i due vicini.
-
-   Il filo è solo in cima: quello in fondo lo mette già `.closing-final`, e due
-   regole adiacenti sullo stesso confine fanno una riga doppia. */
 .talea-partners {
   background: var(--paper);
   border-top: 1px solid var(--border-soft);
@@ -9442,10 +8029,6 @@
   text-wrap: balance;
 }
 
-/* Flex e non griglia: i partner sono sette, cioè un numero che in una griglia a
-   colonne fisse lascia sempre una scheda sola in fondo, spostata a sinistra come
-   se fosse avanzata. In flex le righe si centrano, e sette diventano quattro più
-   tre, allineate all'asse della pagina. */
 .talea-partner-grid {
   list-style: none;
   padding: 0;
@@ -9482,14 +8065,6 @@
     border-color 0.22s var(--ease);
 }
 
-/* ── Il logo, nel fondo ───────────────────────────────────────────────────────
-   Ingrandito fino a coprire la scheda e tenuto basso di opacità: quello che deve
-   arrivare è il colore dell'ente, non il marchio leggibile. Prima al suo posto
-   c'era un monogramma di due o tre lettere, che era un ripiego per non avere i
-   loghi; ora i loghi ci sono (public/assets/partners), e il monogramma non serve.
-
-   Sta su uno pseudo-elemento e non su `background-image` della scheda perché
-   l'opacità deve valere per il logo e non per il testo che ci sta sopra. */
 .talea-partner-card::before {
   content: "";
   position: absolute;
@@ -9499,12 +8074,6 @@
   background-size: cover;
   background-position: center;
   opacity: 0.62;
-  /* La sfocatura è la ragione per cui questa cosa funziona. Un logo tagliato a
-     `cover` lascia dentro la scheda dei pezzi di parola — «NECA», «3GIS»,
-     «azione IU» — che finiscono dietro al nome vero: due testi sovrapposti, ed
-     è la prima cosa che si nota. Sfocato resta il colore e la forma dello
-     stemma, che è quello che serve. `scale` copre il bordo morbido che la
-     sfocatura lascia lungo il perimetro. */
   filter: blur(7px) saturate(1.2);
   transform: scale(1.14);
   transition:
@@ -9513,10 +8082,6 @@
     transform 0.4s var(--ease);
 }
 
-/* La velatura: senza, un nome in verde scuro sopra uno stemma giallo o un logo
-   scuro perde il contrasto. È densa dietro alle parole e si apre verso destra,
-   dove il logo può respirare: è quel taglio a farlo vedere senza pagarlo con la
-   leggibilità del nome. */
 .talea-partner-card::after {
   content: "";
   position: absolute;
@@ -9539,8 +8104,6 @@
   outline: none;
 }
 
-/* Al passaggio del mouse il logo mette a fuoco: è il modo in cui la scheda dice
-   che dall'altra parte del link c'è un ente vero. */
 .talea-partner-card:hover::before,
 .talea-partner-card:focus-visible::before {
   opacity: 0.78;
@@ -9553,8 +8116,6 @@
   opacity: 0.86;
 }
 
-/* Il capofila: la sponda verde che il capitolo usa per marcare l'oggetto
-   principale di un pannello (vedi `.relief-map-dock`). */
 .talea-partner-card--lead {
   border-left: 3px solid var(--talea-green);
 }
@@ -9583,10 +8144,6 @@
   color: var(--talea-green);
 }
 
-/* ── La dichiarazione di finanziamento ──
-   Un obbligo dei progetti europei, e insieme la cosa che spiega perché tutto
-   questo esiste. Con l'emblema accanto si legge come una dichiarazione; senza,
-   era una riga di didascalia che spariva in fondo alla pagina. */
 .talea-funding {
   display: flex;
   align-items: center;
@@ -9639,56 +8196,12 @@
   }
 }
 
-/* ── Guided pilot-zone map scene ──
-   Three compact stages: overview, Fossolo, Marconi. The map circles are
-   deliberately indicative, while the masked ortophoto keeps attention on the
-   active place without making its edge look like an official boundary. */
 .zones-scene {
   background:
     linear-gradient(180deg, #eef4ea 0%, #e5eee1 10%, #e8f0e4 86%, var(--paper) 100%);
-  /* ── Il vuoto dopo la mappa ────────────────────────────────────────────────
-     Un pannello sticky alto una schermata, quando si sgancia, ha comunque una
-     schermata intera da percorrere prima di sparire: in quel tratto il lettore
-     scorreva su un campo color carta e basta, aspettando il capitolo dopo.
-
-     Il margine negativo fa cominciare `.talea-participation` mentre la coda
-     della scena sta ancora uscendo. Le due sezioni sono entrambe posizionate e
-     senza z-index, quindi vince l'ordine del documento: la partecipazione, che
-     viene dopo, sale SOPRA la mappa e le mangia il vuoto. Il fondo delle due nel
-     punto di giunzione è lo stesso (`var(--paper)`), quindi la cucitura non si
-     vede. Chi cambia uno dei due fondi guardi anche l'altro. */
   margin-bottom: clamp(-300px, -22vh, -150px);
 }
 
-/* ── Come si apre: l'iride ───────────────────────────────────────────────────
-   I due veli sono quelli condivisi con le altre mappe e portano i colori delle
-   due pagine fra cui la scena sta — sopra la carta verde del capitolo TALEA,
-   sotto quella su cui apre la partecipazione — così la mappa non "compare" e
-   non "sparisce": emerge dalla pagina e ci rientra.
-
-   Ma qui il velo d'ingresso non si dissolve: si BUCA. Un cerchio trasparente
-   nasce al centro dello schermo e cresce finché non resta niente da coprire, e
-   la sua ampiezza è `--zones-open`, cioè quanto il lettore ha scorso oltre
-   l'aggancio del pannello sticky (lo scrive ZonesMapScene.jsx a ogni
-   fotogramma, vedi `PIN_AT` / `OPEN_SPAN` lì).
-
-   Perché non una dissolvenza. Ce n'era una, di 1150 ms, e il problema non era
-   la sua durata né la sua curva: era che partiva da ferma nell'istante esatto
-   in cui lo schermo diventava tutto bianco. Prima di quell'istante non
-   succedeva niente perché non poteva (aprire su una mappa ancora tagliata a
-   metà dal capitolo precedente è peggio, ed è stato provato); dopo, il lettore
-   restava a guardare un rettangolo vuoto aspettando un cronometro che non
-   sapeva di aver fatto partire. Un'iride legata allo scorrimento toglie
-   l'attesa alla radice: al primo pixel oltre l'aggancio la città è già
-   cominciata, e si apre esattamente quanto il lettore la apre.
-
-   La forma non è decorativa: il cerchio è il modo in cui questa scena inquadra
-   un luogo (`.zones-focus-mask`, qui sotto). L'apertura è quel gesto al
-   contrario, e la scena comincia e finisce nella stessa lingua.
-
-   Le due tappe della sfumatura crescono insieme, e tutte e due da zero: se
-   l'esterna partisse da un valore fisso ci sarebbe un buco morbido al centro
-   già a velo chiuso. */
 .zones-scene .relief-map-veil {
   background: linear-gradient(180deg, #eef4ea 0%, #e5eee1 100%);
   opacity: 1;
@@ -9705,9 +8218,6 @@
   );
 }
 
-/* Chi ha chiesto meno movimento non ha chiesto meno mappa: stessa corsa, stesso
-   aggancio, ma la si scopre in dissolvenza invece che con un cerchio che si
-   allarga. */
 @media (prefers-reduced-motion: reduce) {
   .zones-scene .relief-map-veil {
     -webkit-mask-image: none;
@@ -9725,25 +8235,6 @@
   z-index: 0;
 }
 
-/* ── Quanto scroll vale un ambito ────────────────────────────────────────────
-   Erano 46vh a passo, cioè meno di mezza schermata: con tre passi la scena
-   intera durava 138vh e il secondo ambito compariva quando la sezione stava già
-   uscendo. Chi scorreva con un gesto normale del trackpad passava da «Fossolo»
-   all'ultima riga senza mai vedere Marconi inquadrato.
-
-   Ora ogni passo vale 76vh e dopo l'ultimo c'è una coda di 72vh. Il conto, in
-   altezze di schermata (V), con la sezione alta 1V di sticky più i passi:
-     · H = 1 + 3×0.76 + 0.72 = 4.00V
-     · l'ultimo ambito entra a 1.97V e la dissolvenza d'uscita parte a 3.00V
-       (`EXIT_FROM`, in ZonesMapScene.jsx: rect.bottom ≤ 1.00V)
-     · quindi dura 1.03V, un po' più del primo ambito (0.76V)
-   La coda non è arredamento: è lo scroll che serve perché il volo verso il
-   secondo ambito finisca prima che la scena si chiuda. Era 54vh quando il volo
-   durava un secondo e nove; da quando ne dura due e otto (`FLIGHT_DURATION`)
-   serve più corsa, o si torna al difetto di partenza: il secondo cerchio
-   compariva e spariva nello stesso gesto. Chi cambia la durata del volo o la
-   soglia di uscita ricalcoli anche questa, e la verifichi scorrendo, non
-   sommandola. */
 .zones-step {
   height: 76vh;
 }
@@ -9785,21 +8276,8 @@
   opacity: 1;
 }
 
-/* ── Il pannello che racconta la scena ────────────────────────────────────────
-   È lo stesso oggetto della colonna di descrizioni della mappa degli hotspot
-   (`.hotspot-sequence` / `.hotspot-seq-item`, in maps.css): carta piena, in alto
-   a destra, staccata dal bordo, testo in `--fs-map` come tutto il testo che
-   commenta una mappa in questa webapp.
-
-   Prima era vetro scuro in basso a sinistra, con il corpo a 12 px: due cose che
-   non esistono da nessun'altra parte nel progetto. Poi è stata una fascia
-   incollata al bordo destro, senza margine, con il testo ancora a 12 px. Il
-   margine e il corpo del testo sono la stessa regola di tutte le altre mappe. */
 .zones-caption {
   position: absolute;
-  /* Un gradino sotto la pastiglia dell'etichetta, che è centrata in alto: da
-     9vh i due oggetti si leggevano sulla stessa riga e si contendevano lo
-     sguardo. */
   top: clamp(118px, 17vh, 184px);
   right: clamp(30px, 4vw, 66px);
   z-index: 6;
@@ -9818,24 +8296,16 @@
   opacity: 0;
   transform: translateY(-14px);
   pointer-events: none;
-  /* Il ritardo è la distanza dal centro. L'iride si apre dal mezzo dello
-     schermo e l'angolo in alto a destra è l'ultimo posto che scopre: senza
-     ritardo il pannello si accendeva sul bianco, prima che sotto ci fosse una
-     mappa di cui parlare. */
   transition: opacity 520ms var(--ease-cine) 300ms,
     transform 520ms var(--ease-cine) 300ms;
 }
 
-/* Entra quando il velo si apre, non appena la mappa è pronta: la mappa è pronta
-   molto prima, e il pannello sarebbe già lì ad aspettare dietro il velo. */
 .zones-caption--ready {
   opacity: 1;
   transform: translateY(0);
   pointer-events: auto;
 }
 
-/* Uscendo il ritardo non serve: il pannello se ne va per primo, e lascia la
-   mappa da sola per l'ultimo tratto. */
 .zones-caption--gone {
   opacity: 0;
   transform: translateY(-10px);
@@ -9855,9 +8325,6 @@
   margin-left: 0.01em;
 }
 
-/* `--fs-map` è il corpo con cui parlano tutte le mappe della webapp
-   (`.hotspot-seq-text`). Era a 12 px, cioè un corpo che non esiste in nessun
-   altro punto della storia. */
 .zones-caption-text {
   font-size: var(--fs-map);
   line-height: 1.58;
@@ -9892,12 +8359,6 @@
   transform: scale(1.18);
 }
 
-/* ── L'etichetta del cerchio ──────────────────────────────────────────────────
-   Al centro in alto, dove la mappa dei rifugi mette il suo invito
-   (`.relief-map-hint`): stessa pillola verde scura, stesso ingresso dall'alto.
-   Era una legenda all'angolo in alto a sinistra, che diceva «Ambito indicativo
-   raccontato»: un angolo che nessuno guarda, e una dicitura da nota di
-   redazione invece che il nome della cosa. */
 .zones-key {
   position: absolute;
   top: clamp(18px, 4.5vh, 46px);
@@ -9948,8 +8409,6 @@
   border: 2px solid var(--focus);
 }
 
-/* The earlier relief-map breakpoint intentionally unpins exploratory maps.
-   This scene is a short guided sequence, so it must remain sticky on mobile. */
 @media (max-width: 860px) {
   .zones-scene .relief-map-sticky {
     position: sticky;
@@ -9959,16 +8418,10 @@
   }
 }
 
-/* Su schermo stretto il pannello non sta accanto alla mappa: diventa una fascia
-   in alto a tutta larghezza, con la camera che compensa (MOBILE_FIT_PADDING, in
-   ZonesMapScene.jsx). Chi cambia una delle due cose cambi anche l'altra, o i
-   cerchi finiscono sotto il testo. */
 @media (max-width: 860px) {
   .zones-caption {
     right: 14px;
     left: 14px;
-    /* Sotto la pillola dell'etichetta, non sopra: la pillola è centrata e a
-       tutta larghezza il pannello le finirebbe addosso. */
     top: clamp(84px, 12vh, 122px);
     width: auto;
     border-right: 1px solid rgba(0, 77, 25, 0.14);
@@ -9987,7 +8440,6 @@
   }
 }
 
-/* ── Source-webapp grid — a link to every tool the story is built on ── */
 .sources-band {
   background: var(--paper);
   border-top: 1px solid var(--border-soft);
@@ -10023,10 +8475,6 @@
   margin: 0;
 }
 
-/* Tre colonne, quante sono le webapp oltre alla piattaforma. Erano quattro
-   perché gli strumenti erano quattro; da quando SUHI è uscito dalla griglia
-   (vedi `dataSources` in taleaProject.js) una quarta colonna lascerebbe una
-   casella vuota in fondo alla fila. */
 .sources-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -10096,10 +8544,6 @@
   text-wrap: balance;
 }
 
-/* La sigla è una targhetta sotto il nome, non un occhiello sopra. Niente
-   `text-transform`: i nomi veri sono «HistorySUHI», «SCI», «CRAF», e
-   maiuscolizzarli faceva diventare il primo «HISTORYSUHI», che non è il nome di
-   niente e non si legge. */
 .source-tag {
   font-size: 0.72rem;
   font-weight: 700;
@@ -10120,9 +8564,6 @@
   text-wrap: pretty;
 }
 
-/* `margin-top: auto` incolla l'invito in fondo alla scheda: le tre schede hanno
-   descrizioni di lunghezza diversa e la riga «Apri la webapp» resta comunque
-   allineata su tutte e tre. */
 .source-open {
   display: inline-flex;
   align-items: center;
@@ -10144,13 +8585,6 @@
   transform: translateX(4px);
 }
 
-/* ── La piattaforma, in testa alla griglia ───────────────────────────────────
-   Non è uno dei tre strumenti: è il posto da cui si raggiungono tutti. Occupa
-   la riga intera e su schermo largo si dispone in orizzontale — nome a
-   sinistra, riga di spiegazione al centro, invito a destra — invece di
-   impilarsi come le altre, che sono colonne strette. Prima era una colonna
-   larga quanto la fila con dentro l'ingombro di una scheda piccola, cioè un
-   rettangolo con tre quarti di vuoto. */
 .source-card--feature {
   grid-column: 1 / -1;
   border-left: 4px solid var(--talea-green);
@@ -10184,22 +8618,6 @@
   }
 }
 
-/* ── La chiusura: una frase, e nient'altro sullo schermo ─────────────────────
-   Era una frase in mezzo alla carta, sullo stesso fondo del capitolo dei
-   partner che sta sopra e della griglia degli strumenti che sta sotto: usciva
-   dalle schede dei partner, la si leggeva, e subito dopo cominciava un titolo
-   che chiedeva di cliccare. Non chiudeva niente, era il paragrafo fra due
-   blocchi.
-
-   Tre cose la rendono una chiusura, e servono tutte e tre:
-     · un fondo suo, verde salvia invece della carta, con un filo in cima: è il
-       taglio che la stacca da quello che c'è sopra;
-     · una schermata intera, con la frase centrata in verticale — così, quando
-       il lettore ci arriva, sullo schermo non c'è nient'altro;
-     · la talea disegnata sopra la frase, che è la firma con cui la storia si
-       era aperta (`.trend-title-sprig`, sotto il primo titolo). La stessa
-       figura in apertura e in chiusura chiude il cerchio.
-   Chi la accorcia le toglie la sola cosa che la fa leggere come una fine. */
 .closing-final {
   position: relative;
   display: flex;
@@ -10215,16 +8633,6 @@
     linear-gradient(180deg, #e8f0e3 0%, #eef4e9 54%, var(--paper) 100%);
 }
 
-/* ── Le foglie ai due lati ───────────────────────────────────────────────────
-   Stessa tecnica di `.causes-intro-leaf`: una porzione dello sprite
-   `talea-leaves-transparent.png` usata come MASCHERA, con sotto una sfumatura
-   nei verdi della sezione. Come maschera e non come immagine perché così la
-   foglia prende il colore del campo su cui sta, e questo campo è più chiaro di
-   quello delle cause.
-
-   Stanno dietro al testo (`z-index: -1` dentro l'`isolation` della sezione) e
-   sono tagliate dal bordo: sono un margine decorato, non due oggetti da
-   guardare. Chi le porta più al centro si trova la frase sopra un disegno. */
 .closing-final-leaf {
   position: absolute;
   z-index: -1;
@@ -10252,9 +8660,6 @@
 
 .closing-final-leaf--left {
   left: clamp(-72px, -2vw, 0px);
-  /* Specchiata, così le due foglie si guardano invece di puntare nella stessa
-     direzione. Lo specchio va PRIMA della rotazione, altrimenti l'angolo si
-     inverte con lei. */
   transform: translateY(-50%) scaleX(-1) rotate(10deg);
 }
 
@@ -10323,13 +8728,6 @@
 }
 
 
-/* =============================================
-   Shared sequence stepper (SequenceStepper.jsx)
-   A dot stepper that fills as the auto-play advances, plus prev/next arrows
-   that appear only once the whole sequence has played — the reader can then
-   page back through the stages they watched. Used by the shadow map and the
-   rifugio "sticky vignette" (the hotspot has its own inline variant).
-   ============================================= */
 
 .seq-stepper {
   display: inline-flex;
@@ -10360,9 +8758,6 @@
   transition: background 0.45s ease, transform 0.45s ease, box-shadow 0.45s ease;
 }
 
-/* `--tone` è il colore con cui la mappa marca quella tappa, quando la scena ne
-   passa uno: i pallini diventano la legenda in miniatura invece di essere un
-   altro colore ancora. Senza, resta il colore della variante. */
 .seq-dot.is-done[style*="--tone"] {
   background: color-mix(in srgb, var(--tone) 62%, transparent);
   box-shadow: none;
@@ -10371,9 +8766,6 @@
   background: var(--tone);
 }
 
-/* L'anello che si chiude attorno al pallino in scena, sul tempo della sua
-   tappa: dà la percezione del tempo che passa senza l'ansia di una barra che
-   si svuota. Nasce e muore con il pallino, quindi riparte a ogni tappa. */
 .seq-dot-ring {
   position: absolute;
   left: 50%;
@@ -10389,7 +8781,6 @@
   stroke: var(--tone, var(--talea-yellow));
   stroke-width: 2;
   stroke-linecap: round;
-  /* 2πr con r = 10 */
   stroke-dasharray: 62.83;
   stroke-dashoffset: 62.83;
   transform: rotate(-90deg);
@@ -10408,7 +8799,6 @@
   background: rgba(255, 230, 4, 0.55);
   animation: seq-dot-pulse 1.8s ease-out infinite;
 }
-/* Once the reader is paging with the arrows, the current stage's dot grows. */
 .seq-dot.is-current {
   transform: scale(1.35);
 }
@@ -10419,8 +8809,6 @@
   100% { box-shadow: 0 0 0 0 rgba(255, 230, 4, 0); }
 }
 
-/* Navigation arrows — hidden (and out of the tab order) while the sequence is
-   still playing, they animate in once it is complete. */
 .seq-nav {
   display: inline-flex;
   align-items: center;
@@ -10471,7 +8859,6 @@
   transition: color 0.4s ease;
 }
 
-/* ── Dark variant: a glass pill so yellow dots + light caption read over a map ── */
 .seq-stepper--dark {
   padding: 11px 14px 12px;
   border-radius: 14px;
@@ -10481,7 +8868,6 @@
   -webkit-backdrop-filter: blur(10px);
 }
 
-/* ── Light variant: a soft green-tinted chip for cream backgrounds ── */
 .seq-stepper--light .seq-dot {
   background: rgba(0, 77, 25, 0.18);
 }
@@ -10514,16 +8900,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  /* Keep the arrow reveal + dot fills readable, but stop the infinite pulse. */
   .seq-dot.is-next { animation: none; }
 }
 
 
-/* =============================================
-   ScrollCue (ScrollCue.jsx)
-   Il chevron che pulsa due volte a fine sequenza e poi si ferma. Due impulsi
-   sono un invito; un loop infinito è ansia.
-   ============================================= */
 
 .scroll-cue {
   display: flex;
@@ -10545,15 +8925,9 @@
 .scroll-cue-chevron {
   width: 22px;
   height: 22px;
-  /* Due impulsi, poi ferma: iteration-count 2, nessun infinite. */
   animation: scroll-cue-nudge 1.5s var(--ease-cine) 2;
 }
 
-/* L'eccezione al «mai un loop infinito» di 01 § 1.4, chiesta esplicitamente e
-   circoscritta: vale dove il cue non chiude una sequenza ma sta in fondo a un
-   blocco editoriale, e dove fermarsi dopo due impulsi lascerebbe una freccia
-   morta davanti a chi si è fermato a leggere. Ampiezza doppia e ritmo più lento
-   del default: è un invito, non un allarme. */
 .scroll-cue--loop .scroll-cue-chevron {
   animation: scroll-cue-float 2.1s var(--ease-cine) infinite;
 }

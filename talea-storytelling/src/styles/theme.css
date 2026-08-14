@@ -1,91 +1,52 @@
-/* =============================================
-   TALEA Storytelling — Design System
-   Refactor cinematico · 01_SISTEMA_GLOBALE
 
-   Un solo sistema per il "contenitore" della storia: carta, inchiostri,
-   tipografia, motion. Le scale di colore DEI DATI (mappe, legende, grafici)
-   restano quelle che sono: ogni mappa si legge una volta sola e deve
-   spiegarsi da sé — verde = vegetazione, grigio = materiali,
-   giallo-rosso = caldo, rosso-blu = sole/ombra.
-   ============================================= */
-
-/* I font stanno in un <link> dentro index.html, non più in un @import qui: da
-   dentro il CSS la richiesta a Google partiva solo dopo che questo foglio era
-   stato scaricato — una catena in serie (HTML → bundle CSS → CSS Google →
-   woff2) proprio davanti al primo titolo della storia. */
 
 :root {
-  /* ── Brand colours (from TALEA Brand Guideline) ── */
   --talea-dark-green: #004d19;
   --talea-green: #21A84A;
   --talea-blue: #1272B7;
   --talea-yellow: #FFE604;
 
-  /* ── Carte e inchiostri: cinque valori, non venti ── */
-  --paper: #F6F4EE;      /* fondo editoriale, unico avorio */
-  --paper-hi: #FFFFFF;   /* schede, card, popup */
-  --paper-soft: #EEEBE1; /* fondi tenui: hover, chip, righe alternate */
-  --ink-deep: #0B2A18;   /* l'unico scuro della storia */
-  --ink: #1B3A29;        /* testo su chiaro */
-  --ink-soft: #55705F;   /* testo secondario, legende, note */
+  --paper: #F6F4EE;
+  --paper-hi: #FFFFFF;
+  --paper-soft: #EEEBE1;
+  --ink-deep: #0B2A18;
+  --ink: #1B3A29;
+  --ink-soft: #55705F;
 
-  /* La cucitura fra il capitolo su carta (trend) e l'intro degli hotspot era un
-     verde pallido, --seam-green, perché l'intro partiva verde. Da 04 § 4.3
-     l'intro parte dall'avorio e scende nell'ambra: i due lati si incontrano su
-     --paper, che quel valore ce l'ha già. Il principio di 03 § 3.1 resta —
-     un valore solo, usato dai due lati, non due valori "uguali". */
 
-  /* ── Ambra editoriale: il colore di regia del primo tempo ── */
   --amber: #C97A2E;
   --amber-soft: #F3E7D2;
-  /* Il fondo della rampa calda. Serve perché --ink-deep, che è «l'unico scuro
-     della storia», è un verde molto scuro: chiudere su di lui la discesa nel
-     calore dell'intro hotspot faceva ricomparire il verde proprio nel punto in
-     cui la storia sta dicendo il contrario, e la giunzione con la mappa
-     stonava. Un valore solo, usato dai due lati della giunzione (04 § 4.3). */
   --amber-deep: #24100A;
 
-  /* ── Fuoco: SOLO "questo è ciò che stai guardando" ──
-     Mai decorativo. Usi consentiti: area/rifugio selezionato, marcatore di
-     ricerca, quadrato dell'area pilota, nodo attivo dello stelo. */
   --focus: #FFE604;
 
-  /* ── Backgrounds (token storici, ora allineati alla carta unica) ── */
   --bg-primary: var(--paper);
   --bg-secondary: var(--paper-hi);
   --bg-soft: var(--paper-soft);
 
-  /* ── Text (token storici, ora allineati agli inchiostri) ── */
   --text-primary: var(--ink);
   --text-secondary: var(--ink);
   --text-muted: var(--ink-soft);
 
-  /* ── Borders / Shadows ── */
   --border-soft: color-mix(in srgb, var(--ink) 16%, var(--paper));
   --shadow-soft: 0 8px 30px rgba(11, 42, 24, 0.10);
 
-  /* ── Radius ── */
   --radius-md: 14px;
   --radius-lg: 24px;
 
-  /* ── Tipografia ──
-     Una seconda voce, usata poco: il display sta SOLO sui titoli di capitolo. */
   --font-display: 'Newsreader', Georgia, 'Times New Roman', serif;
   --font-text: 'Calibre', 'Inter', -apple-system, BlinkMacSystemFont,
     'Segoe UI', system-ui, sans-serif;
 
-  /* Scala ingrandita: il corpo passa da ~17 a ~21 px. */
   --fs-display: clamp(2.6rem, 5.2vw, 4.6rem);
   --fs-lead: clamp(1.35rem, 2vw, 1.75rem);
   --fs-body: clamp(1.16rem, 1.35vw, 1.32rem);
   --fs-map: clamp(1.06rem, 1.2vw, 1.18rem);
   --fs-caption: 0.86rem;
 
-  /* Colonne di lettura: si allargano insieme al corpo. */
   --measure: min(660px, 92vw);
   --measure-narrow: min(600px, 92vw);
 
-  /* ── Motion: due curve, quattro durate, nessuna improvvisazione ── */
   --ease-cine: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-ui: cubic-bezier(0.4, 0, 0.2, 1);
   --dur-fast: 220ms;
@@ -93,10 +54,8 @@
   --dur-slow: 1200ms;
   --dur-camera: 2000ms;
 
-  /* Alias storico: era la sola curva dichiarata. */
   --ease: var(--ease-ui);
 
-  /* ── Layout ── */
   --header-height: 62px;
   --content-max: 1600px;
   --content-pad: 24px;
@@ -142,9 +101,6 @@ img {
   display: block;
 }
 
-/* Contenuto disponibile alle tecnologie assistive senza occupare spazio nel
-   layout. Non usare questa classe su controlli che devono restare visibili
-   quando ricevono il focus. */
 .sr-only {
   position: absolute !important;
   width: 1px !important;
@@ -157,13 +113,7 @@ img {
   border: 0 !important;
 }
 
-/* I titoli di capitolo prendono --font-display uno per uno, nella loro regola
-   in story.css: sono sette, e ognuno ha già la sua misura. */
 
-/* ── Parole in evidenza: tre livelli e basta ──
-   .kw = il concetto che dà il titolo al blocco (una sola per schermata)
-   .glossary-term = termine con definizione (già esistente)
-   .pivot = la riga che il lettore deve portarsi via */
 .kw {
   font-weight: 700;
   color: var(--talea-dark-green);
@@ -175,18 +125,11 @@ img {
   margin: 1.4em 0;
 }
 
-/* Numeri e legende: cifre allineate, nessun salto di larghezza. */
 .tnum {
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
 }
 
-/* ── Reduced motion ──
-   Riduce, non azzera: le animazioni che SONO il contenuto (il disegno delle
-   vignette, le schede che salgono, lo zoom dell'hero) vivono dentro un
-   sottoalbero marcato data-motion="story" e restano intatte. Prima questo
-   blocco spegneva tutto con !important e ogni scena se lo ricomprava con un
-   contro-!important suo: quei contro-!important sono stati rimossi. */
 @media (prefers-reduced-motion: reduce) {
   *:not([data-motion="story"], [data-motion="story"] *),
   *:not([data-motion="story"], [data-motion="story"] *)::before,

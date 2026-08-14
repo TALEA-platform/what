@@ -1,23 +1,15 @@
 import { useState, useEffect, useMemo } from "react";
-import { hotspotAnnotations } from "../../data/hotspotAnnotations";
+import { useContent } from "../../content";
+import { buildHotspotAnnotations } from "../../data/hotspotAnnotations";
 
-// Reveal the hover card when the cursor comes within this many pixels of a zone's
-// point — generous enough that the reader "finds" the hot area by sweeping the
-// mouse over it, without persistent dots to follow.
 const HOVER_RADIUS = 72;
 
-/**
- * Map annotations as HTML overlays positioned via MapLibre's project().
- *
- * - `showNarrative`: the four narrative zones animate in as labelled cards
- *   (staggered via CSS transition-delay). When false (the reader has moved the
- *   slider) they fade out.
- * - Hover: from the moment the flags start animating (`active`), moving over a hot
- *   AREA pops that zone's card — NON-permanent (vanishes on mouse-leave), with a
- *   dot + connector line, no persistent markers. Every zone is hoverable; hovering
- *   a narrative zone simply swaps its auto-card for the hover popup (doc 03 §8).
- */
-export function AnnotationLayer({ map, active, showNarrative }) {
+export function AnnotationLayer({ map, active, showNarrative, ariaLabel }) {
+  const { content } = useContent();
+  const hotspotAnnotations = useMemo(
+    () => buildHotspotAnnotations(content),
+    [content],
+  );
   const [positions, setPositions] = useState([]);
   const [narrativeIn, setNarrativeIn] = useState(false);
   const [hoverId, setHoverId] = useState(null);
@@ -27,10 +19,9 @@ export function AnnotationLayer({ map, active, showNarrative }) {
       hotspotAnnotations
         .map((zone, idx) => ({ ...zone, idx }))
         .filter((zone) => zone.narrative),
-    [],
+    [hotspotAnnotations],
   );
 
-  // Project every zone's coords to screen space; keep in sync with the camera.
   useEffect(() => {
     if (!map) return;
     const update = () => {
@@ -48,10 +39,8 @@ export function AnnotationLayer({ map, active, showNarrative }) {
       map.off("move", update);
       map.off("zoom", update);
     };
-  }, [map]);
+  }, [map, hotspotAnnotations]);
 
-  // Narrative cards: render once hidden, then flip in (CSS transition-delay
-  // staggers them). Retire (fade out) once the slider is used.
   useEffect(() => {
     if (!(active && showNarrative)) return;
     const timer = setTimeout(() => setNarrativeIn(true), 60);
@@ -61,8 +50,6 @@ export function AnnotationLayer({ map, active, showNarrative }) {
     };
   }, [active, showNarrative]);
 
-  // Hover detection over the map areas, live from the moment the flags animate in.
-  // The annotation layer is pointer-events:none, so events reach the map canvas.
   useEffect(() => {
     if (!map || !active) return;
     const onMove = (e) => {
@@ -87,7 +74,7 @@ export function AnnotationLayer({ map, active, showNarrative }) {
       canvas.removeEventListener("mouseleave", onLeave);
       setHoverId(null);
     };
-  }, [map, active]);
+  }, [map, active, hotspotAnnotations]);
 
   if (!active || positions.length === 0) return null;
 
@@ -98,7 +85,6 @@ export function AnnotationLayer({ map, active, showNarrative }) {
   const hoverPos = hoverIdx >= 0 ? positions[hoverIdx] : null;
   const narrativeShown = narrativeIn && showNarrative;
 
-  // Curved connector from dot → anchor (shared by narrative + hover).
   const linePath = ({ dot, anchor }) => {
     const mx = (dot.x + anchor.x) / 2;
     const my = Math.min(dot.y, anchor.y) - 20;
@@ -106,9 +92,7 @@ export function AnnotationLayer({ map, active, showNarrative }) {
   };
 
   return (
-    <div className="annotation-layer" aria-label="Annotazioni hotspot">
-      {/* Narrative flags — animate in, then fade out once the slider is used. The
-          zone under the cursor yields to its hover popup (no duplicate). */}
+    <div className="annotation-layer" aria-label={ariaLabel}>
       <svg className="annotation-lines">
         {narrativeZones.map((a, i) => {
           const pos = positions[a.idx];
@@ -155,8 +139,6 @@ export function AnnotationLayer({ map, active, showNarrative }) {
         );
       })}
 
-      {/* Hover popup — non-permanent: dot + connector line + card, shown only while
-          hovering the zone's area. */}
       {hoverZone && hoverPos && (
         <div className="annotation-hover" key={`hover-${hoverZone.id}`}>
           <svg className="annotation-lines">

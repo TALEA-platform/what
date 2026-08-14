@@ -36,9 +36,6 @@ export function BolognaBoundaryLayer({ map, visible = true }) {
         type: "line",
         source: sourceId,
         paint: {
-          // Carta, non bianco: il contorno passa sopra le campiture calde e
-          // l'alone che lo stacca deve appartenere alla stessa carta del resto
-          // della storia (--paper).
           "line-color": "rgba(246, 244, 238, 0.9)",
           "line-width": 4.4,
           "line-opacity": 0,
@@ -53,9 +50,6 @@ export function BolognaBoundaryLayer({ map, visible = true }) {
         type: "line",
         source: sourceId,
         paint: {
-          // Con le etichette spente questo è l'unico segno «duro» della scena
-          // (05 § 5.2): va tenuto sottile e va tolto dal verde, che in questo
-          // capitolo non c'entra più niente. --ink di theme.css.
           "line-color": "#1B3A29",
           "line-width": 1.6,
           "line-opacity": 0,

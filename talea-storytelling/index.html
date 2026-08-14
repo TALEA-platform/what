@@ -7,15 +7,33 @@
     <script>
       (function () {
         var config = {
+          // ── La reference editoriale: 1920 × 1065 ──────────────────────────
+          // La storia è impaginata per questa viewport, e a questa viewport la
+          // scala vale esattamente 1. A ogni altra risoluzione NON si
+          // ri-impagina: si disegna comunque a `referenceWidth` px dentro una
+          // cornice, e la cornice si rimpicciolisce o si ingrandisce finché non
+          // combacia con lo schermo. Qualunque viewport vede quindi lo stesso
+          // disegno, in scala — sotto E sopra la reference.
+          referenceWidth: 1920,
+          // L'altezza della reference non entra nel calcolo della scala (la
+          // decide la larghezza, vedi `fitFrame`): sta qui perché è la metà
+          // dichiarata della coppia, e perché è il numero da cambiare se un
+          // giorno la reference cambia formato.
+          referenceHeight: 1065,
+          // Il cancello degli schermi piccoli. Ora ogni risoluzione passa dalla
+          // cornice qui sopra, quindi resta spento: rimettere `true` per
+          // richiuderlo (le due soglie qui sotto tornano a valere).
+          gateEnabled: false,
           blockMaxWidth: 1023,
           blockMaxHeight: 799,
-          resizeWidth: 1700,
         };
-        var width = window.innerWidth || document.documentElement.clientWidth;
         window.__taleaViewportConfig = config;
-        if (width > config.blockMaxWidth && width < config.resizeWidth && window.self === window.top) {
+        // Nessuna soglia: la cornice vale a ogni risoluzione. Sulla reference il
+        // fattore è 1 e il risultato è indistinguibile dal disegno diretto;
+        // sopra e sotto è la stessa composizione, ingrandita o ridotta.
+        if (window.self === window.top) {
           window.__taleaViewportFrameShell = true;
-          document.documentElement.dataset.taleaViewportFrameShell = String(config.resizeWidth);
+          document.documentElement.dataset.taleaViewportFrameShell = String(config.referenceWidth);
         }
       })();
     </script>
@@ -73,9 +91,18 @@
         overflow: hidden;
         background: #f6f4ee;
       }
+      /* Larghezza, altezza e scala vere le mette `fitFrame()` in JS: questi
+         sono solo i valori del primo fotogramma, prima che giri. Niente
+         `transition` e niente `will-change` qui dentro: la prima animerebbe la
+         scala a ogni ridimensionamento (mezzo secondo di testo sfocato per
+         nulla), la seconda inchioderebbe la rasterizzazione a una scala sola,
+         che è esattamente il modo di ottenere testo morbido sopra la
+         reference. */
       .talea-resize-frame {
         position: absolute;
-        width: 1700px;
+        top: 0;
+        left: 0;
+        width: 1920px;
         height: 100vh;
         border: 0;
         transform-origin: top left;
@@ -246,7 +273,10 @@
         white-space: nowrap;
       }
 
-      /* ── Cancello schermi piccoli ────────────────────────────────────────
+      /* ── Cancello schermi piccoli (SPENTO: `gateEnabled: false`) ─────────
+         Resta qui, foglio di stile e markup, perché è una porta che si può
+         voler richiudere: oggi ogni risoluzione entra dalla cornice a 1920.
+         Il perché originale, se serve rimetterlo:
          La storia è scroll-driven: mappe che si montano l'una sull'altra,
          grafici che si scoprono per gradi, un video a tutta pagina. Dentro un
          viewport piccolo non è "stretta", è rotta — e una pagina rotta
@@ -394,9 +424,13 @@
         if (!gate) return;
         if (window.__taleaViewportFrameShell) return;
         var config = window.__taleaViewportConfig || {
+          gateEnabled: false,
           blockMaxWidth: 1023,
           blockMaxHeight: 799,
         };
+        // Sbloccato: gli schermi piccoli non trovano più una porta chiusa, ma la
+        // storia in scala dentro la cornice a 1920 (vedi `referenceWidth` sopra).
+        if (config.gateEnabled === false) return;
         var width = window.innerWidth || document.documentElement.clientWidth;
         var height = window.innerHeight || document.documentElement.clientHeight;
         var coarsePointer = window.matchMedia("(pointer: coarse)").matches;
@@ -490,10 +524,8 @@
         }
 
         function mountResizeFrame() {
-          var config = window.__taleaViewportConfig || {
-            resizeWidth: 1700,
-          };
-          var virtualWidth = config.resizeWidth;
+          var config = window.__taleaViewportConfig || {};
+          var virtualWidth = config.referenceWidth || 1920;
           var shell = document.createElement("div");
           var frame = document.createElement("iframe");
           var url = new URL(window.location.href);
@@ -504,14 +536,37 @@
           frame.title = "TALEA storytelling";
           frame.src = url.href;
 
+          // La cornice è SEMPRE larga `virtualWidth`: quello che cambia è di
+          // quanto la si rimpicciolisce — o la si ingrandisce. Sopra la
+          // reference il fattore passa sopra 1 (2560 → ~1.33, 3840 → 2.00) e la
+          // composizione cresce con lo schermo invece di restare un francobollo
+          // in mezzo al 4K. Nessun tetto: metterlo vorrebbe dire ricominciare a
+          // rimpicciolire la storia proprio dove c'è più spazio.
+          //
+          // La scala la decide SOLO la larghezza, e non `min(w/1920, h/1065)`:
+          // sui formati elencati le due danno lo stesso numero (16:9 e 16:10
+          // sono più alti della reference, quindi il lato corto è sempre la
+          // larghezza), ma su un viewport largo e basso il minimo lascerebbe due
+          // bande vuote ai lati. L'altezza qui si compensa invece di tagliare:
+          // l'altezza virtuale si ricava dalla stessa scala, così un `100vh` là
+          // dentro vale esattamente uno schermo qui fuori, qualunque sia il
+          // formato del viewport reale.
+          var lastScale = 0;
+          var lastHeight = 0;
+
           function fitFrame() {
             var scale = window.innerWidth / virtualWidth;
             var virtualHeight = Math.ceil(window.innerHeight / scale);
+            // `resize` arriva a raffica e `orientationchange` gli si sovrappone:
+            // senza questo confronto si riscriverebbero gli stessi tre valori a
+            // ogni evento, cioè un re-layout della cornice — e una nuova
+            // rasterizzazione del testo — per nulla.
+            if (scale === lastScale && virtualHeight === lastHeight) return;
+            lastScale = scale;
+            lastHeight = virtualHeight;
             frame.style.width = virtualWidth + "px";
             frame.style.height = virtualHeight + "px";
             frame.style.transform = "scale(" + scale + ")";
-            frame.style.left = "0";
-            frame.style.top = "0";
           }
 
           frame.addEventListener("load", function () {
@@ -519,6 +574,12 @@
             leave();
           });
           window.addEventListener("resize", fitFrame, { passive: true });
+          // Su telefono la rotazione non sempre emette `resize` in tempo utile:
+          // l'altezza va ricalcolata anche qui, o la cornice resta col formato
+          // di prima e sotto avanza una fascia vuota.
+          window.addEventListener("orientationchange", function () {
+            window.setTimeout(fitFrame, 120);
+          }, { passive: true });
           shell.appendChild(frame);
           document.body.appendChild(shell);
           fitFrame();
@@ -528,6 +589,10 @@
 
         if (window.__taleaViewportFrameShell) {
           mountResizeFrame();
+          // Il tetto duro vale anche qui: se la cornice non emette mai `load`
+          // si entra lo stesso, e sotto c'è la sua schermata d'ingresso — che
+          // è identica a questa, quindi il passaggio non si vede.
+          window.setTimeout(leave, MAX_MS);
           return;
         }
 

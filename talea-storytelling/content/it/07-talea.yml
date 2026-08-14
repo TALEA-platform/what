@@ -1,0 +1,198 @@
+schemaVersion: 1
+locale: it
+
+project:
+  chapter:
+    id: talea-project
+  header:
+    id: talea-project-header
+    title: "Bologna ci sta già lavorando."
+    lockup: "Il progetto si chiama"
+    logo:
+      id: talea-project-logo
+      alt: "TALEA"
+      linkId: talea-platform
+  meaning:
+    id: talea-project-meaning
+    lead:
+      - id: talea-name
+        text: "TALEA"
+        glossary: talea-project
+      - id: talea-purpose
+        text: " trasforma gli spazi pubblici utilizzando soluzioni basate sulla natura, per renderli più vivibili e aiutare la città ad adattarsi a un clima che cambia."
+    body: "Il nome deriva dal concetto di talea in botanica: un ramo tagliato dalla pianta madre che, nelle condizioni giuste, mette radici e continua a crescere."
+  facts:
+    id: talea-project-facts
+    label: "Il progetto in breve"
+    items:
+      - id: chi
+        label: "Chi lo realizza"
+        value: "Il Comune di Bologna"
+        noteTemplate: "con l'Università di Bologna e altri {n} partner"
+      - id: quando
+        label: "Quanto dura"
+        value: "Fino al 2028"
+        note: "42 mesi, da dicembre 2024 a maggio 2028"
+      - id: fondi
+        label: "Chi lo finanzia"
+        value: "Unione Europea"
+        note: "cofinanziato attraverso European Urban Initiative"
+  bridge:
+    id: talea-project-zones-bridge
+    text: "Il lavoro comincia da qui."
+
+zones:
+  id: talea-zones
+  ariaLabel: "Mappa delle aree pilota del progetto TALEA"
+  legend:
+    id: talea-zones-legend
+    area: "Aree progettuali"
+  intro:
+    id: talea-zones-intro
+    title: "TALEA prende forma sul territorio."
+    body:
+      - id: zones-intro-before-fossolo
+        text: "Due aree di intervento iniziali, nate dall'incontro tra analisi del territorio e partecipazione dei cittadini: la zona del "
+      - id: zones-intro-fossolo
+        text: "Fossolo"
+        emphasis: true
+      - id: zones-intro-between
+        text: ", e la fascia a "
+      - id: zones-intro-historic-centre
+        text: "nord del centro storico"
+        emphasis: true
+      - id: zones-intro-end
+        text: "."
+  areas:
+    - zoneId: 0
+      name: "Fossolo"
+      body:
+        - id: fossolo-before-place
+          text: "Nel Quartiere Savena, il lavoro si concentra sul "
+        - id: fossolo-place
+          text: "Bosco Tanari"
+          emphasis: true
+        - id: fossolo-after-place
+          text: " e sulle aree verdi vicine, per valorizzarle, e rafforzare i collegamenti tra parchi e giardini."
+    - zoneId: 1
+      name: "Centro storico-Nord"
+      body:
+        - id: historic-centre-before-boldrini
+          text: "Fra "
+        - id: historic-centre-boldrini
+          text: "via Boldrini"
+          emphasis: true
+        - id: historic-centre-between-streets
+          text: " e "
+        - id: historic-centre-rosselli
+          text: "via Fratelli Rosselli"
+          emphasis: true
+        - id: historic-centre-after-streets
+          text: ", il progetto mette al centro vegetazione, suolo e spazio pubblico, in un'area densa, priva di terreno capace di assorbire la pioggia."
+  loadError: "Mappa non caricata al momento."
+
+participation:
+  id: talea-participation
+  title: "Il progetto cresce grazie anche al contributo di chi vive la città."
+  body: "I cittadini partecipano con passeggiate, incontri e laboratori nei quartieri: raccontano come vivono questi luoghi, quali difficoltà incontrano e cosa potrebbe migliorarli."
+
+partners:
+  id: talea-partners
+  title: "Partner"
+  ariaLabel: "Partner del progetto TALEA"
+  items:
+    - partnerId: comune-bologna
+      name: "Comune di Bologna"
+      role: "capofila"
+    - partnerId: universita-bologna
+      name: "Università di Bologna"
+      role: "università"
+    - partnerId: fondazione-iu
+      name: "Fondazione IU Rusconi Ghigi"
+      role: "fondazione"
+    - partnerId: fondazione-bruno-kessler
+      name: "Fondazione Bruno Kessler"
+      role: "fondazione"
+    - partnerId: cineca
+      name: "CINECA"
+      role: "consorzio"
+    - partnerId: r2m-solutions
+      name: "R2M Solutions"
+      role: "impresa"
+    - partnerId: r3gis
+      name: "R3GIS"
+      role: "impresa"
+    - partnerId: cluj-napoca
+      name: "Cluj Napoca"
+      role: "città di replica"
+    - partnerId: marseille
+      name: "Marsiglia"
+      role: "città di replica"
+    - partnerId: riga
+      name: "Riga"
+      role: "città di replica"
+  funding:
+    id: talea-partners-funding
+    text: "Cofinanziato dall'Unione Europea attraverso European Urban Initiative."
+    emblemLabel: "Bandiera dell'Unione Europea"
+    linkId: european-urban-initiative
+
+closing:
+  id: talea-closing
+  final:
+    id: talea-closing-final
+    standout: "Un albero, una fontana, una piazza che respira: la città più fresca si costruisce così, una talea alla volta."
+  sources:
+    id: talea-public-tools
+    title: "Tutto quello che hai visto viene da qui"
+    intro: "Sono strumenti pubblici e aperti: puoi esplorarli tu stesso."
+    openLabel: "Apri la webapp"
+    apps:
+      - id: portale
+        name: "Piattaforma TALEA"
+        tag: "Il progetto"
+        description: "Il punto di accesso a tutti gli strumenti e ai dati aperti del progetto."
+        linkId: talea-platform
+      - id: historysuhi
+        name: "Il caldo, estate dopo estate"
+        tag: "HistorySUHI"
+        description: "Dove Bologna scalda di più, e come è cambiato dal 2013 al 2025."
+        linkId: history-suhi
+      - id: sci
+        name: "Quanta ombra c'è nelle strade"
+        tag: "SCI"
+        description: "Quanta ombra ricevono strade e piazze, ora per ora, in una giornata d'estate."
+        linkId: shadow-focus-data
+      - id: craf
+        name: "I rifugi climatici e le fragilità"
+        tag: "CRAF"
+        description: "I luoghi dove ripararsi dal caldo, e i quartieri dove servono di più."
+        linkId: craf-map
+
+footer:
+  id: talea-footer
+  brand:
+    id: talea-footer-brand
+    label: "TALEA"
+    alt: "TALEA"
+    linkId: talea-platform
+  navigation:
+    id: talea-footer-navigation
+    ariaLabel: "Link utili"
+    links:
+      - id: talea-footer-platform
+        label: "Piattaforma TALEA"
+        linkId: talea-platform
+      - id: talea-footer-project
+        label: "Il progetto"
+        linkId: talea-about
+      - id: talea-footer-atlas
+        label: "Atlante"
+        linkId: talea-atlas
+  funding:
+    id: talea-footer-funding
+    emblemAlt: "Cofinanziato dall'Unione Europea"
+    text: "Il progetto TALEA - Green cells leading the Green transition (EUI102-064) è cofinanziato dall'Unione Europea nell'ambito del programma European Urban Initiative - Innovative Actions (EUI-IA). Coinvolge il Comune di Bologna come Main Urban Authority, la Fondazione IU Rusconi Ghigi, l'Università di Bologna, la Fondazione Bruno Kessler, R2M Solutions, R3GIS e CINECA come partner italiani, e le città di Marsiglia, Riga e Cluj-Napoca come città di replica."
+    disclaimer: "Le opinioni espresse appartengono unicamente agli autori e non riflettono necessariamente quelle dell'Unione Europea o della European Urban Initiative (EUI). Né l'Unione Europea né la EUI possono esserne ritenute responsabili."
+    euiLabel: "European Urban Initiative"
+    linkId: european-urban-initiative

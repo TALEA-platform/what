@@ -1,0 +1,34 @@
+schemaVersion: 1
+locale: it
+
+terms:
+  - id: surface-temperature
+    term: "temperatura di superficie"
+    trail: true
+    definition:
+      - "È il calore registrato dal satellite sulle superfici urbane: asfalto, tetti, piazze, suoli e aree verdi."
+      - "Non coincide con la temperatura dell'aria e non descrive da sola il caldo percepito da una persona, ma aiuta a capire dove la città accumula calore."
+  - id: climate-hotspot
+    term: "hotspot climatico"
+    trail: true
+    definition:
+      - "In questa webapp indica un'area che rientra nel 10 % delle superfici più calde di Bologna in una o più estati osservate. Il dato si basa sulla temperatura di superficie, non sulla temperatura dell’aria."
+      - "Quando un hotspot climatico ritorna più volte tra il 2013 e il 2025, diventa un segnale di ricorrenza del calore superficiale."
+  - id: climate-refuge
+    term: "rifugio climatico"
+    trail: true
+    definition:
+      - "Uno spazio pubblico pensato per dare sollievo durante il caldo. Non un semplice parco, ma un luogo che mette insieme più elementi: ombra, acqua, possibilità di sedersi, verde, suolo permeabile e facilità di accesso."
+      - "A Bologna è una rete di spazi verdi riconosciuti dal Comune e valutati per la loro capacità di offrire riparo nelle giornate più calde."
+  - id: talea-project
+    term: "TALEA"
+    trail: true
+    definition:
+      - "TALEA, Green Cells leading the Green transition, è il progetto con cui il Comune di Bologna affronta il caldo urbano: è sostenuto dall'Unione Europea ed è attivo fino al 2028."
+      - "Una talea, in giardinaggio, è un piccolo ramo che, piantato, mette radici e diventa una pianta nuova: l'immagine di un intervento che cresce da sé e si moltiplica in tutta la città."
+  - id: green-cell
+    term: "cellula verde"
+    trail: false
+    definition:
+      - "Una porzione di città, grande più o meno quanto un isolato, in cui ombra, acqua, verde e suolo permeabile vengono messi insieme per trasformare un punto critico in un rifugio dal caldo."
+      - "Ogni cellula funziona da sola, ma è pensata per collegarsi alle altre: una accanto all'altra formano una rete diffusa di spazi freschi."

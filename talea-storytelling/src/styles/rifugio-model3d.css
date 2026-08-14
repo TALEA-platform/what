@@ -1,17 +1,5 @@
-/* ── Il plastico 3D della piazza climatica ───────────────────────────────────
-   Stili del modello girevole che ha preso il posto della vignetta piatta nella
-   scena agganciata del capitolo sui rifugi. Sono gli stessi del prototipo
-   approvato (public/prototypes/rifugio-step0-preview-rifinito-v3.html), portati
-   qui e RACCHIUSI sotto `.rifugio-model3d`: dentro ci sono nomi come `.face`,
-   `.detail`, `.bird`, `.cloud`, che lasciati liberi in un foglio di stile
-   condiviso finirebbero addosso a mezzo sito.
-
-   Il disegno lo scrive src/lib/rifugioModel3d.js. Se cambia una classe lì,
-   cambia qui: non c'è un compilatore in mezzo che se ne accorga. */
 
 .rifugio-model3d {
-  /* Le facce e i tratti chiedono `--ink` al foglio di stile, com'era nel
-     prototipo. Sta qui e non su :root perché è l'inchiostro DEL PLASTICO. */
   --ink: #3a352a;
   position: relative;
   isolation: isolate;
@@ -19,16 +7,12 @@
   aspect-ratio: 1.45;
   outline: none;
   cursor: grab;
-  /* Lo scorrimento verticale con un dito resta al documento: la scena è
-     agganciata e il lettore deve poter proseguire. Il pizzico a due dita
-     invece arriva a noi, ed è lì che sta lo zoom (vedi rifugioModel3d.js). */
   touch-action: pan-y;
   user-select: none;
 }
 
 .rifugio-model3d:active { cursor: grabbing; }
 
-/* L'alone di carta che stacca il plastico dal fondo della sezione. */
 .rifugio-model3d::before {
   position: absolute;
   z-index: -1;
@@ -52,8 +36,6 @@
   display: block;
   width: 100%;
   height: 100%;
-  /* Ritaglia invece di lasciar debordare: ingrandendo, il plastico esce dal
-     viewBox, e senza questo finirebbe a spasso sopra il testo della tappa. */
   overflow: hidden;
   filter: drop-shadow(0 12px 9px rgba(58, 53, 42, .09));
 }
@@ -75,17 +57,6 @@
 
 .rifugio-model3d .detail { fill: none; stroke: var(--ink); stroke-width: 1.05; }
 
-/* Il BORDO delle aiuole ha una classe propria per un motivo solo:
-   sopravvivere al trascinamento. Era `.detail`, e la semplificazione in
-   rotazione butta via tutti i `.detail` del suolo — quindi appena si toccava
-   il plastico le aiuole perdevano il contorno e tornavano rettangoli verdi
-   piatti, per poi rivestirsi al rilascio. Sono pochi tracciati: costano meno
-   di quanto costava guardarli sparire. Colore e opacita' restano attributi
-   del pezzo.
-
-   I CIUFFI d'erba (`.grass-tuft`) sono disegnati uguali ma stanno fuori da
-   quella salvaguardia: sono segni da due pixel, e sparire mentre la piazza
-   gira non si vede — quello che si vedeva era l'aiuola senza contorno. */
 .rifugio-model3d .aiuola-line,
 .rifugio-model3d .grass-tuft { fill: none; stroke-width: .95; }
 
@@ -126,11 +97,6 @@
   100% { transform: translate(var(--car-end-x),var(--car-end-y)); opacity: 0; }
 }
 
-/* Porte e richiamo a terra girano sulla stessa durata e sullo stesso
-   ritardo negativo della corsa: restano agganciati alla sosta senza che
-   nessuno li debba sincronizzare da JavaScript. Le percentuali sono
-   quelle della fermata (42% arrivo, 61% ripartenza), con un margine per
-   aprire e richiudere. */
 .rifugio-model3d .bus-door,
 .rifugio-model3d .bus-stop-cue {
   transform-box: view-box;
@@ -169,15 +135,6 @@
 
 .rifugio-model3d .heat-line { fill: none; stroke: #c2551f; stroke-width: 2; opacity: .5; }
 
-/* ── Il montaggio ────────────────────────────────────────────────────────
-   Ogni pezzo della tappa in corso cresce dal suolo invece di comparire, e
-   parte qualche centesimo dopo il precedente: la piazza si costruisce sotto
-   gli occhi invece di cambiare fotogramma.
-
-   Si anima SOLO la trasformazione, mai l'opacita': molti pezzi portano una
-   propria `opacity` come attributo (il selciato, le soglie, i ciuffi
-   d'erba) e una regola CSS di opacita' la scavalcherebbe, facendoli
-   lampeggiare al valore pieno per tutta la durata. */
 .rifugio-model3d .is-building-grow,
 .rifugio-model3d .is-building-x,
 .rifugio-model3d .is-building-y,
@@ -208,15 +165,6 @@
   animation-name: piece-build-pop;
 }
 
-/* ── E il montaggio al contrario ──────────────────────────────────────────────
-   Tornando indietro i pezzi si RITIRANO invece di sparire: stesse origini del
-   montaggio, stesse forme, verso opposto. Più veloce e più secca dell'andata
-   (0,42 s contro 0,68), perché tornare indietro è un ripensamento e non va
-   raccontato con la stessa cura con cui si posa una cosa nuova.
-
-   `forwards` è obbligatorio: alla fine dell'animazione il pezzo deve RESTARE
-   rimpicciolito, altrimenti riappare a grandezza piena per il fotogramma che
-   passa fra la fine dell'animazione e il ridisegno che lo toglie di scena. */
 .rifugio-model3d .is-unbuilding-grow,
 .rifugio-model3d .is-unbuilding-x,
 .rifugio-model3d .is-unbuilding-y,
@@ -259,8 +207,6 @@
 }
 
 
-/* Gli elementi naturali crescono; quelli costruiti vengono assemblati
-         componente dopo componente, senza far cadere blocchi dall'alto. */
 @keyframes piece-grow {
   from { transform: scale(0); }
   68% { transform: scale(1.025, 1.018); }
@@ -285,10 +231,6 @@
   to { transform: none; }
 }
 
-/* Il rampicante non viene assemblato foglia per foglia. La struttura
-   lignea termina il montaggio, poi tutta la massa verde si assesta in un
-   solo passaggio leggero. La classe viene applicata soltanto al render che
-   introduce la tappa, quindi non riparte durante la rotazione. */
 .rifugio-model3d .reveal-after-build {
   transform-box: fill-box;
   transform-origin: 50% 50%;
@@ -300,10 +242,6 @@
   to { opacity: 1; transform: none; }
 }
 
-/* ── L'acqua ─────────────────────────────────────────────────────────────
-   Cerchi che si allargano nella vasca, zampilli che pulsano sfasati. Per
-   gli stessi motivi di sopra si animano solo trasformazione e, sui cerchi,
-   l'opacita' (quelli non portano un'opacita' propria da rispettare). */
 .rifugio-model3d .water-ring {
   transform-box: fill-box;
   transform-origin: 50% 50%;
@@ -326,11 +264,6 @@
   50% { transform: scaleY(1.1); }
 }
 
-/* ── L'uccellino ─────────────────────────────────────────────────────────
-   Scende, si posa, resta un po', becchetta due volte e riparte. La sosta e'
-   la parte lunga: e' quella che dice che il posto e' abitabile. Il volo e'
-   appena accennato perche' a questa scala un'ala non si vede — si vede che
-   qualcosa e' arrivato e si e' fermato. */
 .rifugio-model3d .bird {
   transform-box: fill-box;
   transform-origin: 50% 100%;
@@ -348,12 +281,6 @@
   94%, 100% { transform: translate(-16px, -30px) scale(.55); }
 }
 
-/* ── Le nuvole ───────────────────────────────────────────────────────────
-   Entrano con il suolo vivo (tappa 5) e non se ne vanno piu'. Passano in
-   un paio di minuti buoni: devono farsi notare solo da chi resta a
-   guardare, mai mentre si legge. La dissolvenza in coda alla corsa serve
-   a non farle uscire dal riquadro — l'SVG ha `overflow: visible`, quindi
-   senza quella finirebbero a spasso sulla pagina. */
 .rifugio-model3d #clouds { opacity: 0; pointer-events: none; transition: opacity 1.6s ease; }
 
 .rifugio-model3d[data-step="5"] #clouds,
@@ -371,9 +298,6 @@
   100% { transform: translateX(1130px); opacity: 0; }
 }
 
-/* Il lavaggio caldo sul selciato si spegne una tappa alla volta: e' la
-   cosa che il capitolo racconta, e va vista calare mentre gli elementi
-   arrivano. Gli stessi valori della vignetta in alzato (story.css). */
 .rifugio-model3d .heat-wash { opacity: .085; transition: opacity 1.1s ease; }
 
 .rifugio-model3d[data-step="1"] .heat-wash { opacity: .062; }
@@ -388,15 +312,6 @@
 .rifugio-model3d[data-step="6"] .heat-wash,
 .rifugio-model3d[data-step="7"] .heat-wash { opacity: 0; }
 
-/* ── Il respiro delle persone ────────────────────────────────────────────
-   Un'oscillazione minima attorno ai piedi: alzata sotto i due pixel e
-   mezzo grado di rollio. Deve leggersi come «stanno lì», non come
-   «ballano». La scena si ridisegna solo mentre la si trascina, quindi da
-   fermi queste animazioni girano indisturbate; durante il trascinamento
-   ripartono, ma in quel momento nessuno le sta guardando. */
-/* Il ritardo NON sta qui: lo scrive il render, negativo e calcolato
-   dall'epoca della pagina, cosi' ricreando i nodi il ciclo riprende dove
-   era invece di ripartire a ogni movimento. */
 .rifugio-model3d .cast-alive {
   animation: cast-idle var(--idle-dur, 4.8s) ease-in-out infinite;
   will-change: transform;
@@ -407,8 +322,6 @@
   50% { transform: translateY(calc(var(--idle-lift, 1px) * -1)) rotate(.55deg); }
 }
 
-/* Le volute di calore salgono davvero, invece di stare ferme come tre
-   vermi rossi appoggiati sul selciato. */
 .rifugio-model3d .heat-line {
   animation: heat-rise 3.6s ease-in-out infinite;
   transform-box: fill-box;
@@ -427,11 +340,6 @@
   shape-rendering: geometricPrecision;
 }
 
-/* ── Superfici tonde: nessun inchiostro sulle faccette ──────────────────
-   Una chioma, un tronco, uno zampillo sono fatti di molte faccette che
-   approssimano una curva. `.face` le inchiostra tutte, e il risultato e'
-   un ombrellone con le stecche invece di un albero: si vedono i meridiani.
-   Va tolto dal CSS e non dall'attributo, perche' e' il CSS a vincere. */
 .rifugio-model3d #model .face--soft {
   stroke: none;
   stroke-width: 0;
@@ -460,9 +368,7 @@
   stroke-linecap: round;
 }
 
-/* Durante la rotazione il plastico passa a una lettura illustrata e
-   leggera: niente filtri, ombre dinamiche o micro-dettagli, e figure
-   ridotte a silhouette. Al rilascio torna automaticamente completo. */
+/* Filters on thousands of SVG polygons are disabled during direct manipulation. */
 .rifugio-model3d.is-dragging #model,
 .rifugio-model3d.is-dragging #model-svg { filter: none !important; }
 
@@ -514,23 +420,12 @@
 }
 
 
-/* ── I comandi del plastico ──────────────────────────────────────────────────
-   In basso a DESTRA sotto il modello, incolonnati: sulla prima riga la crocera
-   per spostarsi e i due tasti dello zoom, sotto il suggerimento su come si
-   gira. Comandi sopra e istruzioni sotto è l'ordine in cui si guardano: prima
-   cosa si può fare, poi come.
-
-   Il linguaggio è quello delle frecce della sequenza (`.seq-nav`): stesso
-   cerchio, stesso chevron, stesso giallo Talea sul fuoco. Sono comandi della
-   stessa pagina e devono sembrarlo. */
 .rifugio-model3d-controls {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: 8px;
   margin: 8px clamp(4px, 1vw, 16px) 0;
-  /* L'altezza è quella della crocera anche quando la crocera non c'è: così
-     comparendo non spinge in giù la riga della ricetta. */
   min-height: 122px;
   opacity: 0;
   transition: opacity 0.7s ease 0.2s;
@@ -544,9 +439,6 @@
 
 .relief-explainer--entered .rifugio-model3d-controls { opacity: 1; }
 
-/* ── Il bottone ─────────────────────────────────────────────────────────────
-   Uno solo, per crocera e zoom: erano due stili quasi uguali, e quel "quasi"
-   si vedeva. Trenta pixel come le frecce della sequenza. */
 .rifugio-model3d-btn {
   display: inline-flex;
   align-items: center;
@@ -588,13 +480,6 @@
   outline-offset: 2px;
 }
 
-/* ── La crocera ─────────────────────────────────────────────────────────────
-   Su in alto, giù in basso, i due lati ai lati. In fila erano quattro bottoni
-   uguali di cui bisognava leggere il verso per capire quale premere.
-
-   Il glifo è un chevron solo, ruotato: disegnarne quattro sono quattro
-   occasioni di sbagliarne uno, e a sedici pixel la rotazione non si distingue
-   da un disegno dedicato. */
 .rifugio-model3d-pan {
   display: grid;
   grid-template-columns: repeat(3, 30px);
@@ -642,11 +527,6 @@
   .rifugio-model3d-hint { display: none; }
 }
 
-/* ── La lettura della temperatura ────────────────────────────────────────────
-   In una riga sua SOPRA il plastico, non appoggiata sopra il disegno: così a
-   qualunque ingrandimento la piazza non le arriva mai dietro. Il colore lo
-   porta il dato (scende dal bruciato al verde tappa dopo tappa), non il foglio
-   di stile. */
 .rifugio-model3d-temp {
   display: flex;
   align-items: baseline;
@@ -662,8 +542,6 @@
   font-weight: 750;
   line-height: 1;
   letter-spacing: -0.02em;
-  /* Il numero cambia a ogni tappa: la transizione sul colore fa leggere la
-     discesa come una cosa sola invece che come otto etichette diverse. */
   transition: color 0.9s ease;
 }
 
@@ -689,105 +567,17 @@
   transition: color 0.9s ease;
 }
 
-/* ── Dal disegno al plastico ─────────────────────────────────────────────────
-   Nella scena agganciata i due convivono nello stesso riquadro: l'apertura è la
-   vignetta piatta, la trasformazione è il modello. Il plastico si monta appena
-   la sezione entra in quadro (costruirlo costa, e pagarlo nell'istante in cui
-   parte la sequenza si vedrebbe), ma resta invisibile e non riceve gesti finché
-   la sequenza non comincia. */
-/* ── Il cambio di disegno: uno alla volta, mai i due insieme ─────────────────
-   Nel riquadro ci sono due disegni della stessa scena, impilati: la vignetta
-   piatta dell'apertura e il plastico. Il passaggio fra loro deve rispettare
-   due vincoli che tirano in direzioni opposte.
-
-   Primo: non devono MAI essere dipinti tutti e due. Non è una questione di
-   gusto sulla dissolvenza incrociata — è che i due disegni hanno inquadrature
-   e proporzioni diverse, e il riquadro cambia altezza proprio in quel momento.
-   Sovrapposti non leggono come un dissolvenza, leggono come due immagini
-   sbagliate una sopra l'altra. Quindi le due opacità sono in SEQUENZA: quando
-   la prima tocca lo zero, la seconda parte. Il `visibility` che segue subito
-   dopo è la cintura di sicurezza — a zero non si dipinge più niente, nemmeno
-   per errore di arrotondamento.
-
-   Secondo: niente deve muoversi mentre la griglia si riorganizza. Agganciando
-   la sequenza, `.relief-explainer-inner` anima `grid-template-columns` per un
-   secondo intero, e la colonna della figura si allarga fotogramma per
-   fotogramma. Se in quel secondo il plastico è dipinto, il browser lo deve
-   ridisegnare a ogni larghezza nuova — diecimila poligoni SVG sotto un filtro
-   che non si compone in GPU — ed è lì che si impiantava. Quindi durante il
-   movimento della griglia c'è solo la vignetta, che è leggera; lo scambio
-   avviene dopo, su un impianto fermo, dove una transizione di opacità la
-   scheda video se la cava da sola.
-
-   Al contrario è lo stesso in specchio, ma senza attesa: tornando indietro la
-   prima cosa da fare è togliere di mezzo il plastico, perché la griglia
-   riparte subito e non deve trascinarselo dietro.
-
-   Terzo, e non è meno importante degli altri due: deve essere SVELTO. La
-   scena agganciata è il plastico; arrivarci e trovarci ancora la vignetta vuol
-   dire che il lettore la guarda, si chiede cos'è, e poi gli cambia sotto.
-
-   ── Perché non c'è nessuna dissolvenza ──────────────────────────────────────
-   Le due strade ovvie sono state provate tutte e due e sono sbagliate tutte e
-   due. Incrociare le opacità mette i due disegni addosso uno all'altro, e con
-   inquadrature e proporzioni diverse non legge come una dissolvenza: legge
-   come due immagini sovrapposte per errore. Metterle in fila — prima esce una,
-   poi entra l'altra — evita la sovrapposizione ma apre un BUCO: per un paio di
-   decimi il riquadro, che è mezza schermata, resta una lastra di carta vuota.
-
-   Fra due difetti si toglie la dissolvenza. Lo scambio avviene in un istante,
-   nel fotogramma in cui `--engaged` cambia: uno dei due disegni c'è, l'altro
-   no, mai tutti e due e mai nessuno. Al plastico resta un accenno di scala che
-   lo fa assestare — è una `transform`, quindi la compone la scheda video e non
-   costa un ridisegno — e serve solo a far leggere lo stacco come voluto invece
-   che come uno scatto. L'opacità non si tocca mai: a opacità intermedia si
-   vedrebbe la carta attraverso il plastico, che è il buco di prima in piccolo.
-
-   Resta un vincolo dalla parte delle prestazioni: mentre le colonne della
-   griglia si muovono, il plastico va ridisegnato a ogni larghezza nuova. Per
-   questo quel movimento è stato accorciato a poco più di tre decimi (story.css)
-   — è la finestra in cui si paga, e più è corta meglio è. */
-/* ── NON togliere `opacity`, anche se qui non si dissolve niente ─────────────
-   Sembra ridondante accanto a `visibility: hidden`, e non lo è. `visibility`
-   si EREDITA, quindi un discendente che dichiara `visible` scavalca l'`hidden`
-   dell'antenato — e il plastico ha esattamente quel discendente: disegna su due
-   buffer alternati (`#model-a` / `#model-b`) e a ogni fotogramma ci scrive
-   sopra `visibility="visible"` come attributo SVG. Con la sola `visibility` il
-   modello restava dipinto, in piccolo, sopra la vignetta dell'apertura.
-
-   `opacity: 0` non si può scavalcare dall'interno: è lei a garantire che non
-   si veda. La `visibility` resta perché è quella che fa saltare la
-   rasterizzazione, ed è il motivo per cui il plastico può stare in pagina —
-   precaricato — senza costare niente finché non serve.
-
-   Lo stato di riposo non ha transizioni: uscendo, il plastico se ne va in un
-   istante. È voluto — in quel verso la griglia riparte subito e non deve
-   trascinarsi dietro un disegno da ridipingere. L'ENTRATA invece è animata,
-   vedi sotto. */
 .relief-figure-frame .rifugio-model3d-holder {
   position: absolute;
   inset: 0;
   display: flex;
   flex-direction: column;
+  /* Descendant SVG buffers set visibility themselves, so opacity is the hard hide. */
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
 }
 
-/* ── L'entrata: morbida, ma senza passare dal nulla ──────────────────────────
-   Uno stacco secco su mezza schermata si legge come uno scatto, per quanto sia
-   corretto. Ma la dissolvenza classica qui non si può fare: partire da zero
-   vuol dire un riquadro vuoto per un decimo di secondo (il BUCO), e tenere
-   accesa anche la vignetta vuol dire due disegni sovrapposti. Sono le due cose
-   che questa transizione ha già sbagliato, una per volta.
-
-   La via di mezzo è partire da un'opacità già ALTA. Al primo fotogramma il
-   plastico c'è già, pieno per più di metà: non è un vuoto che si riempie, è un
-   disegno che si posa. Quel poco di velo, insieme alla scala che si assesta,
-   basta a togliere lo scatto senza aprire nessuno dei due difetti.
-
-   È una `animation`, non una `transition`, proprio per poter partire da un
-   valore intermedio invece che dallo stato di riposo. */
 @keyframes plastico-entra {
   from {
     opacity: 0.55;
@@ -806,22 +596,12 @@
   animation: plastico-entra 0.62s var(--ease-cine, cubic-bezier(0.22, 1, 0.36, 1)) both;
 }
 
-/* Dentro il riquadro il plastico prende l'altezza che avanza: la proporzione
-   la tiene il viewBox dell'SVG, che si adatta da sé (`preserveAspectRatio`). */
 .relief-figure-frame .rifugio-model3d {
   flex: 1;
   min-height: 0;
   aspect-ratio: auto;
 }
 
-/* L'altra metà dello scambio. La vignetta sparisce e ricompare in un istante:
-   deve, altrimenti si riapre uno dei due difetti — se indugia si sovrappone al
-   plastico, se anticipa lascia il riquadro vuoto. Il suo assestamento è quindi
-   solo la `transform`, che si posa dopo essere ricomparsa: l'apparizione resta
-   secca ma non sembra uno scatto.
-
-   Resta montata in tutti e due gli stati: è lei a dare l'altezza al riquadro
-   nell'apertura, e rimontarla costerebbe un nuovo tratto già visto. */
 .relief-figure {
   visibility: visible;
   transform: none;
@@ -835,20 +615,11 @@
   transition: none;
 }
 
-/* Ingrandito rispetto alla vignetta: un modello che si gira mostra il fianco
-   lungo della piazza dove il disegno piatto mostrava solo il fronte, e a parità
-   di larghezza gli serve più altezza per non schiacciarsi. */
 .relief-explainer--engaged .relief-figure-frame {
   height: min(72vh, 760px);
 }
 
-/* ── Fermo quando nessuno guarda ─────────────────────────────────────────────
-   Il plastico viene smontato appena si allontana dal quadro (vedi la nota su
-   `nearby` in RifugioExplainer). Nella fascia in cui è montato ma la sequenza
-   non è ancora partita — l'apertura, o il ritorno dall'alto — le sue animazioni
-   senza fine restano ferme: nuvole, acqua, uccelli, respiro delle persone e
-   traffico costano un pezzo di ogni fotogramma, e in quel tratto sotto ci sta
-   la vignetta piatta, quindi non le vede comunque nessuno. */
+/* Pausing unseen perpetual effects avoids needless SVG filter work. */
 .rifugio-model3d[data-idle="true"] .cloud,
 .rifugio-model3d[data-idle="true"] .cast-alive,
 .rifugio-model3d[data-idle="true"] .bird,

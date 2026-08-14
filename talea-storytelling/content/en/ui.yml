@@ -1,0 +1,56 @@
+schemaVersion: 1
+locale: en
+
+header:
+  id: global-header
+  menu:
+    id: global-menu
+    open: "Open menu"
+    close: "Close menu"
+  exploreData:
+    id: explore-data
+    label: "Explore data"
+
+progress:
+  id: reading-progress
+  ariaLabel: "Reading progress"
+  chapters:
+    - id: hero
+      label: "Bologna is heating up"
+    - id: trend
+      label: "Summers"
+    - id: hotspot
+      label: "Hotspots"
+    - id: cause
+      label: "The causes"
+    - id: ombra
+      label: "Shade"
+    - id: persone
+      label: "People"
+    - id: sollievo
+      label: "Green spaces"
+    - id: rifugi
+      label: "Bologna's climate refuges"
+    - id: costruire
+      label: "Where they are missing, build them"
+    - id: talea
+      label: "The TALEA project"
+    - id: aree
+      label: "Pilot areas"
+    - id: chiusura
+      label: "Explore the data"
+
+glossary:
+  id: global-glossary
+  eyebrow: "Glossary"
+  definitionLabelTemplate: "Definition: {term}"
+  dialogLabelTemplate: "Glossary: {term}"
+  closeLabel: "Close glossary"
+  trailAriaLabel: "Terms already encountered"
+  trailLabel: "Already encountered"
+
+actions:
+  id: global-actions
+  close: "Close"
+  previousItem: "Previous element"
+  nextItem: "Next element"

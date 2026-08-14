@@ -1,18 +1,8 @@
-"""
-Preprocess the top-10% hotspot persistence raster into GeoJSON files for
-MapLibre display in the TALEA storytelling webapp.
-
-Outputs:
-  public/data/hotspots/hotspots_ge_1.geojson    - value >= 1
-  ...
-  public/data/hotspots/hotspots_ge_13.geojson   - value >= 13
-  public/data/hotspots/hotspots_eq_13.geojson   - value == 13
-
-Requirements: rasterio, numpy, shapely, pyproj.
-"""
+"""Build the Hotspot persistence GeoJSON series documented in D03."""
 
 import json
 import os
+from pathlib import Path
 
 import numpy as np
 import rasterio
@@ -21,21 +11,13 @@ from rasterio.features import shapes
 from shapely.geometry import MultiPolygon, Polygon, mapping, shape
 from shapely.ops import unary_union
 
+from lib.data_inputs import require_data_input, resolve_data_input
 
-SRC_PATH = os.path.join(
-    "external",
-    "hotspot_10",
-    "hotspot_structural_persistence_2013_2025_top10pct.tif",
-)
+
+ROOT = Path(__file__).resolve().parents[1]
+SRC_PATH = resolve_data_input("hotspotPersistenceRaster")
 OUT_DIR = os.path.join("public", "data", "hotspots")
-BOUNDARY_PATH = os.path.join(
-    "external",
-    "historysuhi",
-    "webapp",
-    "data",
-    "webapp_vectors",
-    "bologna_boundary_outline.geojson",
-)
+BOUNDARY_PATH = ROOT / "public" / "data" / "vectors" / "bologna_boundary_outline.geojson"
 
 THRESHOLDS = [
     {
@@ -45,16 +27,9 @@ THRESHOLDS = [
         "label": f">= {value} {'estate' if value == 1 else 'estati'}",
     }
     for value in range(1, 14)
-] + [
-    {
-        "name": "hotspots_eq_13",
-        "filter": lambda values: values == 13,
-        "threshold": "eq_13",
-        "label": "13 estati",
-    }
 ]
 
-SIMPLIFY_TOLERANCE = 0.00005  # ~5 m in degrees at Bologna latitude.
+SIMPLIFY_TOLERANCE = 0.00005
 
 
 def load_bologna_boundary():
@@ -120,6 +95,7 @@ def extract_polygons(geom):
 
 
 def main():
+    require_data_input("hotspotPersistenceRaster")
     os.makedirs(OUT_DIR, exist_ok=True)
     bologna_boundary = load_bologna_boundary()
 

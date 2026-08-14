@@ -1,34 +1,17 @@
-// Map data + helpers for the climate-refuge map of the "Gli spazi verdi sono la
-// soluzione" chapter, plus the ortophoto base shared with the pilot-zones map.
-// Ported from talea_capitolo_sollievo_climatico.html and rewired to the app's
-// own datasets under public/data/ and the TALEA palette.
-//
-// Interaction model (2026-06-30 overhaul): the camera holds a calm city-wide
-// OVERVIEW by default — the reader just scrolls through. On an explicit action
-// (search or click) the map flies in to the chosen place to reveal the green and
-// the climate refuges nearby; the moment the reader scrolls on, the map eases
-// back out to the overview. So nothing moves unless the citizen asks it to, and
-// the narrative is never trapped.
-//
-// 2026-07-28 (`11`): the 3-30-300 scene left the story, and with it the area
-// choropleth, the 30/300 m rings, the tree layers and their cards. What stayed
-// is everything the refuge map and the pilot-zones map actually use.
 
 import maplibregl from "maplibre-gl";
 import { assetUrl } from "../lib/assetUrl";
+import {
+  countDistinctCsiPlaces,
+  csiPlaceName,
+  selectCsiFeatures,
+  toFiniteNumber,
+} from "./reliefData";
 
-// Datasets served from public/data/, like the rest of the app's data. They were
-// vendored in from the CRAF and HistorySUHI repos so this repo builds on its own.
-// csi.geojson = green spaces scored by the Climate Shelter Index.
 const csiUrl = assetUrl("/data/vectors/csi.geojson");
-const greenSpacesCsiUrl = assetUrl("/data/vectors/green_spaces_csi.geojson");
 const bolognaBoundaryUrl = assetUrl("/data/vectors/bologna_boundary_outline.geojson");
-// The Comune's own list of recognised climate refuges (scripts/build_rifugi_ufficiali.mjs).
 import rifugiUfficialiUrl from "./rifugi_ufficiali.geojson?url";
 
-// Brand palette (mirrors theme.css). Yellow is reserved for "your focus" — the
-// boundary, the selected area, the 300 m ring, the nearest refuges and the search
-// marker — so it always means the same thing on the map.
 const COLORS = {
   green: "#21A84A",
   darkGreen: "#004d19",
@@ -37,10 +20,6 @@ const COLORS = {
 
 const EASE_OUT = (t) => 1 - Math.pow(1 - t, 3);
 
-// Minimal basemap: just a background + (added at runtime) the ortophoto raster.
-// No vector buildings / streets / labels — the imagery stays clean, with only the
-// rifugi (and, on the 3-30-300 map, trees + areas) drawn on top. `glyphs` is kept
-// so the tree-cluster count labels can render.
 export const BASEMAP_STYLE = {
   version: 8,
   glyphs: "https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf",
@@ -50,9 +29,6 @@ export const BASEMAP_STYLE = {
   ],
 };
 
-// The maps are camera-driven only through code (flyTo / fitBounds). Every manual
-// handler stays disabled so a citizen can't accidentally pan or zoom away and
-// lose the frame — the scroll/search/click flow does all the moving.
 export function lockCamera(map) {
   map.scrollZoom.disable();
   map.boxZoom.disable();
@@ -66,28 +42,19 @@ export function lockCamera(map) {
 
 export const EXPLORE_ZOOM_LIMITS = { minZoom: 10.4, maxZoom: 16.6 };
 
-// Esri World Imagery — can be swapped for the Comune/Regione WMTS ortophoto.
 export const ORTHOPHOTO_TILES = [
   "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
 ];
 
 export const BOLOGNA_CENTER = [11.343, 44.494];
-// Initial camera used while the style loads; the real overview is fit to the data
-// (setOverviewFrame) as soon as the layers are in, so the whole city is framed.
 export const RELIEF_STORY_CAMERA = { center: [11.344, 44.498], zoom: 11.6, pitch: 0, bearing: 0 };
 export const FOCUS_MAX_ZOOM = 15.1;
 export const ADDRESS_ZOOM = 15.4;
 const VALHALLA_BASE = "https://valhalla1.openstreetmap.de";
 const VALHALLA_CLIENT_ID = "talea-storytelling";
 
-/* ───────────────────────────── generic helpers ───────────────────────────── */
 
-export function toNumber(v) {
-  if (v === null || v === undefined) return NaN;
-  if (typeof v === "string") v = v.replace(",", ".");
-  const n = Number(v);
-  return Number.isFinite(n) ? n : NaN;
-}
+export const toNumber = toFiniteNumber;
 
 async function fetchJSON(url) {
   const r = await fetch(url);
@@ -141,9 +108,7 @@ export function haversine(a, b) {
   return 2 * R * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
 }
 
-/* ───────────────────────────── camera control ───────────────────────────── */
 
-// Remember the city-wide frame (bounds + padding) so we can ease back to it.
 export function setOverviewFrame(map, geojson, padding = 44) {
   const b = boundsForCollection(geojson);
   if (!b.isEmpty()) {
@@ -168,7 +133,6 @@ export function frameOverview(map, duration = 0) {
   });
 }
 
-// Ease in to frame one feature (an area or a refuge polygon).
 export function flyToFeature(map, feature, opts = {}) {
   const { maxZoom = FOCUS_MAX_ZOOM, padding = 96, duration = 1500 } = opts;
   const b = boundsForFeature(feature);
@@ -176,15 +140,12 @@ export function flyToFeature(map, feature, opts = {}) {
   map.fitBounds(b, { padding, maxZoom, duration, essential: true, easing: EASE_OUT });
 }
 
-// Combined bounds of several features (a refuge that lives as more than one
-// source polygon, or the several clipped pieces of one big park).
 export function boundsForFeatures(features) {
   const b = new maplibregl.LngLatBounds();
   (features || []).forEach((f) => f && f.geometry && extendBounds(f.geometry.coordinates, b));
   return b;
 }
 
-// Ease in to frame a whole refuge (all its polygons), not just the clicked piece.
 export function flyToFeatures(map, features, opts = {}) {
   const { maxZoom = FOCUS_MAX_ZOOM, padding = 96, duration = 1500 } = opts;
   const b = boundsForFeatures(features);
@@ -192,15 +153,11 @@ export function flyToFeatures(map, features, opts = {}) {
   map.fitBounds(b, { padding, maxZoom, duration, essential: true, easing: EASE_OUT });
 }
 
-// Ease in to a geocoded point (a street address) at neighbourhood scale.
 export function flyToPoint(map, pt, opts = {}) {
   const { zoom = ADDRESS_ZOOM, duration = 1600 } = opts;
   map.flyTo({ center: pt, zoom, duration, essential: true, curve: 1.5 });
 }
 
-// Frame every route returned for an address. On desktop the lower-left dock
-// occupies part of the map, so the route network gets asymmetric padding; on a
-// narrow screen the dock spans the bottom and the padding moves there instead.
 export function flyToWalkingRoutes(map, pt, routes, opts = {}) {
   const b = new maplibregl.LngLatBounds();
   if (pt) b.extend(pt);
@@ -220,7 +177,6 @@ export function flyToWalkingRoutes(map, pt, routes, opts = {}) {
   });
 }
 
-/* ───────────────────────────── base layers ───────────────────────────── */
 
 function firstSymbolLayerId(map) {
   const layers = map.getStyle().layers || [];
@@ -228,12 +184,6 @@ function firstSymbolLayerId(map) {
   return symbol && symbol.id;
 }
 
-// `damped` (used by the refuge map, `10` § 10.1) pushes the imagery much further
-// down: on an ortophoto the parks are ALREADY green, so a green refuge sitting on
-// green imagery doesn't separate from its own background. The fix belongs to the
-// base, not to the data — the refuge colours are untouched. With the city
-// dropped to a grey-brown, the contrast that carries the scene becomes
-// refuge/not-refuge, which is the reading the chapter actually needs.
 export function addOrthophoto(map, options = {}) {
   if (map.getSource("ortofoto")) return;
   const damped = options.damped === true;
@@ -259,8 +209,6 @@ export function addOrthophoto(map, options = {}) {
   );
 }
 
-// Ease a paint property from 0 to its target (used to breathe the data layers
-// in over the ortophoto, instead of popping everything at once).
 export function fadeInPaint(map, layerId, prop, target, duration = 900, delay = 120) {
   if (!map.getLayer(layerId)) return;
   map.setPaintProperty(layerId, `${prop}-transition`, { duration: 0 });
@@ -307,17 +255,11 @@ export function addBolognaBoundary(map, prefix = "relief", options = {}) {
   }
 }
 
-/* ───────────────────────── property accessors ───────────────────────── */
 
-function getName(p) {
-  return (
-    p.Nome || p.nome || p.name || p.Name || p.denominazione || p.DESCRIZIONE ||
-    p.area_stati || p.stat_area_name || p.zona || p.Zona || "Spazio verde"
-  );
+function getName(p, fallback = "") {
+  return csiPlaceName(p, fallback);
 }
 
-// Dataset names are shouted ("PARCO DEI CALANCHI DI SABBIUNO"); labels on the
-// map read better in title case with the little words kept low.
 const LOWER_WORDS = new Set(["di", "del", "della", "dei", "delle", "degli", "da", "e", "in", "al", "ai", "la", "le", "il", "lo"]);
 
 export function prettyName(raw) {
@@ -343,40 +285,46 @@ function csiOf(p) {
   return metricVal(p, ["CSI", "csi", "CSI_avg", "csi_avg"]);
 }
 
-// Amenity flags in csi.geojson are "yes"/"no" strings.
 function hasAmenity(v) {
   const s = String(v ?? "").trim().toLowerCase();
   return s === "yes" || s === "si" || s === "sì" || s === "true" || s === "1";
 }
 
-function prettyParkType(p) {
+const GREEN_TYPE_IDS = {
+  "PARCO ESTENSIVO": "urbanPark",
+  PARCO: "park",
+  GIARDINO: "neighborhoodGarden",
+  "VERDE SCOLASTICO": "schoolGreen",
+  "VERDE SPORTIVO": "sportsGreen",
+};
+
+function prettyParkType(p, labels) {
   const raw = String(p.classe_uni || p.classe_gia || "").trim().toUpperCase();
-  const map = {
-    "PARCO ESTENSIVO": "Parco urbano",
-    PARCO: "Parco",
-    GIARDINO: "Giardino di quartiere",
-    "VERDE SCOLASTICO": "Verde scolastico",
-    "VERDE SPORTIVO": "Verde sportivo",
-  };
-  return map[raw] || "Spazio verde";
+  return labels[GREEN_TYPE_IDS[raw] || "greenSpace"];
 }
 
-// True only for the real standouts (~1% of refuges) — used to surface a small
-// "grande spazio verde" note on the rare high-CSI parks, never a graded score.
+const OFFICIAL_TYPE_IDS = {
+  Biblioteca: "library",
+  "Biblioteca pubblica": "publicLibrary",
+  "Casa di quartiere": "communityCenter",
+  "Casa di quartiere e parco pubblico": "communityCenterAndPark",
+  "Cortile interno": "internalCourtyard",
+  "Giardino pubblico": "publicGarden",
+  "Luogo multifunzionale": "multifunctionalVenue",
+  Museo: "museum",
+  "Parco pubblico": "publicPark",
+  "Piazza coperta": "coveredSquare",
+};
+
+function officialTypeLabel(rawType, labels) {
+  return labels[OFFICIAL_TYPE_IDS[String(rawType || "").trim()]] || rawType || "";
+}
+
+// This threshold selects six rare high-CSI features in the current snapshot (D11).
 function isStandoutRifugio(csi) {
   return !Number.isNaN(csi) && csi >= 0.7;
 }
 
-/* ── «Ma com'è, davvero?» (2026-08-06) ──────────────────────────────────────
-   Un nome, un quartiere e degli ettari non dicono se in quel giardino ci si sta:
-   se c'è ombra vera, se è tenuto, se ci si porterebbe un bambino. Una panoramica
-   di Street View lo dice in un colpo, e non costa alla pagina nulla.
-
-   Il punto di vista NON è il centro del parco: là dentro, spesso, Google non è
-   mai passato e il link si aprirebbe su un errore. È invece il punto del BORDO
-   più vicino al centro, spostato una quindicina di metri all'esterno, cioè dove
-   passa la strada e dove le foto esistono davvero; la bussola è girata verso il
-   centro, così la panoramica si apre guardando DENTRO il parco. */
 const STREET_VIEW_OFFSET_M = 15;
 const M_PER_DEG_LAT = 110540;
 const M_PER_DEG_LON = 111320;
@@ -440,71 +388,65 @@ export function streetViewURL(feature) {
   return `https://www.google.com/maps/@?${params.toString()}`;
 }
 
-/* ─────────────────────────────── popups / cards ─────────────────────────── */
 
-// Lightweight hover popup over a refuge (name + type only — full detail on click).
-export function popupRifugioHTML(feature) {
+export function popupRifugioHTML(feature, copy) {
   const p = feature.properties || {};
-  return `<div class="story-popup"><strong>${prettyName(getName(p))}</strong><span>${prettyParkType(p)} · tocca per i dettagli</span></div>`;
+  return `<div class="story-popup"><strong>${prettyName(getName(p, copy.green.fallbackName))}</strong><span>${prettyParkType(p, copy.green.typeLabels)} · ${copy.tapForDetails}</span></div>`;
 }
 
-// Green-space card (`10` § 10.4). Two lines and one, in the order a citizen
-// reads them: WHAT it is, WHERE it is, and then what it offers. The old version
-// opened with a chip rack; chips describe an interface, a name and a district
-// describe a place.
-export function rifugiDetailHTML(feature) {
+export function rifugiDetailHTML(feature, copy, locale) {
   const p = feature.properties || {};
+  const green = copy.green;
   const csi = csiOf(p);
   const area = metricVal(p, ["area_Ha", "area_ha", "ha", "AREA_HA", "superficie", "area"]);
   const areaHa = Number.isNaN(area) ? NaN : area > 1000 ? area / 10000 : area;
   const district = String(p.quartiere || p.quart || "").trim();
   const place = String(p.ubicazione || "").trim();
 
-  const metaParts = [district ? `Quartiere ${district}` : "", place].filter(Boolean);
-  if (!Number.isNaN(areaHa) && areaHa >= 1) metaParts.push(`${areaHa.toFixed(1).replace(".", ",")} ettari`);
+  const metaParts = [district ? `${green.districtPrefix} ${district}` : "", place].filter(Boolean);
+  if (!Number.isNaN(areaHa) && areaHa >= 1) {
+    const formattedArea = new Intl.NumberFormat(locale, {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    }).format(areaHa);
+    metaParts.push(green.areaTemplate.replace("{n}", formattedArea));
+  }
 
-  // Only what the dataset actually flags. "Ombra del verde" used to be printed
-  // on every card as an always-on chip, which made it worth nothing.
   const offers = [];
-  if (hasAmenity(p.d_fountain)) offers.push("fontanella");
-  if (hasAmenity(p.benches)) offers.push("panchine");
-  if (hasAmenity(p.picnic_tab)) offers.push("tavoli da picnic");
+  if (hasAmenity(p.d_fountain)) offers.push(green.amenities.fountain);
+  if (hasAmenity(p.benches)) offers.push(green.amenities.benches);
+  if (hasAmenity(p.picnic_tab)) offers.push(green.amenities.picnicTables);
 
   return `<div class="r-card">
-    <strong class="r-card-name">${prettyName(getName(p))}</strong>
+    <strong class="r-card-name">${prettyName(getName(p, green.fallbackName))}</strong>
     <span class="r-card-meta">${metaParts.join(" · ")}</span>
     ${offers.length ? `<span class="r-card-offers">${offers.join(" · ")}</span>` : ""}
-    ${isStandoutRifugio(csi) ? `<span class="r-card-foot r-card-foot--standout">Uno dei grandi spazi verdi della città</span>` : ""}
-    <a class="r-card-street" href="${streetViewURL(feature)}" target="_blank" rel="noopener noreferrer">Guarda com’è su Street View →</a>
+    ${isStandoutRifugio(csi) ? `<span class="r-card-foot r-card-foot--standout">${green.standout}</span>` : ""}
+    <a class="r-card-street" href="${streetViewURL(feature)}" target="_blank" rel="noopener noreferrer">${green.streetViewCta} →</a>
   </div>`;
 }
 
-/* ── The Comune's official refuges ──
-   These carry things the CSI green spaces cannot: opening hours, indoor cool,
-   free toilets, drinking water. The card leads with that, because on a 38 °C
-   afternoon it is the only information that changes what a person does. */
 
-export function popupUfficialeHTML(feature) {
+export function popupUfficialeHTML(feature, copy) {
   const p = feature.properties || {};
-  return `<div class="story-popup story-popup--ufficiale"><strong>${prettyName(p.nome || "")}</strong><span>Rifugio climatico del Comune · tocca per i dettagli</span></div>`;
+  return `<div class="story-popup story-popup--ufficiale"><strong>${prettyName(p.nome || "")}</strong><span>${copy.official.popupType} · ${copy.tapForDetails}</span></div>`;
 }
 
-// `acqua` is kept as supplied by the Comune. For toilets this card only answers
-// the question requested by the story: are they free? The source has records
-// that do not state a price, so those remain explicitly "non indicato" instead
-// of silently being presented as either free or paid.
 function stripLabel(value, label) {
   const s = String(value || "").trim();
   const re = new RegExp(`^${label}\\s+`, "i");
   return s.replace(re, "");
 }
 
-function toiletCost(value) {
+function toiletCost(value, copy) {
   const s = String(value || "").trim().toLowerCase();
   if (!s) return "";
-  if (s.includes("gratuit")) return "Gratuiti";
-  if (s.includes("pagamento") || s.includes("solo per gli utenti")) return "Non gratuiti";
-  return "Gratuità non indicata";
+  if (s.includes("gratuit")) return copy.toiletsFree;
+  if (s.includes("pagamento") || s.includes("solo per gli utenti")) {
+    return copy.toiletsNotFree;
+  }
+  // Unrecognized source text stays unknown instead of being inferred as free or paid.
+  return copy.toiletsUnknown;
 }
 
 function factRowHTML(label, value) {
@@ -512,69 +454,82 @@ function factRowHTML(label, value) {
   return `<div class="r-fact"><span class="r-fact-key">${label}</span><span class="r-fact-val">${value}</span></div>`;
 }
 
-export function ufficialeDetailHTML(feature) {
+export function ufficialeDetailHTML(feature, copy) {
   const p = feature.properties || {};
-  const meta = [p.tipo, p.quartiere ? `Quartiere ${p.quartiere}` : "", p.indirizzo].filter(Boolean);
+  const official = copy.official;
+  const meta = [
+    officialTypeLabel(p.tipo, official.typeLabels),
+    p.quartiere ? `${official.districtPrefix} ${p.quartiere}` : "",
+    p.indirizzo,
+  ].filter(Boolean);
 
   return `<div class="r-card r-card--ufficiale">
-    <span class="r-card-badge">Riconosciuto dal Comune${
-      p.ambiente === "interno" ? " · al chiuso" : " · all’aperto"
+    <span class="r-card-badge">${official.badge}${
+      p.ambiente === "interno" ? ` · ${official.indoor}` : ` · ${official.outdoor}`
     }</span>
     <strong class="r-card-name">${prettyName(p.nome || "")}</strong>
     <span class="r-card-meta">${meta.join(" · ")}</span>
     <div class="r-facts">
-      ${factRowHTML("Acqua", stripLabel(p.acqua, "acqua"))}
-      ${factRowHTML("Bagni", toiletCost(p.bagni))}
+      ${factRowHTML(official.waterLabel, stripLabel(p.acqua, "acqua"))}
+      ${factRowHTML(official.toiletsLabel, toiletCost(p.bagni, official))}
     </div>
-    ${p.orari ? `<a class="r-card-hours" href="${p.orari}" target="_blank" rel="noopener noreferrer">Orari di apertura →</a>` : ""}
+    ${p.orari ? `<a class="r-card-hours" href="${p.orari}" target="_blank" rel="noopener noreferrer">${official.openingHours} →</a>` : ""}
   </div>`;
 }
 
-/* ── The "e casa mia?" answer (`11` § 11.3) ──
-   What the 3-30-300 block used to provide, minus the incomplete index: a place
-   the reader knows, and how far the relief is from it. A distance is a simple,
-   checkable, honest number — no thresholds, no score, nothing to get wrong.
-   Both tiers answer, each labelled for what it is. */
-function fmtDistance(d) {
-  if (!Number.isFinite(d)) return "";
-  if (d <= 20) return "sei già lì";
-  if (d >= 1000) return `${(d / 1000).toFixed(1).replace(".", ",")} km`;
-  return `${Math.round(d / 10) * 10} m`;
+function numberTemplate(template, value) {
+  return template.replace("{n}", String(value));
 }
 
-function fmtWalkTime(seconds) {
+function fmtDistance(d, copy, locale) {
+  if (!Number.isFinite(d)) return "";
+  if (d <= 20) return copy.alreadyThere;
+  if (d >= 1000) {
+    const kilometers = new Intl.NumberFormat(locale, {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    }).format(d / 1000);
+    return numberTemplate(copy.kilometersTemplate, kilometers);
+  }
+  return numberTemplate(copy.metersTemplate, Math.round(d / 10) * 10);
+}
+
+function fmtWalkTime(seconds, copy) {
   if (!Number.isFinite(seconds) || seconds <= 0) return "";
   const minutes = Math.max(1, Math.round(seconds / 60));
-  return `${minutes} min a piedi`;
+  return numberTemplate(copy.walkMinutesTemplate, minutes);
 }
 
-function nearRowHTML(name, d, seconds) {
-  const bits = [fmtDistance(d), fmtWalkTime(seconds)].filter(Boolean);
+function nearRowHTML(name, d, seconds, copy, locale) {
+  const bits = [
+    fmtDistance(d, copy, locale),
+    fmtWalkTime(seconds, copy),
+  ].filter(Boolean);
   return `<span class="r-near-item">${name}<em>${bits.join(" · ")}</em></span>`;
 }
 
-export function nearbyCardHTML({ label, ufficiale, verdi }) {
+export function nearbyCardHTML({ label, ufficiale, verdi, copy, locale }) {
+  const nearby = copy.nearby;
   const blocks = [];
   if (ufficiale) {
     blocks.push(`<div class="r-near">
-      <span class="r-near-head">Rifugio riconosciuto più vicino</span>
-      ${nearRowHTML(prettyName(ufficiale.f.properties?.nome || ""), ufficiale.d, ufficiale.time)}
+      <span class="r-near-head">${nearby.nearestOfficial}</span>
+      ${nearRowHTML(prettyName(ufficiale.f.properties?.nome || ""), ufficiale.d, ufficiale.time, nearby, locale)}
     </div>`);
   }
   if (verdi && verdi.length) {
     blocks.push(`<div class="r-near">
-      <span class="r-near-head">Spazi verdi a portata</span>
-      ${verdi.map((x) => nearRowHTML(prettyName(getName(x.f.properties || {})), x.d, x.time)).join("")}
+      <span class="r-near-head">${nearby.greenNearby}</span>
+      ${verdi.map((x) => nearRowHTML(prettyName(getName(x.f.properties || {}, copy.green.fallbackName)), x.d, x.time, nearby, locale)).join("")}
     </div>`);
   }
   return `<div class="r-card r-card--near">
-    <strong class="r-card-name">${label || "Il punto cercato"}</strong>
-    ${blocks.join("") || '<span class="r-card-meta">Nessun rifugio raggiungibile trovato.</span>'}
-    <span class="r-card-foot">Percorsi pedonali calcolati sulla rete di strade e sentieri OpenStreetMap.</span>
+    <strong class="r-card-name">${label || nearby.searchedPointFallback}</strong>
+    ${blocks.join("") || `<span class="r-card-meta">${nearby.noneReachable}</span>`}
+    <span class="r-card-foot">${nearby.routeSource}</span>
   </div>`;
 }
 
-/* ───────────────────────── data loaders (cached) ───────────────────────── */
 
 let rifugiData = null;
 
@@ -582,52 +537,20 @@ export function getRifugiData() {
   return rifugiData;
 }
 
-/* csi.geojson holds ALL of Bologna's public green spaces (930 polygons, down to
-   200 m² flower beds). Those are not climate refuges, and drawing them all would
-   say they are. CRAF's own web app draws the line where this project draws it:
-   «candidati rifugi climatici: superficie > 0,5 ha e NDVI > 0,4» — big enough to
-   hold a crowd, green enough to actually cool. That leaves 259 polygons over 231
-   distinct places, 484 hectares, in all six quartieri.
-
-   The filter is applied at load, so everything downstream — the layers, the
-   count in the dock, the nearest-refuge search, the name suggestions, the
-   fragment resolution — sees exactly what the map draws, and cannot drift from
-   it later. */
-const SELECT_MIN_HA = 0.5;
-const SELECT_MIN_NDVI = 0.4;
-
-function selectRifugi(geojson) {
-  const features = (geojson?.features || []).filter((f) => {
-    if (!f.geometry) return false;
-    const ha = toNumber(f.properties?.area_Ha ?? f.properties?.area_ha ?? f.properties?.AREA_HA);
-    const ndvi = toNumber(f.properties?.NDVI ?? f.properties?.ndvi);
-    return ha > SELECT_MIN_HA && ndvi > SELECT_MIN_NDVI;
-  });
-  return { type: "FeatureCollection", features };
-}
-
 export async function loadRifugiData() {
   if (rifugiData) return rifugiData;
-  let parks = null;
-  try {
-    parks = asGeoJSON(await fetchJSON(csiUrl));
-  } catch (err) {
-    console.warn("csi.geojson non disponibile, uso green_spaces_csi", err);
+  const parks = asGeoJSON(await fetchJSON(csiUrl));
+  rifugiData = selectCsiFeatures(parks);
+  if (!rifugiData.features.length) {
+    rifugiData = null;
+    throw new Error("csi.geojson non contiene spazi compatibili selezionabili");
   }
-  if (!parks || !parks.features || !parks.features.length) {
-    parks = asGeoJSON(await fetchJSON(greenSpacesCsiUrl));
-  }
-  rifugiData = selectRifugi(parks);
   return rifugiData;
 }
 
+// Research-scored green spaces and municipally designated refuges remain separate.
 let ufficialiData = null;
 
-// The Comune's OFFICIAL climate-refuge network — a short, named list (libraries,
-// museums, case di quartiere, parks), snapshotted by
-// scripts/build_rifugi_ufficiali.mjs. Kept strictly apart from the CSI green
-// spaces: one is a municipal decision, the other is a research score, and the map
-// must never let a reader mistake the second for the first.
 export async function loadRifugiUfficiali() {
   if (ufficialiData) return ufficialiData;
   ufficialiData = asGeoJSON(await fetchJSON(rifugiUfficialiUrl));
@@ -638,37 +561,18 @@ export function getRifugiUfficiali() {
   return ufficialiData;
 }
 
-// How many DISTINCT places the map draws. csi.geojson splits the big parks into
-// several polygons (Giardini Margherita, Parco dei Cedri…), so the feature count
-// is not the number of places — the counter in the dock must never say 259.
 export function countRifugi(geojson) {
-  const names = new Set();
-  for (const f of geojson?.features || []) {
-    const n = String(getName(f.properties || {})).trim().toLowerCase();
-    if (n) names.add(n);
-  }
-  return names.size;
+  return countDistinctCsiPlaces(geojson);
 }
 
-/* ───────────────────────────── refuge layers ───────────────────────────── */
 
-// Real CSI is extremely skewed (68% of Bologna's 930 refuges score < 0.05, 97%
-// score < 0.2), so a colour gradient here would render almost the entire network
-// as one indistinguishable pale blob — showing a false sense of precision rather
-// than helping anyone read the map. One flat, legible brand green says plainly
-// "this shape is a recognised climate refuge"; the real scale-of-relief story
-// (small garden → big urban park) is told honestly elsewhere — by the
-// scroll-featured highlight (chooseFeaturedRifugi) and by the standout note in
-// the tap card for the rare high-CSI parks — not by shading every polygon.
+// A flat fill avoids implying readable precision in the highly skewed CSI distribution (D11).
 const RIFUGI_FILL_COLOR = COLORS.green;
 
 export function addRifugiLayers(map, geojson, prefix, options = {}) {
   const sourceId = `${prefix}-rifugi`;
   if (map.getSource(sourceId)) return;
   const lineWidth = options.lineWidth ?? 2.2;
-  // Ricordato sulla mappa perché il gemello del riempimento (setRifugiFocus →
-  // applyRifugiCutout) deve partire ESATTAMENTE dallo stesso verde, altrimenti
-  // il momento in cui prende il posto del layer di base si vedrebbe.
   map._rifugiFillTarget = options.fillOpacity ?? 0.5;
   map.addSource(sourceId, { type: "geojson", data: geojson });
   map.addLayer({
@@ -702,17 +606,6 @@ export function addRifugiLayers(map, geojson, prefix, options = {}) {
   });
 }
 
-/* ── The network lights up, it isn't unveiled (`10` § 10.2) ──
-   Hotspot and shadow both open by lifting a veil; a third one would read as a
-   procedure. Here the refuges arrive instead as a wave running out from the
-   centre of the city, so the reader watches a network APPEAR rather than a map
-   get uncovered. It is the most positive moment of the story so far, and it
-   deserves an entrance that says "they are already here".
-
-   `__wave` is the feature's distance from the centre, normalised 0..1. Each
-   frame the fill is an interpolate over it with a moving front: everything
-   behind the front is at full opacity, everything ahead is at zero, and 0.15 of
-   soft edge in between keeps it a wash rather than a wipe. */
 const WAVE_MS = 1600;
 const WAVE_EDGE = 0.15;
 
@@ -728,18 +621,12 @@ export function withWaveOrder(geojson, center) {
       properties: {
         ...(f.properties || {}),
         __wave: Number.isFinite(d) ? d / max : 1,
-        // Identità del luogo, precalcolata: è la chiave con cui il filtro toglie
-        // dal riempimento di base il parco selezionato (applyRifugiCutout), e
-        // vale per TUTTI i poligoni dello stesso parco.
         __key: rifugioKey(f.properties || {}),
       },
     })),
   };
 }
 
-// Runs the wave over `fillLayerId` and returns a cancel function (the scene may
-// scroll away mid-wave — leaving a rAF loop writing paint properties on a map
-// that is being torn down throws).
 export function runRifugiWave(map, fillLayerId, target = 0.52, onDone) {
   if (!map.getLayer(fillLayerId)) return () => {};
   let frame = null;
@@ -750,7 +637,6 @@ export function runRifugiWave(map, fillLayerId, target = 0.52, onDone) {
     frame = null;
     if (cancelled || !map.getLayer(fillLayerId)) return;
     const p = Math.min(1, (performance.now() - t0) / WAVE_MS);
-    // Ease out: the front sprints away from the centre, then settles on the edges.
     const t = EASE_OUT(p) * (1 + WAVE_EDGE);
     map.setPaintProperty(fillLayerId, "fill-opacity", [
       "interpolate",
@@ -763,8 +649,6 @@ export function runRifugiWave(map, fillLayerId, target = 0.52, onDone) {
     ]);
     if (p < 1) frame = requestAnimationFrame(step);
     else {
-      // Settle on a plain constant: leaving a per-feature expression in place
-      // would make every later paint change re-evaluate 930 features.
       map.setPaintProperty(fillLayerId, "fill-opacity", target);
       onDone?.();
     }
@@ -776,20 +660,10 @@ export function runRifugiWave(map, fillLayerId, target = 0.52, onDone) {
   };
 }
 
-/* ── The Comune's official refuges: points, not shapes ──
-   Two tiers on one map, and they must never blur into each other: the green
-   SHAPES are the city's public green spaces scored by the Climate Shelter Index
-   (a research reading), the deep-green PINS are the refuges the Comune has
-   actually recognised (a municipal decision, and the only ones that carry
-   opening hours, toilets and drinking water).
-   The distinction is carried by FORM first (a point on a shape is unmistakable)
-   and by tone second (the pin is the darkest green on the map). Yellow stays out
-   of it: it means "this is what you selected", nothing else (`01` § 1.1). */
 export function addUfficialiLayers(map, geojson, prefix) {
   const sourceId = `${prefix}-ufficiali`;
   if (map.getSource(sourceId)) return;
   map.addSource(sourceId, { type: "geojson", data: geojson });
-  // Pale halo: on a damped ortophoto a dark dot alone disappears over dark ground.
   map.addLayer({
     id: `${prefix}-ufficiali-halo`,
     type: "circle",
@@ -814,7 +688,6 @@ export function addUfficialiLayers(map, geojson, prefix) {
       "circle-stroke-opacity": ["interpolate", ["linear"], ["zoom"], 10.5, 0.72, 12, 0.86, 14, 1],
     },
   });
-  // Names only once the camera is close enough for 29 labels not to be a thicket.
   map.addLayer({
     id: `${prefix}-ufficiali-label`,
     type: "symbol",
@@ -838,9 +711,6 @@ export function addUfficialiLayers(map, geojson, prefix) {
   });
 }
 
-// Dynamic walking routes from a searched address. The yellow casing keeps the
-// story's "your focus" language; the core retains the two map categories:
-// deep green for Comune refuges, bright green for the calculated green spaces.
 export function addWalkingRouteLayers(map, prefix) {
   const sourceId = `${prefix}-walking-routes`;
   if (map.getSource(sourceId)) return;
@@ -888,8 +758,6 @@ export function setWalkingRoutes(map, prefix, routes = []) {
   });
 }
 
-// Pre-compute the label so the layer doesn't have to shout the dataset's
-// ALL-CAPS names (see prettyName).
 export function withUfficialiLabels(geojson) {
   return {
     type: "FeatureCollection",
@@ -901,9 +769,6 @@ export function withUfficialiLabels(geojson) {
   };
 }
 
-// Ring around the selected official refuge — the same "yellow = your focus"
-// grammar the green shapes already use, so a selection looks the same whichever
-// tier it belongs to.
 export function addUfficialeFocusLayer(map, prefix) {
   const sourceId = `${prefix}-ufficiale-focus`;
   if (!map.getSource(sourceId)) {
@@ -934,20 +799,6 @@ export function setUfficialeFocus(map, prefix, feature) {
   });
 }
 
-/* ── Il luogo selezionato si apre (2026-08-06) ──
-   Finché la selezione restava una macchia verde con sopra una campitura gialla,
-   il lettore vedeva CHE COSA aveva scelto ma non che cosa c'era dentro: alberi,
-   vialetti, radure, campi, acqua, il disegno stesso del parco. Ora, appena un
-   parco è selezionato, il suo riempimento si dissolve e resta solo il bordo: il
-   luogo si apre sull'ortofoto e si mostra da sé.
-
-   Meccanica. Il riempimento di base non può sfumare per un solo poligono (in un
-   layer una proprietà data-driven cambia di colpo, senza transizione), quindi il
-   parco selezionato viene tolto dal layer generale con un FILTRO e, nello stesso
-   frame, un layer gemello — sorgente: i poligoni selezionati — ne prende il posto
-   con lo stesso identico verde. È il gemello, un'opacità costante, a sfumare a
-   zero: si vede una dissolvenza sola. La campitura gialla del focus segue la
-   stessa curva, dopo aver detto per un istante «hai scelto questo». */
 const CUTOUT_MS = 560;
 const FOCUS_FILL_OPACITY = 0.22;
 
@@ -955,7 +806,6 @@ function layerExists(map, id) {
   try {
     return Boolean(map && map.getLayer(id));
   } catch {
-    // La mappa può essere già stata smontata sotto un rAF in volo.
     return false;
   }
 }
@@ -984,11 +834,9 @@ function applyRifugiCutout(map, prefix, features) {
     return;
   }
 
-  // 1. il gemello prende il posto del riempimento di base, nello stesso verde…
   fade(cutoutId, map._rifugiFillTarget ?? 0.5, 0);
   fade(focusFillId, FOCUS_FILL_OPACITY, 0);
   map.setFilter(fillId, ["match", ["coalesce", ["get", "__key"], ""], keys, false, true]);
-  // 2. …e dal frame dopo si dissolve, aprendo il parco sull'ortofoto.
   state.frame = requestAnimationFrame(() => {
     state.frame = null;
     fade(cutoutId, 0, CUTOUT_MS);
@@ -996,14 +844,11 @@ function applyRifugiCutout(map, prefix, features) {
   });
 }
 
-// Yellow "focus" highlight over selected refuges.
 export function addRifugiFocusLayers(map, prefix) {
   const sourceId = `${prefix}-rifugi-focus`;
   if (!map.getSource(sourceId)) {
     map.addSource(sourceId, { type: "geojson", data: { type: "FeatureCollection", features: [] } });
   }
-  // Il gemello del riempimento verde (vedi applyRifugiCutout): sta SOTTO i bordi
-  // del layer di base, così mentre sfuma non copre né il contorno né il giallo.
   if (!map.getLayer(`${prefix}-rifugi-cutout`)) {
     map.addLayer(
       {
@@ -1020,7 +865,6 @@ export function addRifugiFocusLayers(map, prefix) {
       id: `${prefix}-rifugi-focus-fill`,
       type: "fill",
       source: sourceId,
-      // Parte da zero: è applyRifugiCutout ad accenderla e a spegnerla.
       paint: { "fill-color": COLORS.yellow, "fill-opacity": 0 },
     });
   }
@@ -1037,8 +881,6 @@ export function addRifugiFocusLayers(map, prefix) {
       },
     });
   }
-  // Dark casing under the yellow so the selected contour stays legible on bright
-  // ortophoto — makes "this is what you selected" unmistakable.
   if (!map.getLayer(`${prefix}-rifugi-focus-casing`)) {
     map.addLayer({
       id: `${prefix}-rifugi-focus-casing`,
@@ -1063,7 +905,6 @@ export function addRifugiFocusLayers(map, prefix) {
       },
     });
   }
-  // Name label so a highlighted refuge is not an anonymous yellow shape.
   if (!map.getLayer(`${prefix}-rifugi-focus-label`)) {
     map.addLayer({
       id: `${prefix}-rifugi-focus-label`,
@@ -1087,27 +928,23 @@ export function addRifugiFocusLayers(map, prefix) {
   }
 }
 
-export function setRifugiFocus(map, prefix, features = []) {
+export function setRifugiFocus(map, prefix, features = [], fallbackName = "") {
   const source = map.getSource(`${prefix}-rifugi-focus`);
   if (!source) return;
-  // Build a plain GeoJSON feature. `queryRenderedFeatures` returns objects whose
-  // `geometry` is a PROTOTYPE GETTER (not an own prop), so an object spread would
-  // silently drop it and the highlight would have nothing to draw — read it
-  // explicitly here.
   const list = (Array.isArray(features) ? features : [features])
     .filter(Boolean)
     .map((f) => ({
       type: "Feature",
       geometry: f.geometry,
-      properties: { ...(f.properties || {}), __label: prettyName(getName(f.properties || {})) },
+      properties: {
+        ...(f.properties || {}),
+        __label: prettyName(getName(f.properties || {}, fallbackName)),
+      },
     }));
   source.setData({ type: "FeatureCollection", features: list });
   applyRifugiCutout(map, prefix, list);
 }
 
-// Soft white hover outline over a refuge — pairs with the anchored hover popup
-// so the shape the popup describes is unmistakable (the refuges sit on a busy
-// ortophoto, so a plain popup alone is easy to lose).
 export function addRifugiHoverLayers(map, prefix) {
   const sourceId = `${prefix}-rifugi-hover`;
   if (!map.getSource(sourceId)) {
@@ -1149,8 +986,6 @@ export function setRifugiHover(map, prefix, features) {
   source.setData({ type: "FeatureCollection", features: list });
 }
 
-// Identity of a refuge from its properties (name + location + size), stable
-// across the tile-clipped fragments that queryRenderedFeatures hands back.
 export function rifugioKey(p = {}) {
   return [
     String(getName(p)).trim().toLowerCase(),
@@ -1159,10 +994,6 @@ export function rifugioKey(p = {}) {
   ].join("|");
 }
 
-// Resolve a (possibly tile-clipped) rendered feature to the FULL source
-// feature(s) for that refuge — so selecting/hovering any piece of a park treats
-// the WHOLE place as one, with one continuous border. Falls back to the given
-// feature (as a plain GeoJSON, geometry read explicitly) if the data isn't loaded.
 export function fullRifugiFor(feature) {
   if (!feature) return [];
   if (rifugiData) {
@@ -1173,14 +1004,11 @@ export function fullRifugiFor(feature) {
   return [{ type: "Feature", geometry: feature.geometry, properties: feature.properties || {} }];
 }
 
-// A stable per-refuge key (its centroid) so the hover popup only rebuilds when
-// the pointer actually crosses to a different refuge, not on every mouse move.
 export function rifugiHoverKey(feature) {
   const c = featureCenter(feature);
   return `${c[0].toFixed(5)},${c[1].toFixed(5)}`;
 }
 
-// Three well-separated, high-CSI refuges to illustrate the scales of relief.
 export function chooseFeaturedRifugi(geojson) {
   const feats = (geojson.features || []).filter((f) => f.geometry);
   return feats
@@ -1198,7 +1026,6 @@ export function chooseFeaturedRifugi(geojson) {
     .slice(0, 3);
 }
 
-/* ──────────────────────── search / spatial helpers ──────────────────────── */
 
 function pointInRing(pt, ring) {
   const x = pt[0];
@@ -1225,11 +1052,7 @@ function pointInFeature(pt, f) {
   return false;
 }
 
-/* ───────────────── pedestrian routing on the OSM network ───────────────── */
 
-// Closest point on a polygon edge, using a local equirectangular projection.
-// This is only a lower bound and a sensible route destination; the distance
-// shown to the reader always comes back from the pedestrian routing graph.
 function closestPointOnSegment(pt, a, b) {
   const cosLat = Math.cos((pt[1] * Math.PI) / 180);
   const ax = (a[0] - pt[0]) * cosLat;
@@ -1426,9 +1249,7 @@ async function nearestGreenByWalking(origin, count, signal) {
     routed.push(...(await walkingMatrix(origin, batch, signal)));
     const finite = bestDistinctGreen(routed);
     const next = candidates[start + batchSize];
-    // A network path cannot be shorter than its straight-line lower bound.
-    // Continue until even the next untested polygon is farther than the current
-    // Nth pedestrian result (with a small allowance for Valhalla edge snapping).
+    // Straight-line distance is only a batching lower bound; displayed distances use Valhalla.
     if (finite.length >= count && (!next || next.lowerBound > finite[count - 1].d + 100)) {
       return finite.slice(0, count);
     }
@@ -1436,9 +1257,6 @@ async function nearestGreenByWalking(origin, count, signal) {
   return bestDistinctGreen(routed).slice(0, count);
 }
 
-// Selection and displayed distances both come from Valhalla's pedestrian graph
-// built from OpenStreetMap. Straight lines are used only as a mathematically
-// safe pre-filter for the 231 parks and are never shown as the answer.
 export async function findWalkingReliefs(origin, options = {}) {
   const { signal, greenCount = 2 } = options;
   const [ufficiale, verdi] = await Promise.all([
@@ -1452,7 +1270,6 @@ export async function findWalkingReliefs(origin, options = {}) {
   return { ufficiale: routedOfficial, verdi: routedGreen, routes };
 }
 
-/* ─────────────────────────────── geocoding ─────────────────────────────── */
 
 async function nominatim(params) {
   const url =
@@ -1472,9 +1289,6 @@ function addressLabel(hit) {
   return zone && zone !== main ? `${main} · ${zone}` : main;
 }
 
-// Geocode within Bologna. A query with a number is treated as "via + civico"
-// first (structured search resolves house numbers far more reliably than the
-// free-form one). Returns { pt, label } or null.
 export async function geocodeBologna(query) {
   const q = String(query || "").trim();
   if (!q) return null;
@@ -1487,34 +1301,27 @@ export async function geocodeBologna(query) {
   return { pt: [Number(arr[0].lon), Number(arr[0].lat)], label: addressLabel(arr[0]) };
 }
 
-// What kind of place a Nominatim hit is, so the suggestion carries an honest
-// label (Via / Piazza / Parco / Indirizzo…) instead of a generic "Indirizzo".
 function classifyHit(hit) {
   const a = hit.address || {};
-  if (a.house_number) return "Indirizzo";
+  if (a.house_number) return "address";
   const cls = hit.class;
   const type = hit.type;
   const at = hit.addresstype;
-  if (type === "square" || at === "square" || /^piazza/i.test(a.road || "")) return "Piazza";
+  if (type === "square" || at === "square" || /^piazza/i.test(a.road || "")) return "square";
   if (cls === "highway" || ["residential", "unclassified", "living_street", "pedestrian", "primary", "secondary", "tertiary", "footway", "cycleway", "path", "service", "road"].includes(type)) {
-    return "Via";
+    return "street";
   }
-  if (cls === "leisure" && ["park", "garden", "nature_reserve", "common"].includes(type)) return "Parco";
-  if (cls === "landuse" && ["grass", "recreation_ground", "forest", "meadow"].includes(type)) return "Area verde";
-  if (cls === "amenity" && ["school", "hospital", "university"].includes(type)) return "Luogo";
-  if (a.suburb || a.quarter || a.neighbourhood) return "Zona";
-  return "Luogo";
+  if (cls === "leisure" && ["park", "garden", "nature_reserve", "common"].includes(type)) return "park";
+  if (cls === "landuse" && ["grass", "recreation_ground", "forest", "meadow"].includes(type)) return "greenArea";
+  if (cls === "amenity" && ["school", "hospital", "university"].includes(type)) return "place";
+  if (a.suburb || a.quarter || a.neighbourhood) return "zone";
+  return "place";
 }
 
-// Address / street / place completions for the search box (debounced by the
-// caller). Returns the real streets, squares, parks and civic addresses that
-// OpenStreetMap knows within Bologna, each honestly typed.
 export async function geocodeSuggestions(query, limit = 5) {
   const q = String(query || "").trim();
   if (q.length < 3) return [];
   const hasNum = /\d/.test(q);
-  // With a number: resolve civic addresses on the named street. Without: a
-  // free-form search surfaces streets, squares and named places alike.
   const arr = await nominatim(
     hasNum
       ? `street=${encodeURIComponent(q)}&city=Bologna&limit=${limit}`
@@ -1526,13 +1333,11 @@ export async function geocodeSuggestions(query, limit = 5) {
     const label = addressLabel(hit);
     if (!label || seen.has(label.toLowerCase())) continue;
     seen.add(label.toLowerCase());
-    out.push({ type: "address", label, sub: classifyHit(hit), pt: [Number(hit.lon), Number(hit.lat)] });
+    out.push({ type: "address", label, subId: classifyHit(hit), pt: [Number(hit.lon), Number(hit.lat)] });
   }
   return out;
 }
 
-// Local (instant) completions from the climate-refuge network: a citizen can
-// search a park by name and land on the 3-30-300 reading at that spot.
 export function suggestRifugi(query, limit = 3) {
   if (!rifugiData) return [];
   const q = String(query || "").trim().toLowerCase();
@@ -1545,8 +1350,6 @@ export function suggestRifugi(query, limit = 3) {
     if (idx === -1) continue;
     scored.push({ idx, name, f });
   }
-  // Many refuges are split into several polygons sharing a name — keep the best
-  // match per name so the citizen sees each park once, not three times.
   scored.sort((a, b) => a.idx - b.idx || a.name.length - b.name.length);
   const seen = new Set();
   const out = [];
@@ -1554,15 +1357,12 @@ export function suggestRifugi(query, limit = 3) {
     const key = s.name.toLowerCase();
     if (seen.has(key)) continue;
     seen.add(key);
-    out.push({ type: "rifugio", label: prettyName(s.name), sub: "Spazio verde", pt: featureCenter(s.f) });
+    out.push({ type: "rifugio", label: prettyName(s.name), subId: "greenSpace", pt: featureCenter(s.f) });
     if (out.length >= limit) break;
   }
   return out;
 }
 
-// The Comune's own list, matched locally and offered FIRST: when a citizen types
-// "monta", the recognised Parco della Montagnola should come before any green
-// space that happens to share the letters.
 export function suggestUfficiali(query, limit = 3) {
   if (!ufficialiData) return [];
   const q = String(query || "").trim().toLowerCase();
@@ -1575,7 +1375,7 @@ export function suggestUfficiali(query, limit = 3) {
     .map(({ f }) => ({
       type: "ufficiale",
       label: prettyName(f.properties?.nome || ""),
-      sub: "Rifugio del Comune",
+      subId: "municipalRefuge",
       pt: f.geometry.coordinates,
     }));
 }

@@ -1,18 +1,10 @@
-/* =============================================
-   TALEA Storytelling — Layout
-   Header, footer, page shell, scroll progress
-   ============================================= */
 
-/* ── Header ── */
 
 .header {
   position: sticky;
   top: 0;
   z-index: 100;
   min-height: var(--header-height);
-  /* Era un muro bianco pieno con un bordo verde da 2px: i titoli di capitolo
-     ci sparivano dentro passandoci sotto. Ora è carta velata — il titolo si
-     vede scorrere sotto invece di essere tagliato. */
   background: color-mix(in srgb, var(--paper) 82%, transparent);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
@@ -34,9 +26,6 @@
   min-height: var(--header-height);
 }
 
-/* ── Hidden header (while a full-viewport map scene is pinned) ──
-   The header slides up and fades out so it stops covering the map; it returns in
-   the text sections. Reduced-motion users get the same end state (snap). */
 .header--hidden {
   transform: translateY(-100%);
   opacity: 0;
@@ -135,7 +124,6 @@
   color: #fff;
 }
 
-/* ── Mobile header ── */
 
 .mobile-menu-btn {
   display: none;
@@ -202,16 +190,6 @@
   }
 }
 
-/* ── Lo stelo (avanzamento della lettura) ──
-   Un ramo di rosa sul bordo sinistro. In cima c'è il taglio della talea; da lì
-   il ramo cresce mentre si scorre, legnoso e ambrato nei capitoli del caldo,
-   verde e fiorito da dove la storia gira verso il sollievo. Ogni capitolo è un
-   fiore: chiuso finché il ramo non ci arriva, aperto quando lo si è letto,
-   giallo quello in cui ci si trova.
-
-   L'avanzamento arriva da ScrollStem.jsx come --stem-p (0→1). Fioritura e
-   comparsa delle foglie sono scritte qui come funzioni di quella variabile:
-   nessuno stato React, nessun calcolo per elemento a ogni frame. */
 
 .scroll-stem {
   --stem-p: 0;
@@ -224,10 +202,6 @@
   pointer-events: none;
 }
 
-/* L'alone. È la ragione per cui il ramo si vede sopra una mappa scura, sopra
-   la carta e sopra una banda verde senza sapere che cosa ha sotto: un velo
-   chiaro per staccarlo dai fondi scuri, uno scuro per staccarlo dai chiari.
-   Uno dei due è sempre quello che serve, e l'altro non si vede. */
 .scroll-stem-svg {
   display: block;
   overflow: visible;
@@ -235,10 +209,6 @@
     drop-shadow(0 0 2.5px rgba(0, 0, 0, 0.45));
 }
 
-/* Il ramo che verrà: appena accennato, ma c'è.
-   Non più tenue di così: sopra il video dell'hero, che è una fotografia piena
-   di dettaglio, un tratto troppo velato sparisce — ed è proprio all'inizio che
-   il lettore deve capire che quella linea è qualcosa che cresce. */
 .stem-ghost {
   fill: none;
   stroke: color-mix(in srgb, var(--ink) 52%, transparent);
@@ -246,8 +216,6 @@
   stroke-linecap: round;
 }
 
-/* Il ramo cresciuto. Il tratteggio è la crescita: dasharray e dashoffset
-   arrivano da ScrollStem.jsx. */
 .stem-grow {
   fill: none;
   stroke: url(#stem-ink);
@@ -262,21 +230,12 @@
   stroke-linecap: round;
 }
 
-/* La punta che sta crescendo adesso.
-   Deliberatamente l'opposto di un bocciolo: pieno del colore del ramo con un
-   filo chiaro attorno, mentre i boccioli sono chiari con il contorno colorato.
-   Prima si somigliavano troppo e sembravano la stessa cosa. */
 .stem-tip {
   fill: url(#stem-ink);
   stroke: var(--paper);
   stroke-width: 0.9;
 }
 
-/* Il colore del ramo alla propria altezza.
-   Foglie e fiori NON possono usare il gradiente SVG: stanno dentro un <g>
-   trasformato, e un gradiente userSpaceOnUse viene letto nello spazio locale
-   dell'elemento — risultato, prendevano tutti il colore dell'inizio. Qui la
-   stessa rampa è riscritta in CSS: ambra fino al 36 %, verde TALEA dal 66 %. */
 .stem-leaf,
 .stem-flower {
   --greening: clamp(0, calc((var(--at) - 0.36) / 0.3), 1);
@@ -287,9 +246,6 @@
   );
 }
 
-/* ── Foglie ──
-   Compaiono quando il ramo le raggiunge. Il confronto fra --stem-p e la
-   posizione della foglia si fa in CSS: clamp() su numeri puri, nessun JS. */
 .stem-leaf {
   --grown: clamp(0, calc((var(--stem-p) - var(--at)) * 40), 1);
   fill: var(--ink-here);
@@ -309,14 +265,6 @@
   opacity: 0.5;
 }
 
-/* ── Fiori ──
-   Un capitolo per fiore. Bocciolo finché il capitolo è lontano, poi sboccia.
-
-   La fioritura è un'ANIMAZIONE, non un valore agganciato allo scroll: i petali
-   si aprono uno dopo l'altro, e si vedono aprire anche quando ci si arriva con
-   un salto — cliccando un fiore per tornare indietro — dove un valore legato
-   allo scroll passerebbe da bocciolo a fiore senza niente in mezzo.
-   La classe .is-open arriva da ScrollStem.jsx quando il capitolo si avvicina. */
 
 .stem-flower-bud {
   fill: var(--paper-hi);
@@ -330,19 +278,14 @@
   opacity: 0;
 }
 
-/* Stato a riposo: petali chiusi dentro il bocciolo. */
 .stem-petal ellipse {
   fill: var(--paper-hi);
   stroke: var(--ink-here);
   stroke-width: 0.9;
   opacity: 0;
   transform: scale(0.04);
-  /* Il petalo cresce verso l'esterno partendo dal cuore del fiore: il bordo
-     interno del suo riquadro cade sul centro. */
   transform-box: fill-box;
   transform-origin: left center;
-  /* Serve alla CHIUSURA: quando .is-open se ne va, l'animazione sparisce e il
-     petalo tornerebbe chiuso di scatto. Così invece si richiude. */
   transition: opacity 220ms var(--ease-ui), transform 280ms var(--ease-cine);
 }
 
@@ -376,8 +319,6 @@
   100% { opacity: 1; transform: scale(1); }
 }
 
-/* Il giallo dice sempre e solo «questo è ciò che stai guardando»: qui il
-   capitolo in cui il lettore si trova adesso. */
 .stem-flower.is-active .stem-petal ellipse {
   fill: var(--focus);
   stroke: color-mix(in srgb, var(--talea-dark-green) 70%, transparent);
@@ -387,9 +328,6 @@
   fill: var(--talea-dark-green);
 }
 
-/* ── Zone cliccabili + etichetta ──
-   Il disegno è SVG, la navigazione è HTML: accessibile, e con un pill di testo
-   che in SVG costerebbe misurare il testo a mano. */
 .scroll-stem-nodes {
   position: absolute;
   inset: 0;
@@ -449,10 +387,6 @@
   transform: translateY(-50%) translateX(0);
 }
 
-/* ── Mobile ──
-   Un ramo largo 46 px, di fianco a una colonna di testo che occupa tutto lo
-   schermo, andrebbe addosso alle parole. Resta la barra in alto: stesso
-   gradiente, stesso significato. */
 .scroll-stem-bar {
   display: none;
 }
@@ -486,11 +420,7 @@
   }
 }
 
-/* ── Footer ── */
 
-/* Il respiro è quello di un piede di pagina, non di una sezione: era
-   clamp(38px, 5vw, 58px) quando qui dentro c'erano tre righe, ed è rimasto
-   uguale quando ne sono arrivate otto. */
 .footer {
   background: var(--ink-deep);
   color: var(--paper);
@@ -498,12 +428,6 @@
   padding: clamp(30px, 3.4vw, 44px) var(--content-pad);
 }
 
-/* ── Due righe, non due colonne ──────────────────────────────────────────────
-   La dichiarazione di cofinanziamento è un testo lungo: incolonnata accanto ai
-   link diventava una colonna stretta di otto righe, e il footer cresceva fino a
-   mezza schermata. In orizzontale, sotto i link e fra i due marchi, le stesse
-   parole stanno in tre righe. Un piede di pagina alto come una sezione non è
-   più un piede di pagina. */
 .footer-inner {
   display: grid;
   gap: clamp(20px, 2.4vw, 28px);
@@ -544,12 +468,6 @@
   color: var(--paper);
 }
 
-/* ── La dichiarazione di cofinanziamento ─────────────────────────────────────
-   Il lockup «Co-funded by the European Union» a sinistra, il testo al centro,
-   il marchio della European Urban Initiative a destra: la riga si legge come
-   una firma, con i due marchi che la reggono ai due capi.
-   Il testo è di servizio, quindi piccolo e a basso contrasto, ma a tutta
-   larghezza sta in tre righe invece che in otto. */
 .footer-funding {
   display: flex;
   align-items: center;
@@ -576,8 +494,6 @@
   text-wrap: pretty;
 }
 
-/* Il disclaimer è un gradino sotto la dichiarazione: dice chi NON è
-   responsabile, che è la cosa meno interessante della pagina. */
 .footer-disclaimer {
   margin: 0;
   font-size: 0.72rem;
@@ -618,9 +534,6 @@
   text-underline-offset: 0.2em;
 }
 
-/* Il logo della European Urban Initiative è a colori su un fondo verde scuro:
-   la pastiglia chiara gli dà il bianco su cui è stato disegnato, invece di
-   lasciarlo galleggiare. */
 .footer-eui {
   display: inline-flex;
   flex: none;
@@ -642,8 +555,6 @@
   display: block;
 }
 
-/* Sotto i 900 px la riga della dichiarazione non ci sta in orizzontale: i due
-   marchi passano su una riga loro, sopra il testo, e restano affiancati. */
 @media (max-width: 900px) {
   .footer-funding {
     display: grid;
@@ -668,13 +579,11 @@
   }
 }
 
-/* ── Page shell ── */
 
 .page-main {
   width: 100%;
 }
 
-/* Section placeholder (temporary for task 04) */
 .section-placeholder {
   max-width: var(--content-max);
   margin: 0 auto;

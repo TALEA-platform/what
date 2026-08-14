@@ -4,7 +4,7 @@ locale: it
 opening:
   id: hero-opening
   ariaLabel: "Introduzione"
-  title: "Bologna si sta scaldando."
+  title: "BolognaAAAAAAAAA si sta scaldando."
   subtitle:
     - id: opening-trend
       text: "Negli ultimi anni le estati sono sempre più intense. "

@@ -300,6 +300,19 @@ export function RifugioExplainer({ onGlossary }) {
                 />
               ) : null}
             </div>
+            <SequenceStepper
+              className="relief-mobile-stepper"
+              variant="light"
+              count={rifugioSteps.length}
+              revealed={revealed}
+              activeIndex={activeIndex}
+              complete={canStep}
+              stepMs={readMs}
+              onPrev={goPrev}
+              onNext={goNext}
+              captionPlaying={reliefExplainer.sequence.playing}
+              captionDone={reliefExplainer.sequence.done}
+            />
             <div
               className={`relief-recipe${
                 step === rifugioSteps.length - 1 ? " relief-recipe--complete" : ""
@@ -313,7 +326,9 @@ export function RifugioExplainer({ onGlossary }) {
                     key={r.id}
                     className={`relief-recipe-item${
                       entered && step >= r.from ? " relief-recipe-item--on" : ""
-                    }${entered && step === r.from ? " relief-recipe-item--now" : ""}`}
+                    }${entered && step === r.from ? " relief-recipe-item--now" : ""}${
+                      r.id === "living-ground" ? " relief-recipe-item--mobile-break" : ""
+                    }`}
                   >
                     <span className="relief-recipe-word">{r.piece}</span>
                   </li>
@@ -355,6 +370,7 @@ export function RifugioExplainer({ onGlossary }) {
             </div>
 
             <SequenceStepper
+              className="relief-desktop-stepper"
               variant="light"
               count={rifugioSteps.length}
               revealed={revealed}

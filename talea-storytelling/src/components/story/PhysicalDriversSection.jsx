@@ -24,6 +24,10 @@ const transparentCauseMapStyle = {
   ],
 };
 const overlayManifestUrl = assetUrl("/data/physical-drivers/physical_driver_overlays.json");
+const causeRasterUrls = {
+  green: assetUrl("/data/physical-drivers/ndvi_2025_direct_overlay.png"),
+  materials: assetUrl("/data/physical-drivers/albedo_absorbing_2025_direct_overlay.png"),
+};
 
 const CAUSES_CENTER = [11.3438, 44.4949];
 const CAUSES_ZOOM = 12.5;
@@ -33,13 +37,124 @@ const CROP_MS = 900;
 const CROP_SETTLE_MS = CROP_MS + 60;
 
 const CROP_READY_FALLBACK_MS = 2600;
+const MOBILE_LAYOUT_QUERY = "(max-width: 1279px)";
 
 const HOTSPOT_URL = getHotspotGeojsonUrl(9);
 const HOTSPOT_FILL = "#c1272d";
+const STATIC_FRAME = {
+  west: 11.2144246,
+  east: 11.4476067,
+  south: 44.4098126,
+  north: 44.5678182,
+  width: 1000,
+  height: 1000 / 1.075,
+};
 
 const rasterIds = ["green", "absorbing"];
 const rasterSourceId = (id) => `cause-raster-${id}-src`;
 const rasterLayerId = (id) => `cause-raster-${id}-layer`;
+
+function staticHotspotPath(geometry) {
+  if (!geometry) return "";
+  const project = ([longitude, latitude]) => {
+    const x =
+      ((longitude - STATIC_FRAME.west) /
+        (STATIC_FRAME.east - STATIC_FRAME.west)) *
+      STATIC_FRAME.width;
+    const y =
+      ((STATIC_FRAME.north - latitude) /
+        (STATIC_FRAME.north - STATIC_FRAME.south)) *
+      STATIC_FRAME.height;
+    return `${x.toFixed(2)} ${y.toFixed(2)}`;
+  };
+  const polygonPath = (polygon) =>
+    polygon
+      .map((ring) =>
+        ring
+          .map((coordinate, index) =>
+            `${index === 0 ? "M" : "L"}${project(coordinate)}`,
+          )
+          .join(" ") + " Z",
+      )
+      .join(" ");
+
+  if (geometry.type === "Polygon") return polygonPath(geometry.coordinates);
+  if (geometry.type === "MultiPolygon") {
+    return geometry.coordinates.map(polygonPath).join(" ");
+  }
+  return "";
+}
+
+function CausesStaticRaster({ lens, compare = false, sliderValue = 50 }) {
+  const [hotspotPath, setHotspotPath] = useState("");
+
+  useEffect(() => {
+    if (!compare) return undefined;
+    let ignore = false;
+    fetch(HOTSPOT_URL)
+      .then((response) => response.json())
+      .then((collection) => {
+        if (ignore) return;
+        setHotspotPath(
+          collection.features
+            ?.map((feature) => staticHotspotPath(feature.geometry))
+            .filter(Boolean)
+            .join(" ") ?? "",
+        );
+      })
+      .catch(() => {});
+    return () => {
+      ignore = true;
+    };
+  }, [compare]);
+
+  return (
+    <div className={`causes-static-raster${compare ? " causes-static-raster--compare" : ""}`}>
+      <div className="causes-static-raster-content">
+        <img
+          className={`causes-static-raster-image causes-static-raster-image--green${!compare && lens === "green" ? " is-active" : ""}`}
+          src={causeRasterUrls.green}
+          alt=""
+          aria-hidden="true"
+        />
+        {!compare && (
+          <img
+            className={`causes-static-raster-image causes-static-raster-image--materials${lens === "materials" ? " is-active" : ""}`}
+            src={causeRasterUrls.materials}
+            alt=""
+            aria-hidden="true"
+          />
+        )}
+      </div>
+      {compare ? (
+        <div
+          className="causes-static-raster-clip"
+          style={{ clipPath: `inset(0 0 0 ${sliderValue}%)` }}
+          aria-hidden="true"
+        >
+          <div className="causes-static-raster-content">
+            <img
+              className="causes-static-raster-image causes-static-raster-image--materials is-active"
+              src={causeRasterUrls.materials}
+              alt=""
+            />
+          </div>
+        </div>
+      ) : null}
+      {compare && hotspotPath && (
+        <svg
+          className="causes-static-hotspots"
+          viewBox={`0 0 ${STATIC_FRAME.width} ${STATIC_FRAME.height}`}
+          preserveAspectRatio="none"
+          aria-hidden="true"
+        >
+          <path className="causes-static-hotspots-casing" d={hotspotPath} />
+          <path className="causes-static-hotspots-line" d={hotspotPath} />
+        </svg>
+      )}
+    </div>
+  );
+}
 
 function prefersReducedMotion() {
   return (
@@ -551,20 +666,65 @@ function CausesCompareMap({
   hotspotLegendLabel,
   comparisonAriaLabel,
   handleHint,
+  mobile = false,
 }) {
   const [baseMap, setBaseMap] = useState(null);
   const [overlayReady, setOverlayReady] = useState(false);
   const [baseDrawn, setBaseDrawn] = useState(false);
+  if (mobile) {
+    const reveal = visible && !exiting;
+    const transform = exiting
+      ? "translateY(-16px) scale(0.98)"
+      : reveal
+        ? "translateY(0) scale(1)"
+        : "translateY(18px) scale(0.98)";
+    return (
+      <div
+        ref={cropRef}
+        className={`causes-compare-crop${reveal ? " causes-compare-crop--visible" : ""}${exiting ? " causes-compare-crop--exiting" : ""}`}
+        aria-hidden={!reveal}
+        style={{
+          opacity: reveal ? 1 : 0,
+          transform,
+          pointerEvents: reveal ? "auto" : "none",
+        }}
+      >
+        <CausesStaticRaster compare sliderValue={sliderValue} />
+        {active && reveal && (
+          <CompareSlider
+            value={sliderValue}
+            onChange={onSliderChange}
+            autoDemo={!demoPlayed}
+            onDemoEnd={onDemoEnd}
+            ariaLabel={comparisonAriaLabel}
+            hint={handleHint}
+          />
+        )}
+        {active && reveal && (
+          <div className="causes-hotspot-legend" aria-hidden="true">
+            <span className="causes-hotspot-legend-swatch" />
+            <span className="causes-hotspot-legend-label">{hotspotLegendLabel}</span>
+          </div>
+        )}
+      </div>
+    );
+  }
   const reveal = visible && overlayReady && baseDrawn && !exiting;
 
   let opacity = 0;
-  let transform = "translate(-50%, calc(-50% + 30px)) scale(0.98)";
+  let transform = mobile
+    ? "translate(-50%, 18px) scale(0.98)"
+    : "translate(-50%, calc(-50% + 30px)) scale(0.98)";
   if (exiting) {
     opacity = 0;
-    transform = "translate(-50%, calc(-50% - 16px)) scale(0.98)";
+    transform = mobile
+      ? "translate(-50%, -12px) scale(0.98)"
+      : "translate(-50%, calc(-50% - 16px)) scale(0.98)";
   } else if (reveal) {
     opacity = 1;
-    transform = "translate(-50%, -50%) scale(1)";
+    transform = mobile
+      ? "translate(-50%, 0) scale(1)"
+      : "translate(-50%, -50%) scale(1)";
   }
 
   return (
@@ -909,6 +1069,11 @@ export function PhysicalDriversSection() {
     };
   });
   const [lensDrawn, setLensDrawn] = useState(false);
+  const [mobileLayout, setMobileLayout] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      window.matchMedia(MOBILE_LAYOUT_QUERY).matches,
+  );
   const panelRefs = useRef([]);
   const panelBodyRefs = useRef({});
   const sceneRef = useRef(null);
@@ -921,6 +1086,7 @@ export function PhysicalDriversSection() {
   const topicFlyerRefs = useRef({});
   const topicFlightPlayedRef = useRef(false);
   const descriptionTargetRefs = useRef({});
+  const mobileDescriptionTargetRefs = useRef({});
   const descriptionFlyerRefs = useRef({});
   const descriptionFlightPlayedRef = useRef({
     green: false,
@@ -932,6 +1098,13 @@ export function PhysicalDriversSection() {
   const markCompareDemoPlayed = useCallback(() => setCompareDemoPlayed(true), []);
 
   useEffect(() => preloadCompareAssets(), []);
+
+  useEffect(() => {
+    const query = window.matchMedia(MOBILE_LAYOUT_QUERY);
+    const handleChange = (event) => setMobileLayout(event.matches);
+    query.addEventListener?.("change", handleChange);
+    return () => query.removeEventListener?.("change", handleChange);
+  }, []);
 
   useEffect(() => {
     const sources = topicSourceRefs.current;
@@ -1080,7 +1253,9 @@ export function PhysicalDriversSection() {
 
     const cleanups = pendingFlights.map(({ sourceKey, targetKey }) => {
       const source = topicTargetRefs.current[sourceKey];
-      const target = descriptionTargetRefs.current[targetKey];
+      const target = mobileLayout
+        ? mobileDescriptionTargetRefs.current[targetKey]
+        : descriptionTargetRefs.current[targetKey];
       const flyer = descriptionFlyerRefs.current[sourceKey];
       const landDescription = () => {
         target?.classList.remove("is-waiting");
@@ -1164,7 +1339,7 @@ export function PhysicalDriversSection() {
     return () => {
       cleanups.forEach((cleanup) => cleanup());
     };
-  }, [activeTextStageId, activeTopicLanded, descriptionFlights]);
+  }, [activeTextStageId, activeTopicLanded, descriptionFlights, mobileLayout]);
 
   useEffect(() => {
     let frame = null;
@@ -1176,6 +1351,49 @@ export function PhysicalDriversSection() {
         fallback = null;
       }
       const vh = window.innerHeight || 768;
+      if (mobileLayout) {
+        const readingLine = vh * 0.48;
+        const panels = panelRefs.current.filter(Boolean);
+        let nextId = stages[0].id;
+        let minDistance = Infinity;
+
+        panels.forEach((panel) => {
+          const rect = panel.getBoundingClientRect();
+          const center = rect.top + rect.height * 0.5;
+          const distance = Math.abs(center - readingLine);
+          if (rect.bottom > 0 && rect.top < vh && distance < minDistance) {
+            minDistance = distance;
+            nextId = panel.dataset.stageId;
+          }
+        });
+
+        const firstPanel = panels[0];
+        const lastPanel = panels.at(-1);
+        if (minDistance === Infinity && firstPanel?.getBoundingClientRect().top > readingLine) {
+          nextId = firstPanel.dataset.stageId;
+        } else if (
+          minDistance === Infinity &&
+          lastPanel?.getBoundingClientRect().bottom < readingLine
+        ) {
+          nextId = lastPanel.dataset.stageId;
+        }
+
+        setActiveStageId(nextId);
+        setActiveTextStageId(nextId);
+
+        const sceneRect = sceneRef.current?.getBoundingClientRect();
+        if (
+          !enteredRef.current &&
+          sceneRect &&
+          sceneRect.top < vh * 0.58 &&
+          sceneRect.bottom > 0
+        ) {
+          enteredRef.current = true;
+          setSceneEntered(true);
+        }
+        return;
+      }
+
       const readingLine = vh * 0.52;
       const textLine = vh * 0.86;
       const panels = panelRefs.current.filter(Boolean);
@@ -1242,7 +1460,7 @@ export function PhysicalDriversSection() {
       window.removeEventListener("scroll", requestUpdate);
       window.removeEventListener("resize", requestUpdate);
     };
-  }, [stages]);
+  }, [mobileLayout, stages]);
 
   useEffect(() => {
     let frame = null;
@@ -1257,6 +1475,15 @@ export function PhysicalDriversSection() {
       const compareText = panelBodyRefs.current.compare;
       const comparePanel = panelRefs.current[stages.length - 1];
       const inCompareBeat = activeStageId === "compare" || activeTextStageId === "compare";
+      if (mobileLayout) {
+        const vh = window.innerHeight || 768;
+        const panelRect = comparePanel?.getBoundingClientRect();
+        const exiting =
+          inCompareBeat && Boolean(panelRect) && panelRect.bottom <= vh * 1.02;
+        setCompareMapVisible(inCompareBeat);
+        setCompareExiting(exiting);
+        return;
+      }
       if (!inCompareBeat || !compareText || !comparePanel) {
         setCompareMapVisible(false);
         setCompareExiting(false);
@@ -1292,7 +1519,7 @@ export function PhysicalDriversSection() {
       window.removeEventListener("scroll", requestUpdate);
       window.removeEventListener("resize", requestUpdate);
     };
-  }, [activeStageId, activeTextStageId, stages]);
+  }, [activeStageId, activeTextStageId, mobileLayout, stages]);
 
   const activeStage = stages.find((s) => s.id === activeStageId) ?? stages[0];
   const compareTextActive = activeTextStageId === "compare";
@@ -1321,6 +1548,8 @@ export function PhysicalDriversSection() {
     opacity: isActive ? 1 : 0,
     transform: isActive ? "translateY(0px)" : "translateY(34px)",
   });
+  const mobileNarrativeStageId = textStageId;
+  const comparisonStage = stages.find((stage) => stage.id === "compare");
 
   return (
     <section
@@ -1405,7 +1634,7 @@ export function PhysicalDriversSection() {
       >
         <div
           ref={stageRef}
-          className={`causes-stage causes-stage--pos-${stagePosition} causes-stage--tone-${atmosphereTone}`}
+          className={`causes-stage causes-stage--pos-${stagePosition} causes-stage--tone-${atmosphereTone}${mobileLayout && mobileNarrativeStageId === "compare" ? " causes-stage--mobile-compare" : ""}`}
         >
           <div
             className={`causes-topic-header${compareTopicsActive ? " causes-topic-header--compare" : ""}`}
@@ -1448,18 +1677,22 @@ export function PhysicalDriversSection() {
           />
           <div
             ref={lensCropRef}
-            className={`causes-crop${lensDrawn ? " causes-crop--drawn" : ""}${baseCropLeaving ? " causes-crop--leaving" : ""}${isComparing ? " causes-crop--compare-hidden" : ""}`}
+            className={`causes-crop${lensDrawn || mobileLayout ? " causes-crop--drawn" : ""}${baseCropLeaving ? " causes-crop--leaving" : ""}${isComparing ? " causes-crop--compare-hidden" : ""}`}
           >
             <div className="causes-crop-wash" aria-hidden="true" />
 
-            <CausesCropMap
-              lens={visualStage.lens}
-              expanded={compareMapVisible}
-              showHotspots={compareMapVisible}
-              onDrawnChange={setLensDrawn}
-            />
+            {mobileLayout ? (
+              <CausesStaticRaster lens={visualStage.lens} />
+            ) : (
+              <CausesCropMap
+                lens={visualStage.lens}
+                expanded={compareMapVisible}
+                showHotspots={compareMapVisible}
+                onDrawnChange={setLensDrawn}
+              />
+            )}
 
-            {lensDrawn && !baseCropLeaving && lensLegends[visualStage.lens] && (
+            {(lensDrawn || mobileLayout) && !baseCropLeaving && lensLegends[visualStage.lens] && (
               <div className="causes-maplegend" aria-hidden="true">
                 <span
                   className="causes-maplegend-bar"
@@ -1473,22 +1706,86 @@ export function PhysicalDriversSection() {
             )}
           </div>
 
-          <CausesCompareMap
-            cropRef={compareCropRef}
-            sliderValue={sliderValue}
-            onSliderChange={setSliderValue}
-            visible={compareMapVisible}
-            exiting={compareExiting}
-            active={compareMapVisible}
-            demoPlayed={compareDemoPlayed}
-            onDemoEnd={markCompareDemoPlayed}
-            hotspotLegendLabel={hotspotLegendLabel}
-            comparisonAriaLabel={comparisonAriaLabel}
-            handleHint={handleHint}
-          />
+          {!mobileLayout && (
+            <CausesCompareMap
+              cropRef={compareCropRef}
+              sliderValue={sliderValue}
+              onSliderChange={setSliderValue}
+              visible={compareMapVisible}
+              exiting={compareExiting}
+              active={compareMapVisible}
+              demoPlayed={compareDemoPlayed}
+              onDemoEnd={markCompareDemoPlayed}
+              hotspotLegendLabel={hotspotLegendLabel}
+              comparisonAriaLabel={comparisonAriaLabel}
+              handleHint={handleHint}
+            />
+          )}
+
+          {mobileLayout && comparisonStage && (
+            <div
+              className={`causes-mobile-compare-stack${mobileNarrativeStageId === "compare" ? " is-active" : ""}`}
+              aria-hidden={mobileNarrativeStageId !== "compare"}
+            >
+              <div
+                className="causes-mobile-story causes-mobile-story--compare"
+                lang={locale}
+                aria-live="polite"
+              >
+                <p
+                  className={`causes-mobile-story-body${mobileNarrativeStageId === "compare" ? " causes-mobile-story-body--active" : ""}`}
+                  aria-hidden={mobileNarrativeStageId !== "compare"}
+                >
+                  <NarrativeSegments
+                    segments={comparisonStage.segments}
+                    landedDescriptions={landedDescriptions}
+                    targetRefs={mobileDescriptionTargetRefs}
+                  />
+                </p>
+              </div>
+              <CausesCompareMap
+                cropRef={compareCropRef}
+                sliderValue={sliderValue}
+                onSliderChange={setSliderValue}
+                visible={compareMapVisible}
+                exiting={compareExiting}
+                active={compareMapVisible}
+                demoPlayed={compareDemoPlayed}
+                onDemoEnd={markCompareDemoPlayed}
+                hotspotLegendLabel={hotspotLegendLabel}
+                comparisonAriaLabel={comparisonAriaLabel}
+                handleHint={handleHint}
+                mobile
+              />
+            </div>
+          )}
+
+          <div
+            className="causes-mobile-story causes-mobile-story--steps"
+            lang={locale}
+            aria-live="polite"
+            aria-hidden={!mobileLayout}
+          >
+            {stages.filter((stage) => stage.id !== "compare").map((stage) => {
+              const active = mobileNarrativeStageId === stage.id;
+              return (
+                <p
+                  key={stage.id}
+                  className={`causes-mobile-story-body${active ? " causes-mobile-story-body--active" : ""}`}
+                  aria-hidden={!active}
+                >
+                  <NarrativeSegments
+                    segments={stage.segments}
+                    landedDescriptions={landedDescriptions}
+                    targetRefs={mobileDescriptionTargetRefs}
+                  />
+                </p>
+              );
+            })}
+          </div>
         </div>
 
-        <div className="causes-panels" lang={locale}>
+        <div className="causes-panels" lang={locale} aria-hidden={mobileLayout}>
           {stages.map((stage, index) => {
             const isTextActive =
               activeTextStageId === stage.id &&

@@ -140,7 +140,11 @@ function IntroVignette({ vignette, html, delay, onGlossary }) {
       <div className="hotspot-intro-caption">
         {vignette.paragraphs.map((paragraph) => (
           <p key={paragraph.id}>
-            <CopySegments parts={paragraph.segments} onGlossary={onGlossary} />
+            <CopySegments
+              parts={paragraph.segments}
+              onGlossary={onGlossary}
+              keepLeadingPunctuation
+            />
           </p>
         ))}
       </div>

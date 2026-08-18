@@ -2017,6 +2017,11 @@ function validateUi(document, location) {
   );
   const progress = requireObject(document.progress, `${location}.progress`);
   const glossary = requireObject(document.glossary, `${location}.glossary`);
+  const map = requireObject(document.map, `${location}.map`);
+  const cooperativeGestures = requireObject(
+    map.cooperativeGestures,
+    `${location}.map.cooperativeGestures`,
+  );
   const actions = requireObject(document.actions, `${location}.actions`);
 
   const chapters = requireOrderedIds(
@@ -2060,6 +2065,7 @@ function validateUi(document, location) {
           `${location}.progress.id`,
         ),
         ariaLabel: requireString(progress.ariaLabel, `${location}.progress.ariaLabel`),
+        hint: requireString(progress.hint, `${location}.progress.hint`),
         chapters,
       },
       glossary: {
@@ -2091,6 +2097,33 @@ function validateUi(document, location) {
           glossary.trailLabel,
           `${location}.glossary.trailLabel`,
         ),
+      },
+      map: {
+        id: requireStableString(map.id, "global-map-ui", `${location}.map.id`),
+        title: requireString(map.title, `${location}.map.title`),
+        legend: requireString(map.legend, `${location}.map.legend`),
+        hotspotSequenceDone: requireString(
+          map.hotspotSequenceDone,
+          `${location}.map.hotspotSequenceDone`,
+        ),
+        toggleAttribution: requireString(
+          map.toggleAttribution,
+          `${location}.map.toggleAttribution`,
+        ),
+        cooperativeGestures: {
+          windows: requireString(
+            cooperativeGestures.windows,
+            `${location}.map.cooperativeGestures.windows`,
+          ),
+          mac: requireString(
+            cooperativeGestures.mac,
+            `${location}.map.cooperativeGestures.mac`,
+          ),
+          mobile: requireString(
+            cooperativeGestures.mobile,
+            `${location}.map.cooperativeGestures.mobile`,
+          ),
+        },
       },
       actions: {
         id: requireStableString(

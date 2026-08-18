@@ -412,6 +412,22 @@
     gap: clamp(48px, 9vw, 72px);
   }
 
+  .hotspot-intro-panel {
+    align-items: center;
+  }
+
+  .hotspot-intro-vg {
+    width: min(100%, 640px);
+  }
+
+  .hotspot-intro-caption {
+    align-items: center;
+    width: min(100%, 560px);
+    margin-top: clamp(24px, 4.5vw, 36px);
+    text-align: center;
+    text-wrap: pretty;
+  }
+
   .hotspot-intro-vg--superficie,
   .hotspot-intro-vg--ricorrenza {
     transform: translateY(20px);
@@ -1985,8 +2001,7 @@
     min-height: 0;
   }
 
-  .glossary-drawer,
-  .method-drawer {
+  .glossary-drawer {
     top: auto;
     right: 0;
     left: 0;
@@ -2027,5 +2042,1041 @@
 
   .method-drawer-scroll {
     padding: 20px 22px 30px;
+  }
+}
+
+.copy-segments-no-break {
+  white-space: nowrap;
+}
+
+@media (max-width: 1279px) {
+  .method-drawer {
+    top: 50%;
+    right: auto;
+    bottom: auto;
+    left: 50%;
+    width: min(680px, calc(100vw - clamp(32px, 9vw, 96px)));
+    max-height: min(86svh, 820px);
+    border-radius: 16px;
+    transform: translate(-50%, -50%);
+    animation: method-mobile-in 320ms var(--ease-cine) both;
+  }
+
+  @keyframes method-mobile-in {
+    from {
+      opacity: 0;
+      transform: translate(-50%, calc(-50% + 18px)) scale(0.985);
+    }
+    to {
+      opacity: 1;
+      transform: translate(-50%, -50%);
+    }
+  }
+
+  .method-drawer-head {
+    align-items: center;
+    padding: clamp(16px, 2.5vw, 22px) clamp(14px, 3vw, 24px)
+      clamp(13px, 2vw, 18px) clamp(20px, 4vw, 30px);
+  }
+
+  .method-close {
+    width: 38px;
+    height: 38px;
+    font-size: 22px;
+  }
+
+  .method-drawer-scroll {
+    padding: clamp(18px, 3vw, 24px) clamp(20px, 4vw, 30px)
+      clamp(28px, 4vw, 38px);
+  }
+}
+
+/* Hotspot has a dedicated mobile/tablet composition. Desktop remains governed
+   by the scene styles above. */
+@media (max-width: 1279px) {
+  .hotspot-scene {
+    min-height: 0;
+    overflow: clip;
+  }
+
+  .hotspot-scene-map {
+    position: relative;
+    top: auto;
+    width: 100%;
+    height: clamp(620px, 82dvh, 820px);
+    min-height: 0;
+  }
+
+  .hotspot-map-veil-close {
+    display: none;
+  }
+
+  .hotspot-entry-runway,
+  .hotspot-sequence-hold,
+  .hotspot-tail-hold {
+    display: none;
+  }
+
+  .hotspot-sequence--mobile {
+    position: relative;
+    inset: auto;
+    z-index: 2;
+    width: min(720px, calc(100% - 2 * var(--content-pad)));
+    max-height: none;
+    margin: 0 auto;
+    padding: clamp(30px, 5vw, 52px) 0 clamp(24px, 4vw, 42px);
+    overflow: visible;
+  }
+
+  .hotspot-sequence--mobile .hotspot-sequence-stack {
+    display: block;
+  }
+
+  .hotspot-sequence--mobile .hotspot-seq-item.is-dim {
+    display: none;
+  }
+
+  .hotspot-sequence--mobile .hotspot-seq-item {
+    min-height: clamp(150px, 22vw, 206px);
+    padding: clamp(24px, 4vw, 34px) clamp(24px, 5vw, 42px)
+      clamp(24px, 4vw, 34px) clamp(48px, 7vw, 66px);
+    border-radius: 18px;
+    cursor: default;
+    transform: none;
+  }
+
+  .hotspot-sequence--mobile .hotspot-seq-item::before {
+    left: clamp(22px, 3.5vw, 32px);
+    top: clamp(31px, 5vw, 43px);
+    width: 11px;
+    height: 11px;
+  }
+
+  .hotspot-sequence--mobile .hotspot-seq-text {
+    font-size: clamp(1rem, 2.2vw, 1.14rem);
+    line-height: 1.58;
+  }
+
+  .hotspot-sequence-meta {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 22px;
+    margin-top: 18px;
+  }
+
+  .hotspot-sequence--mobile .hotspot-sequence-foot {
+    flex: 1 1 auto;
+    width: auto;
+    max-width: 420px;
+    margin-top: 0;
+  }
+
+  .hotspot-sequence-controls {
+    display: flex;
+    flex: none;
+    gap: 10px;
+    pointer-events: auto;
+  }
+
+  .hotspot-sequence-control {
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    border: 1px solid color-mix(in srgb, var(--talea-dark-green) 24%, transparent);
+    border-radius: 50%;
+    background: var(--paper-hi);
+    color: var(--talea-dark-green);
+    font: inherit;
+    font-size: 1.35rem;
+    box-shadow: 0 8px 22px -16px rgba(27, 58, 41, 0.38);
+    cursor: pointer;
+  }
+
+  .hotspot-sequence-control:disabled {
+    opacity: 0.34;
+    cursor: default;
+  }
+
+  .hotspot-sequence-control:focus-visible,
+  .hotspot-legend-toggle:focus-visible,
+  .hotspot-legend-close:focus-visible {
+    outline: 2px solid var(--talea-dark-green);
+    outline-offset: 3px;
+  }
+
+  .hotspot-scene-panels {
+    background: var(--paper);
+    padding: 0 var(--content-pad) clamp(54px, 8vw, 88px);
+    pointer-events: none;
+  }
+
+  .hotspot-panel--exit {
+    min-height: auto;
+    justify-content: center;
+    padding: clamp(42px, 7vw, 72px) 0 clamp(34px, 6vw, 58px);
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    filter: none;
+  }
+
+  .hotspot-exit-wrapper {
+    width: min(720px, 100%);
+    padding: 0;
+    background: none;
+    border: none;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .hotspot-exit-phrase {
+    font-size: clamp(2rem, 5.2vw, 3.2rem);
+  }
+
+  .hotspot-slider-hold {
+    min-height: 0;
+    width: min(720px, 100%);
+    margin: 0 auto;
+    padding: 0 0 clamp(26px, 5vw, 48px);
+    pointer-events: auto;
+  }
+
+  .hotspot-slider {
+    position: relative;
+    inset: auto;
+    width: 100%;
+    min-width: 0;
+    padding: clamp(18px, 3vw, 24px) clamp(20px, 4vw, 30px)
+      clamp(17px, 3vw, 22px);
+    transform: none;
+    animation: hotspot-ui-in 480ms var(--ease-cine) both;
+  }
+
+  .hotspot-slider-input {
+    width: 100%;
+  }
+
+  .hotspot-legend-toggle {
+    position: absolute;
+    right: max(16px, env(safe-area-inset-right));
+    bottom: max(18px, env(safe-area-inset-bottom));
+    z-index: 7;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    max-width: min(270px, calc(100% - 88px));
+    min-height: 46px;
+    padding: 9px 14px 9px 9px;
+    border: 1px solid rgba(27, 58, 41, 0.18);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.96);
+    color: var(--talea-dark-green);
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 700;
+    line-height: 1.22;
+    text-align: left;
+    box-shadow: 0 10px 30px -14px rgba(27, 58, 41, 0.48);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    cursor: pointer;
+    animation: hotspot-ui-in var(--ui-in-ms) var(--ease-cine) both;
+  }
+
+  .hotspot-legend-toggle-icon {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--talea-dark-green);
+    color: #fff;
+    font-family: Georgia, serif;
+    font-size: 1rem;
+    font-weight: 700;
+  }
+
+  .hotspot-legend-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 8;
+    display: grid;
+    place-items: center;
+    padding: clamp(18px, 5vw, 52px);
+    background: rgba(18, 35, 25, 0.48);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    pointer-events: auto;
+  }
+
+  .hotspot-legend.hotspot-legend--mobile {
+    position: relative;
+    inset: auto;
+    width: min(520px, 100%);
+    max-height: calc(100% - 4px);
+    padding: clamp(22px, 4vw, 30px);
+    overflow-y: auto;
+    border-radius: 18px;
+    animation: hotspot-ui-in 320ms var(--ease-cine) both;
+  }
+
+  .hotspot-legend--mobile .hotspot-legend-title {
+    padding-right: 48px;
+    font-size: clamp(1rem, 2.2vw, 1.18rem);
+  }
+
+  .hotspot-legend--mobile .hotspot-legend-active {
+    font-size: clamp(0.9rem, 2vw, 1rem);
+  }
+
+  .hotspot-legend--mobile .hotspot-legend-caption,
+  .hotspot-legend--mobile .hotspot-legend-link {
+    font-size: clamp(0.82rem, 1.8vw, 0.92rem);
+  }
+
+  .hotspot-legend-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 1px solid rgba(27, 58, 41, 0.14);
+    border-radius: 50%;
+    background: var(--paper-hi);
+    color: var(--talea-dark-green);
+    font: inherit;
+    font-size: 1.55rem;
+    line-height: 1;
+    cursor: pointer;
+  }
+}
+
+@media (max-width: 600px) {
+  .hotspot-scene-map {
+    height: 100vh;
+    height: 100dvh;
+    min-height: 620px;
+    max-height: 900px;
+  }
+
+  .hotspot-sequence--mobile {
+    width: calc(100% - 2 * var(--content-pad));
+    padding-top: 28px;
+  }
+
+  .hotspot-sequence--mobile .hotspot-seq-item {
+    min-height: 174px;
+    padding: 24px 22px 24px 46px;
+    border-radius: 14px;
+  }
+
+  .hotspot-sequence--mobile .hotspot-seq-item::before {
+    left: 21px;
+    top: 32px;
+  }
+
+  .hotspot-sequence-meta {
+    align-items: flex-end;
+    gap: 14px;
+  }
+
+  .hotspot-sequence--mobile .hotspot-sequence-foot {
+    padding: 10px 12px;
+  }
+
+  .hotspot-sequence--mobile .hotspot-sequence-caption {
+    font-size: 0.7rem;
+  }
+
+  .hotspot-sequence-control {
+    width: 46px;
+    height: 46px;
+  }
+
+  .hotspot-legend-toggle {
+    max-width: calc(100% - 80px);
+    font-size: 0.72rem;
+  }
+
+  .hotspot-legend-overlay {
+    align-items: end;
+    padding: 16px;
+  }
+
+  .hotspot-legend.hotspot-legend--mobile {
+    width: 100%;
+    max-height: min(78dvh, 620px);
+    padding: 24px 20px 22px;
+  }
+
+  .hotspot-slider-head {
+    gap: 12px;
+  }
+
+  .hotspot-slider-label {
+    max-width: 190px;
+  }
+}
+
+/* Mobile Hotspot scrollytelling refinement. The physical page keeps scrolling
+   while the map remains the sticky visual stage for all five narrative phases. */
+@media (max-width: 1279px) {
+  .hotspot-scene {
+    min-height: 0;
+    overflow: clip;
+    background: var(--paper);
+  }
+
+  /* Cooperative gestures still keep one-finger page scrolling and two-finger
+     map interaction, without flashing MapLibre's full-map veil on every tap. */
+  .hotspot-scene .maplibregl-cooperative-gesture-screen {
+    display: none;
+  }
+
+  .hotspot-mobile-gesture-hint {
+    position: absolute;
+    inset: 0;
+    z-index: 7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 28px;
+    background: rgba(18, 35, 25, 0.34);
+    color: #fff;
+    font-size: clamp(0.9rem, 2.4vw, 1.05rem);
+    font-weight: 600;
+    line-height: 1.45;
+    text-align: center;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.58);
+    pointer-events: none;
+    animation: hotspot-mobile-gesture-hint 4800ms var(--ease-cine) both;
+  }
+
+  .hotspot-mobile-gesture-hint > span {
+    width: min(30ch, 100%);
+  }
+
+  @keyframes hotspot-mobile-gesture-hint {
+    0% {
+      opacity: 0;
+    }
+    10%,
+    82% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+
+  .hotspot-scene-map {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    min-height: 600px;
+    max-height: none;
+    overflow: hidden;
+  }
+
+  .hotspot-scene-panels--mobile {
+    position: relative;
+    z-index: 0;
+    display: block;
+    margin-top: -20vh;
+    margin-top: -20dvh;
+    padding: 0;
+    background: transparent;
+    pointer-events: none;
+  }
+
+  .hotspot-mobile-track {
+    position: relative;
+  }
+
+  .hotspot-mobile-beat {
+    width: 100%;
+  }
+
+  .hotspot-mobile-beat--intro {
+    height: clamp(540px, 70dvh, 760px);
+  }
+
+  .hotspot-mobile-beat--handoff {
+    height: clamp(560px, 76dvh, 820px);
+  }
+
+  .hotspot-mobile-beat--slider {
+    height: clamp(520px, 72dvh, 780px);
+  }
+
+  .hotspot-mobile-track-tail {
+    height: clamp(300px, 44dvh, 480px);
+  }
+
+  .hotspot-mobile-story {
+    position: absolute;
+    right: max(18px, env(safe-area-inset-right));
+    bottom: max(18px, env(safe-area-inset-bottom));
+    left: max(18px, env(safe-area-inset-left));
+    z-index: 6;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    width: min(560px, calc(100% - 36px));
+    margin: 0 auto;
+    opacity: 1;
+    pointer-events: none;
+    transform: translateY(0);
+    transition:
+      opacity 280ms ease,
+      transform 280ms var(--ease-cine);
+    animation: hotspot-mobile-story-in 520ms var(--ease-cine) both;
+  }
+
+  .hotspot-mobile-story.is-exiting {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  @keyframes hotspot-mobile-story-in {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .hotspot-mobile-story-card,
+  .hotspot-mobile-story .hotspot-slider,
+  .hotspot-mobile-story-nav {
+    pointer-events: auto;
+  }
+
+  .hotspot-mobile-story-card,
+  .hotspot-mobile-story-nav {
+    border: 1px solid rgba(27, 58, 41, 0.14);
+    background: rgba(255, 255, 255, 0.91);
+    box-shadow: 0 14px 38px -20px rgba(27, 58, 41, 0.46);
+    backdrop-filter: blur(11px);
+    -webkit-backdrop-filter: blur(11px);
+  }
+
+  .hotspot-mobile-story-card {
+    border-radius: 14px;
+  }
+
+  .hotspot-mobile-story-card--step {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px 15px;
+  }
+
+  .hotspot-mobile-story-marker {
+    flex: none;
+    width: 10px;
+    height: 10px;
+    margin-top: 0.38em;
+    border-radius: 3px;
+    background: var(--tier, #fec44f);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--tier, #fec44f) 40%, transparent);
+  }
+
+  .hotspot-mobile-story-copy {
+    min-width: 0;
+  }
+
+  .hotspot-mobile-story-text {
+    display: block;
+    color: var(--ink);
+    font-size: clamp(0.88rem, 1.7vw, 1.02rem);
+    line-height: 1.45;
+    letter-spacing: -0.003em;
+    text-wrap: pretty;
+  }
+
+  .hotspot-mobile-story-text + .hotspot-mobile-story-text {
+    margin-top: 6px;
+    color: var(--ink-soft);
+    font-size: clamp(0.8rem, 1.55vw, 0.94rem);
+  }
+
+  .hotspot-mobile-story-card--handoff {
+    padding: 14px 16px 15px;
+  }
+
+  .hotspot-mobile-handoff {
+    margin: 0;
+    color: var(--ink-deep);
+    font-family: var(--font-display);
+    font-size: clamp(1.34rem, 3.6vw, 2rem);
+    font-weight: 500;
+    line-height: 1.08;
+    letter-spacing: -0.025em;
+  }
+
+  .hotspot-mobile-annotations {
+    display: flex;
+    gap: 8px;
+    margin-top: 11px;
+    padding: 1px 1px 5px;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scroll-snap-type: x proximity;
+    touch-action: pan-x;
+    scrollbar-color: rgba(27, 58, 41, 0.24) transparent;
+    scrollbar-width: thin;
+  }
+
+  .hotspot-mobile-annotation {
+    display: flex;
+    flex: 0 0 min(230px, 72vw);
+    flex-direction: column;
+    gap: 3px;
+    padding: 10px 11px 11px;
+    border: 1px solid rgba(27, 58, 41, 0.1);
+    border-radius: 10px;
+    background: rgba(248, 246, 239, 0.84);
+    color: var(--ink-soft);
+    scroll-snap-align: start;
+  }
+
+  .hotspot-mobile-annotation strong {
+    color: var(--talea-dark-green);
+    font-size: 0.79rem;
+    line-height: 1.25;
+  }
+
+  .hotspot-mobile-annotation span {
+    color: #b13b1a;
+    font-size: 0.61rem;
+    font-weight: 700;
+    line-height: 1.25;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .hotspot-mobile-annotation small {
+    font-size: 0.69rem;
+    line-height: 1.35;
+  }
+
+  .hotspot-mobile-story-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    min-height: 48px;
+    padding: 4px 5px 4px 13px;
+    border-radius: 999px;
+  }
+
+  .hotspot-mobile-story-nav--complete {
+    border-radius: 14px;
+  }
+
+  .hotspot-mobile-nav-copy {
+    display: flex;
+    flex: 1 1 auto;
+    min-width: 0;
+    flex-direction: column;
+    gap: 6px;
+    padding: 5px 0 5px 2px;
+  }
+
+  .hotspot-mobile-sequence-status {
+    max-width: 310px;
+    color: var(--ink-soft);
+    font-size: 0.69rem;
+    font-weight: 600;
+    line-height: 1.3;
+    text-wrap: pretty;
+  }
+
+  .hotspot-mobile-phase-dots {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .hotspot-mobile-phase-dot {
+    position: relative;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: rgba(27, 58, 41, 0.17);
+    transition: transform 220ms ease, background-color 220ms ease;
+  }
+
+  .hotspot-mobile-phase-dot.is-done {
+    background: rgba(27, 58, 41, 0.38);
+  }
+
+  .hotspot-mobile-phase-dot.is-current {
+    background: var(--tier, var(--talea-dark-green));
+    transform: scale(1.28);
+  }
+
+  .hotspot-mobile-phase-ring {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 22px;
+    height: 22px;
+    overflow: visible;
+    transform: translate(-50%, -50%);
+  }
+
+  .hotspot-mobile-phase-ring circle {
+    fill: none;
+    stroke: var(--tier, var(--talea-dark-green));
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-dasharray: 62.83;
+    stroke-dashoffset: 62.83;
+    transform: rotate(-90deg);
+    transform-origin: 50% 50%;
+    animation: hotspot-seq-ring var(--step-ms, 5000ms) linear forwards;
+  }
+
+  .hotspot-sequence-controls {
+    display: flex;
+    align-items: center;
+    flex: none;
+    gap: 3px;
+    padding: 3px;
+    border: 1px solid rgba(27, 58, 41, 0.13);
+    border-radius: 999px;
+    background: rgba(246, 244, 238, 0.82);
+    box-shadow:
+      0 8px 20px -16px rgba(27, 58, 41, 0.52),
+      0 1px 0 rgba(255, 255, 255, 0.8) inset;
+    backdrop-filter: blur(7px);
+    -webkit-backdrop-filter: blur(7px);
+    pointer-events: auto;
+  }
+
+  .hotspot-sequence-control {
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--talea-dark-green);
+    font: inherit;
+    font-size: 1.12rem;
+    font-weight: 700;
+    line-height: 1;
+    box-shadow: none;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+    user-select: none;
+    transition:
+      color 180ms ease,
+      background-color 180ms ease,
+      box-shadow 180ms ease,
+      transform 160ms var(--ease-cine);
+  }
+
+  .hotspot-sequence-control span {
+    display: block;
+    transform: translateY(-1px);
+    transition: transform 180ms var(--ease-cine);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .hotspot-sequence-control:not(:disabled):hover {
+      background: rgba(255, 255, 255, 0.94);
+      box-shadow: 0 5px 14px -9px rgba(27, 58, 41, 0.58);
+    }
+
+    .hotspot-sequence-control:first-child:not(:disabled):hover span {
+      transform: translate(-2px, -1px);
+    }
+
+    .hotspot-sequence-control:last-child:not(:disabled):hover span {
+      transform: translate(2px, -1px);
+    }
+  }
+
+  .hotspot-sequence-control:not(:disabled):active {
+    background: rgba(255, 255, 255, 0.96);
+    transform: scale(0.94);
+  }
+
+  .hotspot-sequence-control:disabled {
+    color: rgba(27, 58, 41, 0.28);
+    opacity: 1;
+    cursor: default;
+  }
+
+  .hotspot-sequence-control:focus-visible,
+  .hotspot-legend-toggle:focus-visible,
+  .hotspot-legend-close:focus-visible {
+    outline: 2px solid var(--talea-dark-green);
+    outline-offset: 3px;
+  }
+
+  .hotspot-mobile-story .hotspot-slider {
+    position: relative;
+    inset: auto;
+    width: 100%;
+    min-width: 0;
+    padding: 14px 16px 13px;
+    border-radius: 14px;
+    transform: none;
+    animation: hotspot-ui-in 320ms var(--ease-cine) both;
+  }
+
+  .hotspot-mobile-story .hotspot-slider-input {
+    width: 100%;
+    pointer-events: auto;
+    touch-action: pan-x;
+  }
+
+  .hotspot-map-veil-close {
+    z-index: 9;
+    display: block;
+  }
+
+  .hotspot-legend-toggle {
+    position: absolute;
+    top: max(76px, calc(env(safe-area-inset-top) + 66px));
+    right: max(14px, env(safe-area-inset-right));
+    bottom: auto;
+    left: auto;
+    z-index: 7;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    max-width: min(235px, calc(100% - 28px));
+    min-height: 42px;
+    padding: 7px 12px 7px 7px;
+    border: 1px solid rgba(27, 58, 41, 0.16);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.93);
+    color: var(--talea-dark-green);
+    font: inherit;
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1.2;
+    text-align: left;
+    box-shadow: 0 10px 28px -16px rgba(27, 58, 41, 0.48);
+    backdrop-filter: blur(9px);
+    -webkit-backdrop-filter: blur(9px);
+    cursor: pointer;
+    animation: hotspot-ui-in var(--ui-in-ms) var(--ease-cine) both;
+  }
+
+  .hotspot-legend-toggle-icon {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 27px;
+    height: 27px;
+    border-radius: 50%;
+    background: var(--talea-dark-green);
+    color: #fff;
+    font-family: Georgia, serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+  }
+
+  .hotspot-legend-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 8;
+    display: grid;
+    place-items: center;
+    padding: clamp(18px, 5vw, 52px);
+    background: rgba(18, 35, 25, 0.5);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    pointer-events: auto;
+  }
+
+  .hotspot-legend.hotspot-legend--mobile {
+    position: relative;
+    inset: auto;
+    width: min(520px, 100%);
+    max-height: calc(100% - 4px);
+    padding: clamp(22px, 4vw, 30px);
+    overflow-y: auto;
+    border-radius: 18px;
+    animation: hotspot-ui-in 320ms var(--ease-cine) both;
+  }
+
+  .hotspot-legend--mobile .hotspot-legend-title {
+    padding-right: 48px;
+    font-size: clamp(1rem, 2.2vw, 1.18rem);
+  }
+
+  .hotspot-legend--mobile .hotspot-legend-active {
+    font-size: clamp(0.9rem, 2vw, 1rem);
+  }
+
+  .hotspot-legend--mobile .hotspot-legend-caption,
+  .hotspot-legend--mobile .hotspot-legend-link {
+    font-size: clamp(0.82rem, 1.8vw, 0.92rem);
+  }
+
+  .hotspot-legend-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 1px solid rgba(27, 58, 41, 0.14);
+    border-radius: 50%;
+    background: var(--paper-hi);
+    color: var(--talea-dark-green);
+    font: inherit;
+    font-size: 1.55rem;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .hotspot-scene .annotation-layer {
+    display: block;
+  }
+
+  .hotspot-scene .annotation-label--priority {
+    display: block;
+    width: min(220px, calc(50vw - 28px));
+    max-width: none;
+    padding: 10px 13px 11px;
+    border-radius: 9px;
+    border: 1px solid rgba(0, 77, 25, 0.14);
+    border-left: 3px solid #e05a2b;
+    background: rgba(255, 255, 255, 0.975);
+    box-shadow: 0 8px 24px rgba(0, 77, 25, 0.2);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+
+  .hotspot-scene .annotation-label--priority .annotation-name {
+    font-size: 13.5px;
+    line-height: 1.2;
+  }
+
+  .hotspot-scene .annotation-label--priority .annotation-tag {
+    font-size: 9.5px;
+  }
+
+  .hotspot-scene .annotation-label--priority .annotation-context {
+    margin: 7px 0 0;
+    color: var(--text-secondary);
+    font-size: 11.5px;
+    line-height: 1.5;
+  }
+
+  .hotspot-scene .annotation-hovercard {
+    width: max-content;
+    max-width: min(220px, calc(100vw - 24px));
+  }
+}
+
+@media (max-width: 600px) {
+  .hotspot-scene-map {
+    height: 100vh;
+    height: 100dvh;
+    min-height: 560px;
+  }
+
+  .hotspot-mobile-story {
+    right: max(12px, env(safe-area-inset-right));
+    bottom: max(58px, calc(env(safe-area-inset-bottom) + 54px));
+    left: max(12px, env(safe-area-inset-left));
+    width: calc(100% - 24px);
+  }
+
+  .hotspot-scene .maplibregl-ctrl-bottom-left {
+    z-index: 7;
+  }
+
+  .hotspot-scene
+    .maplibregl-ctrl-attrib.maplibregl-compact:not(.maplibregl-compact-show)
+    .maplibregl-ctrl-attrib-inner {
+    display: none;
+  }
+
+  .hotspot-mobile-story-card--step,
+  .hotspot-mobile-story-card--handoff {
+    padding: 12px 13px 13px;
+  }
+
+  .hotspot-mobile-story-card--step {
+    gap: 10px;
+  }
+
+  .hotspot-mobile-story-text {
+    font-size: 0.87rem;
+    line-height: 1.42;
+  }
+
+  .hotspot-mobile-story-text + .hotspot-mobile-story-text {
+    font-size: 0.79rem;
+  }
+
+  .hotspot-mobile-handoff {
+    font-size: clamp(1.28rem, 6.1vw, 1.62rem);
+  }
+
+  .hotspot-mobile-annotation {
+    flex-basis: calc(100vw - 72px);
+  }
+
+  .hotspot-mobile-story .hotspot-slider {
+    padding: 13px 14px 12px;
+  }
+
+  .hotspot-mobile-story .hotspot-slider-head {
+    gap: 10px;
+  }
+
+  .hotspot-mobile-story .hotspot-slider-label {
+    max-width: 185px;
+  }
+
+  .hotspot-legend-toggle {
+    top: max(72px, calc(env(safe-area-inset-top) + 64px));
+    right: max(12px, env(safe-area-inset-right));
+    max-width: calc(100% - 24px);
+    font-size: 0.68rem;
+  }
+
+  .hotspot-legend-overlay {
+    align-items: end;
+    padding: 14px;
+  }
+
+  .hotspot-legend.hotspot-legend--mobile {
+    width: 100%;
+    max-height: min(78dvh, 620px);
+    padding: 24px 20px 22px;
   }
 }

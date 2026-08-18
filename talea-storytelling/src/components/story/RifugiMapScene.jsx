@@ -18,6 +18,7 @@ import {
   addUfficialeFocusLayer,
   addUfficialiLayers,
   addWalkingRouteLayers,
+  boundsForFeatures,
   countRifugi,
   fadeInPaint,
   featureCenter,
@@ -53,16 +54,85 @@ const EMPTY_FEATURE_COLLECTION = { type: "FeatureCollection", features: [] };
 const REVEAL_AT = 0.18;
 const EXIT_FROM = 0.94;
 const EXIT_TO = 0.28;
+const MOBILE_MAP_QUERY = "(max-width: 1279px)";
+
+function closeMobileAttribution(container) {
+  const attribution = container?.querySelector(".maplibregl-ctrl-attrib");
+  if (!attribution) return false;
+
+  attribution.classList.remove("maplibregl-compact-show");
+  attribution.removeAttribute("open");
+  return attribution.classList.contains("maplibregl-compact");
+}
+
+function closeMobileAttributionWhenReady(map, container) {
+  if (closeMobileAttribution(container)) return;
+
+  const syncClosedState = () => {
+    if (!closeMobileAttribution(container)) return;
+    map.off("styledata", syncClosedState);
+    map.off("sourcedata", syncClosedState);
+    map.off("idle", syncClosedState);
+  };
+
+  map.on("styledata", syncClosedState);
+  map.on("sourcedata", syncClosedState);
+  map.on("idle", syncClosedState);
+  window.requestAnimationFrame(syncClosedState);
+}
+
+const mobileOverviewPadding = () => {
+  const width = window.innerWidth || 390;
+  if (width < 600) return { top: 72, right: 24, bottom: 72, left: 24 };
+  if (width < 900) return { top: 84, right: 48, bottom: 84, left: 48 };
+  return { top: 88, right: 68, bottom: 88, left: 68 };
+};
+
+const mobileDetailPadding = (mapElement, dockElement) => {
+  const width = window.innerWidth || 390;
+  const narrow = width < 600;
+  const mapRect = mapElement?.getBoundingClientRect();
+  const dockRect = dockElement?.getBoundingClientRect();
+  const height = mapRect?.height || window.innerHeight || 844;
+  const top = narrow ? 84 : 96;
+  const measuredBottom =
+    mapRect && dockRect && dockRect.height > 0
+      ? mapRect.bottom - dockRect.top + 24
+      : narrow
+        ? 280
+        : 300;
+  const maxBottom = Math.max(180, height - top - 140);
+  return {
+    top,
+    right: narrow ? 24 : 48,
+    bottom: Math.round(Math.min(maxBottom, Math.max(narrow ? 210 : 230, measuredBottom))),
+    left: narrow ? 24 : 48,
+  };
+};
+
+const mobileFocusFitPadding = () => (window.innerWidth < 600 ? 36 : 56);
+const MOBILE_FOCUS_MIN_ZOOM = 14.2;
+const MOBILE_FOCUS_MAX_ZOOM = 15.8;
+
+const boundsForWalkingSearch = (point, routes) => {
+  const bounds = new maplibregl.LngLatBounds();
+  if (point) bounds.extend(point);
+  for (const route of routes || []) {
+    for (const coordinate of route.coordinates || []) bounds.extend(coordinate);
+  }
+  return bounds;
+};
 
 const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
 const smoothstep = (t) => t * t * (3 - 2 * t);
 
 export function RifugiMapScene() {
-  const { content, locale } = useContent();
+  const { content, locale, uiContent } = useContent();
   const reliefMapContent = content.climateRelief.refuges.map;
   const reliefCards = reliefMapContent.cards;
   const sectionRef = useRef(null);
   const containerRef = useRef(null);
+  const dockRef = useRef(null);
   const mapRef = useRef(null);
   const popupRef = useRef(null);
   const markerRef = useRef(null);
@@ -85,6 +155,16 @@ export function RifugiMapScene() {
   const localeRef = useRef(locale);
   const detailRefreshRef = useRef(null);
   const popupRefreshRef = useRef(null);
+  const mobileMapRef = useRef(false);
+  const cameraTouchedRef = useRef(false);
+  const mapLibreLocaleRef = useRef({});
+  const mobileCameraFrameRef = useRef(null);
+  const pendingMobileCameraRef = useRef(null);
+  const searchResultFocusRef = useRef(false);
+  const mobileSearchCameraRef = useRef(null);
+  const mapGestureActiveRef = useRef(false);
+  const mapGestureGraceUntilRef = useRef(0);
+  const pointSelectionTimerRef = useRef(null);
 
   const [revealed, setRevealed] = useState(false);
   const [engaged, setEngaged] = useState(false);
@@ -95,7 +175,36 @@ export function RifugiMapScene() {
   const [controlsReady, setControlsReady] = useState(false);
   const [detail, setDetail] = useState("");
   const [messageKey, setMessageKey] = useState(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(false);
   const message = messageKey ? reliefMapContent.search[messageKey] : "";
+
+  useEffect(() => {
+    const mapLocale = {
+      "AttributionControl.ToggleAttribution": uiContent.map.toggleAttribution,
+      "Map.Title": uiContent.map.title,
+      "CooperativeGesturesHandler.WindowsHelpText":
+        uiContent.map.cooperativeGestures.windows,
+      "CooperativeGesturesHandler.MacHelpText":
+        uiContent.map.cooperativeGestures.mac,
+      "CooperativeGesturesHandler.MobileHelpText":
+        uiContent.map.cooperativeGestures.mobile,
+    };
+    mapLibreLocaleRef.current = mapLocale;
+
+    const map = mapRef.current;
+    if (!map) return;
+    map._locale = { ...map._locale, ...mapLocale };
+    map.getCanvas()?.setAttribute("aria-label", mapLocale["Map.Title"]);
+    const attributionButton = containerRef.current?.querySelector(
+      ".maplibregl-ctrl-attrib-button",
+    );
+    if (attributionButton) {
+      const attributionLabel = mapLocale["AttributionControl.ToggleAttribution"];
+      attributionButton.setAttribute("aria-label", attributionLabel);
+      attributionButton.setAttribute("title", attributionLabel);
+    }
+  }, [uiContent]);
 
   useEffect(() => {
     reliefCardsRef.current = reliefCards;
@@ -108,6 +217,20 @@ export function RifugiMapScene() {
     const popupHtml = popupRefreshRef.current?.();
     if (popupHtml) popupRef.current?.setHTML(popupHtml);
   }, [locale]);
+
+  useEffect(() => {
+    const progress = document.querySelector(".scroll-stem");
+    if (!progress) return undefined;
+    const closeMapPanels = () => {
+      if (!progress.classList.contains("scroll-stem--mobile-open")) return;
+      setSearchOpen(false);
+      setInfoOpen(false);
+    };
+    const observer = new MutationObserver(closeMapPanels);
+    observer.observe(progress, { attributes: true, attributeFilter: ["class"] });
+    closeMapPanels();
+    return () => observer.disconnect();
+  }, []);
 
   const sceneTop = useCallback(() => {
     const section = sectionRef.current;
@@ -160,11 +283,98 @@ export function RifugiMapScene() {
     routeAbortRef.current = null;
   }, []);
 
+  const cancelPendingPointSelection = useCallback(() => {
+    if (pointSelectionTimerRef.current) {
+      window.clearTimeout(pointSelectionTimerRef.current);
+      pointSelectionTimerRef.current = null;
+    }
+  }, []);
+
+  const cancelMobileCamera = useCallback(() => {
+    if (mobileCameraFrameRef.current) {
+      cancelAnimationFrame(mobileCameraFrameRef.current);
+      mobileCameraFrameRef.current = null;
+    }
+    pendingMobileCameraRef.current = null;
+  }, []);
+
+  const scheduleMobileCamera = useCallback((request) => {
+    if (!mobileMapRef.current) return false;
+    if (mobileCameraFrameRef.current) {
+      cancelAnimationFrame(mobileCameraFrameRef.current);
+    }
+    pendingMobileCameraRef.current = request;
+    mobileCameraFrameRef.current = requestAnimationFrame(() => {
+      mobileCameraFrameRef.current = null;
+      const pending = pendingMobileCameraRef.current;
+      pendingMobileCameraRef.current = null;
+      const map = mapRef.current;
+      if (!pending || !map) return;
+
+      const padding = mobileDetailPadding(containerRef.current, dockRef.current);
+      if (pending.type === "features") {
+        const bounds = boundsForFeatures(pending.features);
+        if (bounds.isEmpty()) return;
+        const naturalCamera = map.cameraForBounds(bounds, {
+          padding: mobileFocusFitPadding(),
+          maxZoom: MOBILE_FOCUS_MAX_ZOOM,
+        });
+        map.flyTo({
+          center: naturalCamera?.center || bounds.getCenter(),
+          zoom: Math.max(
+            MOBILE_FOCUS_MIN_ZOOM,
+            Math.min(MOBILE_FOCUS_MAX_ZOOM, naturalCamera?.zoom ?? 15.2),
+          ),
+          padding,
+          retainPadding: false,
+          duration: 1400,
+          essential: true,
+        });
+        return;
+      }
+
+      if (pending.type === "point") {
+        map.flyTo({
+          center: pending.center,
+          zoom: pending.zoom,
+          padding,
+          retainPadding: false,
+          duration: pending.duration,
+          essential: true,
+        });
+        return;
+      }
+
+      const routeBounds = boundsForWalkingSearch(pending.point, pending.routes);
+      if (routeBounds.isEmpty()) return;
+      const naturalCamera = map.cameraForBounds(routeBounds, {
+        padding: mobileFocusFitPadding(),
+        maxZoom: ADDRESS_ZOOM,
+      });
+      const searchCamera = {
+        center: naturalCamera?.center || routeBounds.getCenter(),
+        zoom: Math.min(ADDRESS_ZOOM, naturalCamera?.zoom ?? ADDRESS_ZOOM),
+      };
+      mobileSearchCameraRef.current = searchCamera;
+      map.flyTo({
+        ...searchCamera,
+        padding,
+        retainPadding: false,
+        duration: 1500,
+        essential: true,
+      });
+    });
+    return true;
+  }, []);
+
   const focusUfficiale = useCallback(
     (feature) => {
       const map = mapRef.current;
       if (!feature || !map) return;
+      cancelPendingPointSelection();
       cancelRouting();
+      searchResultFocusRef.current = false;
+      mobileSearchCameraRef.current = null;
       clearHighlights();
       setSearchMarker(null);
       detailOpenRef.current = true;
@@ -173,17 +383,43 @@ export function RifugiMapScene() {
       detailRefreshRef.current = () => ufficialeDetailHTML(feature, reliefCardsRef.current);
       setDetail(detailRefreshRef.current());
       setMessageKey(null);
+      setSearchOpen(false);
+      setInfoOpen(true);
       enterFocus();
-      map.flyTo({ center: feature.geometry.coordinates, zoom: 15.4, duration: 1400, essential: true });
+      if (
+        !scheduleMobileCamera({
+          type: "point",
+          center: feature.geometry.coordinates,
+          zoom: 15.4,
+          duration: 1400,
+        })
+      ) {
+        map.flyTo({
+          center: feature.geometry.coordinates,
+          zoom: 15.4,
+          duration: 1400,
+          essential: true,
+        });
+      }
     },
-    [cancelRouting, clearHighlights, enterFocus, setSearchMarker],
+    [
+      cancelPendingPointSelection,
+      cancelRouting,
+      clearHighlights,
+      enterFocus,
+      scheduleMobileCamera,
+      setSearchMarker,
+    ],
   );
 
   const focusRifugio = useCallback(
     (feature) => {
       const map = mapRef.current;
       if (!feature || !map) return;
+      cancelPendingPointSelection();
       cancelRouting();
+      searchResultFocusRef.current = false;
+      mobileSearchCameraRef.current = null;
       const full = fullRifugiFor(feature);
       const primary = full[0] || feature;
       clearHighlights();
@@ -195,34 +431,61 @@ export function RifugiMapScene() {
         rifugiDetailHTML(primary, reliefCardsRef.current, localeRef.current);
       setDetail(detailRefreshRef.current());
       setMessageKey(null);
+      setSearchOpen(false);
+      setInfoOpen(true);
       enterFocus();
-      flyToFeatures(map, full, { maxZoom: 16, padding: 120 });
+      if (!scheduleMobileCamera({ type: "features", features: full })) {
+        flyToFeatures(map, full, { maxZoom: 16, padding: 120 });
+      }
     },
-    [cancelRouting, clearHighlights, enterFocus, setSearchMarker],
+    [
+      cancelPendingPointSelection,
+      cancelRouting,
+      clearHighlights,
+      enterFocus,
+      scheduleMobileCamera,
+      setSearchMarker,
+    ],
   );
 
   const zoomIntoPoint = useCallback(
     (pt) => {
       const map = mapRef.current;
       if (!map) return;
+      cancelPendingPointSelection();
+      cancelMobileCamera();
       cancelRouting();
+      searchResultFocusRef.current = false;
+      mobileSearchCameraRef.current = null;
       clearHighlights();
+      if (mobileMapRef.current) setSearchMarker(null);
       detailOpenRef.current = false;
       selectedKeyRef.current = null;
       detailRefreshRef.current = null;
       setDetail("");
+      setInfoOpen(false);
       enterFocus();
       const z = Math.min(map.getZoom() + 1.6, EXPLORE_ZOOM_LIMITS.maxZoom - 0.4);
       map.flyTo({ center: pt, zoom: z, duration: 900, essential: true });
     },
-    [cancelRouting, clearHighlights, enterFocus],
+    [
+      cancelMobileCamera,
+      cancelPendingPointSelection,
+      cancelRouting,
+      clearHighlights,
+      enterFocus,
+      setSearchMarker,
+    ],
   );
 
   const focusPoint = useCallback(
     async (pt, label) => {
       const map = mapRef.current;
       if (!map) return;
+      cancelPendingPointSelection();
       cancelRouting();
+      searchResultFocusRef.current = false;
+      mobileSearchCameraRef.current = null;
       const controller = new AbortController();
       routeAbortRef.current = controller;
       clearHighlights();
@@ -260,7 +523,12 @@ export function RifugiMapScene() {
           });
         setDetail(detailRefreshRef.current());
         setMessageKey(null);
-        flyToWalkingRoutes(map, pt, routes);
+        setSearchOpen(false);
+        setInfoOpen(true);
+        searchResultFocusRef.current = true;
+        if (!scheduleMobileCamera({ type: "routes", point: pt, routes })) {
+          flyToWalkingRoutes(map, pt, routes);
+        }
       } catch (error) {
         if (error?.name !== "AbortError") {
           setMessageKey("routeError");
@@ -269,15 +537,28 @@ export function RifugiMapScene() {
         if (routeAbortRef.current === controller) routeAbortRef.current = null;
       }
     },
-    [cancelRouting, clearHighlights, enterFocus, setSearchMarker],
+    [
+      cancelPendingPointSelection,
+      cancelRouting,
+      clearHighlights,
+      enterFocus,
+      scheduleMobileCamera,
+      setSearchMarker,
+    ],
   );
 
   const dezoomToOverview = useCallback(
     (opts = {}) => {
       const map = mapRef.current;
       if (!map) return;
+      cancelPendingPointSelection();
+      cancelMobileCamera();
       cancelRouting();
       focusedRef.current = false;
+      mapGestureActiveRef.current = false;
+      mapGestureGraceUntilRef.current = 0;
+      searchResultFocusRef.current = false;
+      mobileSearchCameraRef.current = null;
       detailOpenRef.current = false;
       selectedKeyRef.current = null;
       hoverKeyRef.current = null;
@@ -285,12 +566,22 @@ export function RifugiMapScene() {
       setFocused(false);
       setDetail("");
       setMessageKey(null);
+      setSearchOpen(false);
+      setInfoOpen(false);
       setSearchMarker(null);
       clearHighlights();
-      frameOverview(map, 1200);
+      cameraTouchedRef.current = false;
+      frameOverview(map, 1200, { resetPadding: mobileMapRef.current });
       if (opts.consumeScroll) holdScrollAtSceneTop();
     },
-    [cancelRouting, clearHighlights, holdScrollAtSceneTop, setSearchMarker],
+    [
+      cancelMobileCamera,
+      cancelPendingPointSelection,
+      cancelRouting,
+      clearHighlights,
+      holdScrollAtSceneTop,
+      setSearchMarker,
+    ],
   );
 
   const waitForReady = useCallback(
@@ -316,8 +607,11 @@ export function RifugiMapScene() {
       setMessageKey("searching");
       try {
         const hit = await geocodeBologna(q);
-        if (hit) await focusPoint(hit.pt, hit.label);
-        else setMessageKey("empty");
+        if (hit) {
+          await focusPoint(hit.pt, hit.label);
+        } else {
+          setMessageKey("empty");
+        }
       } catch {
         setMessageKey("empty");
       }
@@ -373,6 +667,9 @@ export function RifugiMapScene() {
 
     const init = () => {
       if (mapRef.current || !containerRef.current) return;
+      const mobileMap = window.matchMedia(MOBILE_MAP_QUERY).matches;
+      mobileMapRef.current = mobileMap;
+      cameraTouchedRef.current = false;
       const map = new maplibregl.Map({
         container: containerRef.current,
         style: BASEMAP_STYLE,
@@ -381,14 +678,46 @@ export function RifugiMapScene() {
         minZoom: EXPLORE_ZOOM_LIMITS.minZoom,
         maxZoom: EXPLORE_ZOOM_LIMITS.maxZoom,
         attributionControl: false,
+        locale: mapLibreLocaleRef.current,
       });
       mapRef.current = map;
       lockCamera(map);
-      map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-right");
-      map.addControl(new maplibregl.ScaleControl({ maxWidth: 110, unit: "metric" }), "bottom-right");
+      if (mobileMap) {
+        map.touchZoomRotate.enable();
+        map.touchZoomRotate.disableRotation();
+        map.doubleClickZoom.enable();
+      }
+      const markCameraTouched = (event) => {
+        if (event?.originalEvent) cameraTouchedRef.current = true;
+      };
+      const markZoomGesture = (event) => {
+        markCameraTouched(event);
+        if (!mobileMap || !event?.originalEvent) return;
+        mapGestureActiveRef.current = true;
+        mapGestureGraceUntilRef.current = Number.POSITIVE_INFINITY;
+      };
+      const finishZoomGesture = () => {
+        if (!mapGestureActiveRef.current) return;
+        mapGestureActiveRef.current = false;
+        mapGestureGraceUntilRef.current = performance.now() + 650;
+      };
+      map.on("dragstart", markCameraTouched);
+      map.on("zoomstart", markZoomGesture);
+      map.on("zoomend", finishZoomGesture);
 
       map.on("load", async () => {
         addOrthophoto(map, { damped: true });
+        map.addControl(
+          new maplibregl.AttributionControl({ compact: true }),
+          "bottom-right",
+        );
+        map.addControl(
+          new maplibregl.ScaleControl({ maxWidth: 110, unit: "metric" }),
+          "bottom-right",
+        );
+        if (mobileMap) {
+          closeMobileAttributionWhenReady(map, containerRef.current);
+        }
         addBolognaBoundary(map, "main", { color: "rgba(255,255,255,.72)", glowOpacity: 0.28, opacity: 0.7 });
         try {
           const sources = await loadReliefSources(loadRifugiData, loadRifugiUfficiali);
@@ -436,8 +765,12 @@ export function RifugiMapScene() {
           map.setPaintProperty("main-ufficiali-dot", "circle-opacity", 0);
           map.setPaintProperty("main-ufficiali-dot", "circle-stroke-opacity", 0);
 
-          setOverviewFrame(map, sources.csi ? parks : ufficiali, 46);
-          frameOverview(map, 0);
+          setOverviewFrame(
+            map,
+            sources.csi ? parks : ufficiali,
+            mobileMap ? mobileOverviewPadding() : 46,
+          );
+          frameOverview(map, 0, { resetPadding: mobileMap });
           readyRef.current = true;
           startNetworkReveal();
 
@@ -514,14 +847,28 @@ export function RifugiMapScene() {
               .addTo(map);
           });
           map.on("click", (e) => {
+            cameraTouchedRef.current = true;
             clearHover();
             if (!isFullScreen()) holdScrollAtSceneTop();
             const pin = ufficialeAt(e.point);
             if (pin) return focusUfficiale(pin);
             const f = rifugioAt(e.point);
             if (f) return focusRifugio(f);
+            if (mobileMap && searchResultFocusRef.current) {
+              if (pointSelectionTimerRef.current) {
+                cancelPendingPointSelection();
+                return undefined;
+              }
+              const point = [e.lngLat.lng, e.lngLat.lat];
+              pointSelectionTimerRef.current = window.setTimeout(() => {
+                pointSelectionTimerRef.current = null;
+                zoomIntoPoint(point);
+              }, 280);
+              return undefined;
+            }
             return zoomIntoPoint([e.lngLat.lng, e.lngLat.lat]);
           });
+          map.on("dblclick", cancelPendingPointSelection);
         } catch (err) {
           console.warn(err);
           setFailed(true);
@@ -540,6 +887,8 @@ export function RifugiMapScene() {
             routeAbortRef.current?.abort();
             routeAbortRef.current = null;
             focusedRef.current = false;
+            searchResultFocusRef.current = false;
+            mobileSearchCameraRef.current = null;
             detailOpenRef.current = false;
             selectedKeyRef.current = null;
             hoverKeyRef.current = null;
@@ -548,7 +897,10 @@ export function RifugiMapScene() {
             setFocused(false);
             setDetail("");
             setMessageKey(null);
+            setSearchOpen(false);
+            setInfoOpen(false);
             setSearchMarker(null);
+            cameraTouchedRef.current = false;
             if (mapRef.current) {
               setRifugiFocus(
                 mapRef.current,
@@ -559,7 +911,9 @@ export function RifugiMapScene() {
               setRifugiHover(mapRef.current, "main", null);
               setUfficialeFocus(mapRef.current, "main", null);
               setWalkingRoutes(mapRef.current, "main", []);
-              frameOverview(mapRef.current, 0);
+              frameOverview(mapRef.current, 0, {
+                resetPadding: mobileMapRef.current,
+              });
             }
           }
         });
@@ -569,6 +923,8 @@ export function RifugiMapScene() {
     io.observe(section);
     return () => {
       io.disconnect();
+      cancelPendingPointSelection();
+      cancelMobileCamera();
       cancelWaveRef.current?.();
       if (controlsReadyTimerRef.current) window.clearTimeout(controlsReadyTimerRef.current);
       controlsReadyTimerRef.current = null;
@@ -584,6 +940,8 @@ export function RifugiMapScene() {
   }, [
     focusRifugio,
     focusUfficiale,
+    cancelMobileCamera,
+    cancelPendingPointSelection,
     zoomIntoPoint,
     isFullScreen,
     holdScrollAtSceneTop,
@@ -627,7 +985,15 @@ export function RifugiMapScene() {
       }
       const dy = y - lastScrollRef.current;
       lastScrollRef.current = y;
-      if (focusedRef.current && dy > 6 && now - focusAtRef.current > 950) {
+      const mapGestureProtected =
+        mobileMapRef.current &&
+        (mapGestureActiveRef.current || now < mapGestureGraceUntilRef.current);
+      if (
+        focusedRef.current &&
+        dy > 6 &&
+        now - focusAtRef.current > 950 &&
+        !mapGestureProtected
+      ) {
         dezoomToOverview({ consumeScroll: true });
       }
     };
@@ -635,18 +1001,52 @@ export function RifugiMapScene() {
       if (frame) return;
       frame = requestAnimationFrame(update);
     };
+    const handleResize = () => {
+      requestUpdate();
+      const map = mapRef.current;
+      if (!map) return;
+      map.resize();
+      if (
+        readyRef.current &&
+        mobileMapRef.current &&
+        !cameraTouchedRef.current
+      ) {
+        map._reliefPad = mobileOverviewPadding();
+        frameOverview(map, 0, { resetPadding: true });
+      }
+    };
     lastScrollRef.current = window.scrollY;
     update();
     window.addEventListener("scroll", requestUpdate, { passive: true });
-    window.addEventListener("resize", requestUpdate);
+    window.addEventListener("resize", handleResize);
     return () => {
       if (frame) cancelAnimationFrame(frame);
       window.removeEventListener("scroll", requestUpdate);
-      window.removeEventListener("resize", requestUpdate);
+      window.removeEventListener("resize", handleResize);
     };
   }, [dezoomToOverview, startNetworkReveal]);
 
   const controlsGone = exiting || !(engaged || focused);
+  const closeInfo = () => {
+    if (mobileMapRef.current && searchResultFocusRef.current) {
+      setInfoOpen(false);
+      const map = mapRef.current;
+      const searchCamera = mobileSearchCameraRef.current;
+      if (map && searchCamera) {
+        map.flyTo({
+          ...searchCamera,
+          duration: 650,
+          essential: true,
+        });
+      }
+      return;
+    }
+    if (focusedRef.current || detailOpenRef.current) {
+      dezoomToOverview();
+      return;
+    }
+    setInfoOpen(false);
+  };
 
   return (
     <section
@@ -663,35 +1063,75 @@ export function RifugiMapScene() {
         <div
           className={`relief-map-hint relief-map-hint--${focused ? "return" : "invite"}${
             controlsReady && !controlsGone ? " relief-map-hint--visible" : ""
-          }`}
+          }${searchOpen || infoOpen ? " relief-map-hint--suppressed" : ""}`}
           aria-hidden="true"
         >
           <span className="relief-map-hint-dot" />
           {focused ? reliefMapContent.hints.return : reliefMapContent.hints.invite}
         </div>
 
+        {controlsReady && infoOpen && !detail && (
+          <button
+            type="button"
+            className="relief-map-info-backdrop"
+            onClick={closeInfo}
+            aria-label={uiContent.actions.close}
+          />
+        )}
+
         {controlsReady && (
-          <div className={`relief-map-dock relief-map-dock--ready${controlsGone ? " relief-map-dock--gone" : ""}`}>
+          <button
+            type="button"
+            className={`relief-map-info-toggle${
+              infoOpen ? " relief-map-info-toggle--open" : ""
+            }${controlsGone ? " relief-map-mobile-control--gone" : ""}`}
+            onClick={() => {
+              setSearchOpen(false);
+              setInfoOpen(true);
+            }}
+            aria-expanded={infoOpen}
+            aria-label={`${rifugiCounts.official} ${reliefMapContent.counts.officialLabel}, ${rifugiCounts.compatible} ${reliefMapContent.counts.compatibleLabel}`}
+          >
+            <span aria-hidden="true">i</span>
+          </button>
+        )}
+
+        {controlsReady && (
+          <div ref={dockRef} className={`relief-map-dock relief-map-dock--ready${
+            infoOpen ? " relief-map-dock--open" : ""
+          }${controlsGone ? " relief-map-dock--gone" : ""}`}>
             <div className="relief-map-panel relief-map-panel--dock">
+              <div className="relief-map-info-head">
+                <button
+                  type="button"
+                  className="relief-map-control-close"
+                  onClick={closeInfo}
+                  aria-label={uiContent.actions.close}
+                >
+                  <span aria-hidden="true">×</span>
+                </button>
+              </div>
               {detail ? (
                 <div className="relief-focus-card on" aria-live="polite" dangerouslySetInnerHTML={{ __html: detail }} />
               ) : (
                 <>
-                  <div className="relief-count">
-                    <span className="relief-count-num">{rifugiCounts.official}</span>
-                    <span className="relief-count-label">
-                      <span className="relief-count-dot relief-count-dot--ufficiale" aria-hidden="true" />
-                      {reliefMapContent.counts.officialLabel}
-                    </span>
-                    <span className="relief-count-sub">
-                      {reliefMapContent.counts.officialSub}
-                    </span>
+                  <div className="relief-map-count-group relief-map-count-group--official">
+                    <div className="relief-count">
+                      <span className="relief-count-num">{rifugiCounts.official}</span>
+                      <span className="relief-count-label">
+                        <span className="relief-count-dot relief-count-dot--ufficiale" aria-hidden="true" />
+                        {reliefMapContent.counts.officialLabel}
+                      </span>
+                      <span className="relief-count-sub">
+                        {reliefMapContent.counts.officialSub}
+                      </span>
+                    </div>
+                    <a className="relief-map-link" href={editorialLinks.climateRelief.municipalRefugesMap} target="_blank" rel="noopener noreferrer">
+                      {reliefMapContent.links.municipalLabel} →
+                    </a>
                   </div>
-                  <a className="relief-map-link" href={editorialLinks.climateRelief.municipalRefugesMap} target="_blank" rel="noopener noreferrer">
-                    {reliefMapContent.links.municipalLabel} →
-                  </a>
                   {!csiUnavailable && (
-                    <>
+                    <div className="relief-map-count-group relief-map-count-group--compatible">
                       <div className="relief-count relief-count--second">
                         <span className="relief-count-num">{rifugiCounts.compatible}</span>
                         <span className="relief-count-label">
@@ -702,7 +1142,7 @@ export function RifugiMapScene() {
                       <a className="relief-map-link" href={editorialLinks.climateRelief.crafMap} target="_blank" rel="noopener noreferrer">
                         {reliefMapContent.links.taleaLabel} →
                       </a>
-                    </>
+                    </div>
                   )}
                   {failed && (
                     <p className="relief-map-note relief-map-note--error">
@@ -716,7 +1156,38 @@ export function RifugiMapScene() {
         )}
 
         {controlsReady && (
-          <div className={`relief-map-find relief-map-find--ready${controlsGone ? " relief-map-find--gone" : ""}`}>
+          <button
+            type="button"
+            className={`relief-map-search-toggle${
+              searchOpen ? " relief-map-search-toggle--open" : ""
+            }${controlsGone ? " relief-map-mobile-control--gone" : ""}`}
+            onClick={() => {
+              setInfoOpen(false);
+              setSearchOpen(true);
+            }}
+            aria-expanded={searchOpen}
+            aria-label={reliefMapContent.search.ariaLabel}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <circle cx="10.5" cy="10.5" r="5.75" />
+              <path d="m15 15 4.25 4.25" />
+            </svg>
+            <span>{reliefMapContent.search.submit}</span>
+          </button>
+        )}
+
+        {controlsReady && (
+          <div className={`relief-map-find relief-map-find--ready${
+            searchOpen ? " relief-map-find--open" : ""
+          }${controlsGone ? " relief-map-find--gone" : ""}`}>
+            <button
+              type="button"
+              className="relief-map-control-close relief-map-search-close"
+              onClick={() => setSearchOpen(false)}
+              aria-label={uiContent.actions.close}
+            >
+              <span aria-hidden="true">×</span>
+            </button>
             <p className="relief-map-find-prompt">
               <strong className="relief-map-find-prompt-lead">
                 {reliefMapContent.search.promptLead}:

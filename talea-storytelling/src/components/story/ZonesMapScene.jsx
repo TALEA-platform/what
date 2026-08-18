@@ -22,19 +22,48 @@ const OPEN_SPAN = 0.34;
 const OPEN_FLOOR_MS = 1500;
 const EXIT_FROM = 1.0;
 const EXIT_TO = 0.38;
+const MOBILE_EXIT_FROM = 1.42;
+const MOBILE_EXIT_TO = 0.82;
 const FLIGHT_DURATION = 2800;
 const RETURN_DURATION = 2200;
 const EASE_FLIGHT = (t) =>
   (t < 0.5 ? 4 * t * t * t : 1 - ((-2 * t + 2) ** 3) / 2);
+const MOBILE_LAYOUT_QUERY = "(max-width: 1279px)";
 
 const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
 const easeOpen = (t) => 1 - ((1 - t) ** 2.4);
 const smoothstep = (t) => t * t * (3 - 2 * t);
+
+function closeMobileAttribution(container) {
+  const attribution = container?.querySelector(".maplibregl-ctrl-attrib");
+  if (!attribution) return false;
+
+  attribution.classList.remove("maplibregl-compact-show");
+  attribution.removeAttribute("open");
+  return attribution.classList.contains("maplibregl-compact");
+}
+
+function closeMobileAttributionWhenReady(map, container) {
+  if (closeMobileAttribution(container)) return;
+
+  const syncClosedState = () => {
+    if (!closeMobileAttribution(container)) return;
+    map.off("styledata", syncClosedState);
+    map.off("sourcedata", syncClosedState);
+    map.off("idle", syncClosedState);
+  };
+
+  map.on("styledata", syncClosedState);
+  map.on("sourcedata", syncClosedState);
+  map.on("idle", syncClosedState);
+  window.requestAnimationFrame(syncClosedState);
+}
+
 // Camera padding keeps the intervention circles clear of the text panel.
 const FIT_PADDING = { top: 110, right: 580, bottom: 120, left: 90 };
-const MOBILE_FIT_PADDING = { top: 300, right: 28, bottom: 90, left: 28 };
 const AREA_ZOOM_STOPS = [12, 14, 16, 18];
 const METRES_PER_PIXEL_AT_ZOOM_ZERO = 156543.03392;
+const METRES_PER_LATITUDE_DEGREE = 111320;
 function radiusInPixels(radius, latitude, zoom) {
   const metresPerPixel =
     (METRES_PER_PIXEL_AT_ZOOM_ZERO * Math.cos((latitude * Math.PI) / 180)) /
@@ -95,9 +124,25 @@ function positionFocusMask(map, zone, element) {
 }
 
 function cameraPadding() {
-  return window.matchMedia("(max-width: 860px)").matches
-    ? MOBILE_FIT_PADDING
-    : FIT_PADDING;
+  if (!window.matchMedia(MOBILE_LAYOUT_QUERY).matches) return FIT_PADDING;
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+  const edge = width < 600 ? 18 : width < 900 ? 28 : 38;
+  return {
+    top: width < 600 ? 72 : 84,
+    right: edge,
+    bottom: width < 600 ? (height < 700 ? 176 : 208) : width < 900 ? 216 : 228,
+    left: edge,
+  };
+}
+
+function zoneBounds(zone) {
+  const latitudeDelta = (zone.radius_m * 1.16) / METRES_PER_LATITUDE_DEGREE;
+  const longitudeDelta = latitudeDelta / Math.cos((zone.center[1] * Math.PI) / 180);
+  return [
+    [zone.center[0] - longitudeDelta, zone.center[1] - latitudeDelta],
+    [zone.center[0] + longitudeDelta, zone.center[1] + latitudeDelta],
+  ];
 }
 
 function warmOpeningCamera(map) {
@@ -112,7 +157,7 @@ function warmOpeningCamera(map) {
 }
 
 export function ZonesMapScene() {
-  const { content, locale } = useContent();
+  const { content, locale, uiContent } = useContent();
   const zonesContent = content.talea.zones;
   const localizedZones = useMemo(() => {
     const zoneCopyById = new Map(
@@ -134,6 +179,9 @@ export function ZonesMapScene() {
   const driftGenerationRef = useRef(0);
   const driftMoveEndRef = useRef(null);
   const openStartRef = useRef(0);
+  const mobileCameraTouchedRef = useRef(false);
+  const lastAppliedStageRef = useRef(null);
+  const mapLibreLocaleRef = useRef({});
 
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -141,9 +189,41 @@ export function ZonesMapScene() {
   const [engaged, setEngaged] = useState(false);
   const [exiting, setExiting] = useState(false);
 
+  useEffect(() => {
+    const mapLocale = {
+      "AttributionControl.ToggleAttribution": uiContent.map.toggleAttribution,
+      "Map.Title": uiContent.map.title,
+      "CooperativeGesturesHandler.WindowsHelpText":
+        uiContent.map.cooperativeGestures.windows,
+      "CooperativeGesturesHandler.MacHelpText":
+        uiContent.map.cooperativeGestures.mac,
+      "CooperativeGesturesHandler.MobileHelpText":
+        uiContent.map.cooperativeGestures.mobile,
+    };
+    mapLibreLocaleRef.current = mapLocale;
+
+    const map = mapRef.current;
+    if (!map) return;
+    map._locale = { ...map._locale, ...mapLocale };
+    map.getCanvas()?.setAttribute("aria-label", mapLocale["Map.Title"]);
+    const attributionButton = containerRef.current?.querySelector(
+      ".maplibregl-ctrl-attrib-button",
+    );
+    if (attributionButton) {
+      const label = mapLocale["AttributionControl.ToggleAttribution"];
+      attributionButton.setAttribute("aria-label", label);
+      attributionButton.setAttribute("title", label);
+    }
+  }, [uiContent]);
+
   const applyStage = useCallback((s, animate, opening = false) => {
     const map = mapRef.current;
     if (!map) return;
+    const mobileLayout = window.matchMedia(MOBILE_LAYOUT_QUERY).matches;
+    if (lastAppliedStageRef.current !== s) {
+      lastAppliedStageRef.current = s;
+      mobileCameraTouchedRef.current = false;
+    }
 
     driftGenerationRef.current += 1;
     const generation = driftGenerationRef.current;
@@ -178,7 +258,10 @@ export function ZonesMapScene() {
     }
 
     const startDrift = (direction = 1) => {
-      if (driftGenerationRef.current !== generation) return;
+      if (
+        driftGenerationRef.current !== generation ||
+        (mobileLayout && mobileCameraTouchedRef.current)
+      ) return;
       const onDriftEnd = () => {
         driftMoveEndRef.current = null;
         startDrift(direction * -1);
@@ -190,7 +273,7 @@ export function ZonesMapScene() {
           zone.center[0] + (0.00052 * direction),
           zone.center[1] + (0.00016 * direction),
         ],
-        zoom: zone.zoom,
+        ...(mobileLayout ? {} : { zoom: zone.zoom }),
         duration: 14000,
         easing: (t) => t,
         essential: true,
@@ -198,6 +281,16 @@ export function ZonesMapScene() {
     };
 
     if (!animate) {
+      if (mobileLayout) {
+        map.fitBounds(zoneBounds(zone), {
+          padding: cameraPadding(),
+          maxZoom: zone.zoom,
+          duration: 0,
+          essential: true,
+        });
+        startDrift();
+        return;
+      }
       map.flyTo({
         center: zone.center,
         zoom: zone.zoom,
@@ -215,6 +308,16 @@ export function ZonesMapScene() {
     };
     driftMoveEndRef.current = onFlightEnd;
     map.once("moveend", onFlightEnd);
+    if (mobileLayout) {
+      map.fitBounds(zoneBounds(zone), {
+        padding: cameraPadding(),
+        maxZoom: zone.zoom,
+        duration: FLIGHT_DURATION,
+        easing: EASE_FLIGHT,
+        essential: true,
+      });
+      return;
+    }
     map.flyTo({
       center: zone.center,
       zoom: zone.zoom,
@@ -240,18 +343,44 @@ export function ZonesMapScene() {
         minZoom: EXPLORE_ZOOM_LIMITS.minZoom,
         maxZoom: EXPLORE_ZOOM_LIMITS.maxZoom,
         attributionControl: false,
+        locale: mapLibreLocaleRef.current,
       });
       mapRef.current = map;
       lockCamera(map);
-      map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-right");
-      map.addControl(new maplibregl.ScaleControl({ maxWidth: 120, unit: "metric" }), "bottom-right");
+      const mobileMap = window.matchMedia(MOBILE_LAYOUT_QUERY).matches;
+      if (mobileMap) {
+        map.touchZoomRotate.enable();
+        map.touchZoomRotate.disableRotation();
+        map.doubleClickZoom.enable();
+      }
       map.on("render", () => {
         positionFocusMask(map, activeZoneRef.current, focusMaskRef.current);
       });
+      const markMobileCameraTouched = (event) => {
+        if (
+          window.matchMedia(MOBILE_LAYOUT_QUERY).matches &&
+          event.originalEvent
+        ) {
+          mobileCameraTouchedRef.current = true;
+        }
+      };
+      map.on("dragstart", markMobileCameraTouched);
+      map.on("zoomstart", markMobileCameraTouched);
 
       map.on("load", () => {
         try {
           addOrthophoto(map);
+          map.addControl(
+            new maplibregl.AttributionControl({ compact: true }),
+            "bottom-right",
+          );
+          map.addControl(
+            new maplibregl.ScaleControl({ maxWidth: 120, unit: "metric" }),
+            "bottom-right",
+          );
+          if (mobileMap) {
+            closeMobileAttributionWhenReady(map, containerRef.current);
+          }
           map.addSource("areas-src", { type: "geojson", data: AREAS_FC });
 
           map.addLayer({
@@ -362,12 +491,15 @@ export function ZonesMapScene() {
       const rect = section?.getBoundingClientRect();
       if (!rect) return;
       const inScene = rect.top < vh && rect.bottom > 0;
+      const mobileLayout = window.matchMedia(MOBILE_LAYOUT_QUERY).matches;
+      const exitFrom = mobileLayout ? MOBILE_EXIT_FROM : EXIT_FROM;
+      const exitTo = mobileLayout ? MOBILE_EXIT_TO : EXIT_TO;
 
       const exitProgress = smoothstep(
-        clamp01((vh * EXIT_FROM - rect.bottom) / (vh * (EXIT_FROM - EXIT_TO))),
+        clamp01((vh * exitFrom - rect.bottom) / (vh * (exitFrom - exitTo))),
       );
       section.style.setProperty("--map-exit", exitProgress.toFixed(3));
-      const nextExiting = inScene && rect.bottom <= vh * EXIT_FROM;
+      const nextExiting = inScene && rect.bottom <= vh * exitFrom;
 
       const pinned = inScene && rect.top <= vh * PIN_AT;
       if (!pinned) openStartRef.current = 0;

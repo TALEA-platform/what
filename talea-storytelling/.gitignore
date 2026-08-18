@@ -29,7 +29,7 @@ src/generated/climate-relief-stats.json
 
 .tmp/
 .tmp-map-screens/
-
+qa/
 
 .audit_vignette/
 .docs/

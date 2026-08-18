@@ -30,43 +30,87 @@ const withLineBreaks = (text, breakAfterPeriod = false) => {
   });
 };
 
-export function CopySegments({ parts, kwClass = "kw", onGlossary, breakAfterPeriod = false }) {
-  return parts.map((part, index) => {
+function renderPart({ part, key, kwClass, onGlossary, breakAfterPeriod }) {
+  if (part.kw) {
+    return (
+      <span key={key} className={kwClass}>
+        {withLineBreaks(part.text, breakAfterPeriod)}
+      </span>
+    );
+  }
+  if (part.glossary && onGlossary) {
+    return (
+      <GlossaryTerm key={key} id={part.glossary} onOpen={onGlossary}>
+        {withLineBreaks(part.text, breakAfterPeriod)}
+      </GlossaryTerm>
+    );
+  }
+  if (part.link) {
+    return (
+      <a
+        key={key}
+        href={part.link}
+        className="copy-link"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        {withLineBreaks(part.text, breakAfterPeriod)}
+      </a>
+    );
+  }
+  if (part.keep) {
+    return (
+      <span key={key} className="hero-subtitle-keep">
+        {withLineBreaks(part.text, breakAfterPeriod)}
+      </span>
+    );
+  }
+  return (
+    <Fragment key={key}>
+      {withLineBreaks(part.text, breakAfterPeriod)}
+    </Fragment>
+  );
+}
+
+export function CopySegments({
+  parts,
+  kwClass = "kw",
+  onGlossary,
+  breakAfterPeriod = false,
+  keepLeadingPunctuation = false,
+}) {
+  const rendered = [];
+
+  parts.forEach((part, index) => {
     const key = part.id ?? index;
-    if (part.kw) {
-      return (
-        <span key={key} className={kwClass}>
-          {withLineBreaks(part.text, breakAfterPeriod)}
-        </span>
+    const punctuation = keepLeadingPunctuation
+      ? part.text?.match(/^([:;!?]+)([\s\S]*)$/)
+      : null;
+
+    if (punctuation && rendered.length > 0) {
+      const previous = rendered.pop();
+      rendered.push(
+        <span key={`${key}-joined`} className="copy-segments-no-break">
+          {previous}
+          {punctuation[1]}
+        </span>,
       );
+      if (punctuation[2]) {
+        rendered.push(
+          renderPart({
+            part: { ...part, text: punctuation[2] },
+            key: `${key}-rest`,
+            kwClass,
+            onGlossary,
+            breakAfterPeriod,
+          }),
+        );
+      }
+      return;
     }
-    if (part.glossary && onGlossary) {
-      return (
-        <GlossaryTerm key={key} id={part.glossary} onOpen={onGlossary}>
-          {withLineBreaks(part.text, breakAfterPeriod)}
-        </GlossaryTerm>
-      );
-    }
-    if (part.link) {
-      return (
-        <a
-          key={key}
-          href={part.link}
-          className="copy-link"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          {withLineBreaks(part.text, breakAfterPeriod)}
-        </a>
-      );
-    }
-    if (part.keep) {
-      return (
-        <span key={key} className="hero-subtitle-keep">
-          {withLineBreaks(part.text, breakAfterPeriod)}
-        </span>
-      );
-    }
-    return <Fragment key={key}>{withLineBreaks(part.text, breakAfterPeriod)}</Fragment>;
+
+    rendered.push(renderPart({ part, key, kwClass, onGlossary, breakAfterPeriod }));
   });
+
+  return rendered;
 }

@@ -4,7 +4,13 @@ import { buildHotspotAnnotations } from "../../data/hotspotAnnotations";
 
 const HOVER_RADIUS = 72;
 
-export function AnnotationLayer({ map, active, showNarrative, ariaLabel }) {
+export function AnnotationLayer({
+  map,
+  active,
+  showNarrative,
+  ariaLabel,
+  mobile = false,
+}) {
   const { content } = useContent();
   const hotspotAnnotations = useMemo(
     () => buildHotspotAnnotations(content),
@@ -20,6 +26,10 @@ export function AnnotationLayer({ map, active, showNarrative, ariaLabel }) {
         .map((zone, idx) => ({ ...zone, idx }))
         .filter((zone) => zone.narrative),
     [hotspotAnnotations],
+  );
+  const priorityZones = useMemo(
+    () => (mobile ? narrativeZones.slice(0, 3) : narrativeZones),
+    [mobile, narrativeZones],
   );
 
   useEffect(() => {
@@ -52,12 +62,12 @@ export function AnnotationLayer({ map, active, showNarrative, ariaLabel }) {
 
   useEffect(() => {
     if (!map || !active) return;
-    const onMove = (e) => {
+    const pickNearest = (point) => {
       let best = null;
       let bestDist = HOVER_RADIUS;
       hotspotAnnotations.forEach((zone) => {
         const pt = map.project(zone.coord);
-        const dist = Math.hypot(pt.x - e.point.x, pt.y - e.point.y);
+        const dist = Math.hypot(pt.x - point.x, pt.y - point.y);
         if (dist < bestDist) {
           bestDist = dist;
           best = zone.id;
@@ -65,16 +75,27 @@ export function AnnotationLayer({ map, active, showNarrative, ariaLabel }) {
       });
       setHoverId(best);
     };
+
+    const onMove = (event) => pickNearest(event.point);
+    const onTap = (event) => pickNearest(event.point);
     const canvas = map.getCanvas();
     const onLeave = () => setHoverId(null);
-    map.on("mousemove", onMove);
-    canvas.addEventListener("mouseleave", onLeave);
+    if (mobile) {
+      map.on("click", onTap);
+    } else {
+      map.on("mousemove", onMove);
+      canvas.addEventListener("mouseleave", onLeave);
+    }
     return () => {
-      map.off("mousemove", onMove);
-      canvas.removeEventListener("mouseleave", onLeave);
+      if (mobile) {
+        map.off("click", onTap);
+      } else {
+        map.off("mousemove", onMove);
+        canvas.removeEventListener("mouseleave", onLeave);
+      }
       setHoverId(null);
     };
-  }, [map, active, hotspotAnnotations]);
+  }, [map, active, hotspotAnnotations, mobile]);
 
   if (!active || positions.length === 0) return null;
 
@@ -84,6 +105,48 @@ export function AnnotationLayer({ map, active, showNarrative, ariaLabel }) {
   const hoverZone = hoverIdx >= 0 ? hotspotAnnotations[hoverIdx] : null;
   const hoverPos = hoverIdx >= 0 ? positions[hoverIdx] : null;
   const narrativeShown = narrativeIn && showNarrative;
+  const canvas = map?.getCanvas();
+  const canvasWidth = canvas?.clientWidth ?? 0;
+  const canvasHeight = canvas?.clientHeight ?? 0;
+  const narrowMobile = mobile && canvasWidth < 600;
+  const mobileSideAnchor = Math.min(
+    narrowMobile ? 112 : 184,
+    Math.max(narrowMobile ? 82 : 132, canvasWidth * 0.25),
+  );
+  const mobilePriorityAnchors = [
+    { x: mobileSideAnchor, y: canvasHeight * 0.21 },
+    { x: canvasWidth - mobileSideAnchor, y: canvasHeight * 0.39 },
+    { x: mobileSideAnchor, y: canvasHeight * 0.57 },
+  ];
+  const priorityDisplayZones = priorityZones
+    .map((zone, index) => {
+      const position = positions[zone.idx];
+      if (!position) return null;
+      return {
+        zone,
+        position:
+          mobile && mobilePriorityAnchors[index]
+            ? { dot: position.dot, anchor: mobilePriorityAnchors[index] }
+            : position,
+      };
+    })
+    .filter(Boolean);
+  const hoverDisplayPos =
+    mobile && hoverPos && map
+      ? {
+          dot: hoverPos.dot,
+          anchor: {
+            x: Math.min(
+              canvasWidth - 118,
+              Math.max(118, hoverPos.anchor.x),
+            ),
+            y: Math.min(
+              canvasHeight - (narrowMobile ? 245 : 210),
+              Math.max(narrowMobile ? 150 : 120, hoverPos.anchor.y),
+            ),
+          },
+        }
+      : hoverPos;
 
   const linePath = ({ dot, anchor }) => {
     const mx = (dot.x + anchor.x) / 2;
@@ -94,66 +157,81 @@ export function AnnotationLayer({ map, active, showNarrative, ariaLabel }) {
   return (
     <div className="annotation-layer" aria-label={ariaLabel}>
       <svg className="annotation-lines">
-        {narrativeZones.map((a, i) => {
-          const pos = positions[a.idx];
-          if (!pos) return null;
-          const visible = narrativeShown && a.id !== hoverId;
+        {priorityDisplayZones.map(({ zone, position }, i) => {
+          const visible = narrativeShown && !hoverId;
           return (
             <path
-              key={a.id}
+              key={zone.id}
               className={`annotation-line annotation-line--priority${visible ? " annotation-line--visible" : ""}`}
-              d={linePath(pos)}
+              d={linePath(position)}
               style={{ transitionDelay: `${i * 160}ms` }}
             />
           );
         })}
       </svg>
 
-      {narrativeZones.map((a, i) => {
-        const pos = positions[a.idx];
-        if (!pos) return null;
-        const visible = narrativeShown && a.id !== hoverId;
+      {priorityDisplayZones.map(({ zone, position }, i) => {
+        const visible = narrativeShown && !hoverId;
         return (
           <div
-            key={a.id}
+            key={zone.id}
             className={`annotation-label annotation-label--priority${visible ? " annotation-label--visible" : ""}`}
-            style={{ left: pos.anchor.x, top: pos.anchor.y, transitionDelay: `${i * 160 + 100}ms` }}
+            style={{
+              left: position.anchor.x,
+              top: position.anchor.y,
+              transitionDelay: `${i * 160 + 100}ms`,
+            }}
           >
-            <strong className="annotation-name">{a.name}</strong>
-            {a.tag && <span className="annotation-tag">{a.tag}</span>}
-            {a.context && <span className="annotation-context">{a.context}</span>}
+            <strong className="annotation-name annotation-hovercard-name">
+              {zone.name}
+            </strong>
+            {zone.tag && (
+              <span className="annotation-tag annotation-hovercard-tag">
+                {zone.tag}
+              </span>
+            )}
+            {zone.context && (
+              <p className="annotation-context annotation-hovercard-fact">
+                {zone.context}
+              </p>
+            )}
           </div>
         );
       })}
 
-      {narrativeZones.map((a, i) => {
-        const pos = positions[a.idx];
-        if (!pos) return null;
-        const visible = narrativeShown && a.id !== hoverId;
+      {priorityDisplayZones.map(({ zone, position }, i) => {
+        const visible = narrativeShown && !hoverId;
         return (
           <div
-            key={`dot-${a.id}`}
+            key={`dot-${zone.id}`}
             className={`annotation-dot annotation-dot--priority${visible ? " annotation-dot--visible" : ""}`}
-            style={{ left: pos.dot.x, top: pos.dot.y, transitionDelay: `${i * 160}ms` }}
+            style={{
+              left: position.dot.x,
+              top: position.dot.y,
+              transitionDelay: `${i * 160}ms`,
+            }}
           />
         );
       })}
 
-      {hoverZone && hoverPos && (
+      {hoverZone && hoverDisplayPos && (
         <div className="annotation-hover" key={`hover-${hoverZone.id}`}>
           <svg className="annotation-lines">
             <path
               className="annotation-line annotation-line--priority annotation-line--visible"
-              d={linePath(hoverPos)}
+              d={linePath(hoverDisplayPos)}
             />
           </svg>
           <span
             className="annotation-hover-dot"
-            style={{ left: hoverPos.dot.x, top: hoverPos.dot.y }}
+            style={{ left: hoverDisplayPos.dot.x, top: hoverDisplayPos.dot.y }}
           />
           <div
             className="annotation-hovercard"
-            style={{ left: hoverPos.anchor.x, top: hoverPos.anchor.y }}
+            style={{
+              left: hoverDisplayPos.anchor.x,
+              top: hoverDisplayPos.anchor.y,
+            }}
           >
             <strong className="annotation-hovercard-name">{hoverZone.name}</strong>
             {hoverZone.tag && (

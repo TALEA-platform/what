@@ -25,6 +25,33 @@ const START_DELAY = 1200;
 const TAIL_MS = 600;
 const SCROLL_PLAYBACK_MAX = 4;
 
+const MOBILE_LAYOUT_QUERY = "(max-width: 1279px)";
+const MOBILE_PHASE_READING_LINE = 0.72;
+const MOBILE_READ_MS_MULTIPLIER = 1.18;
+const MOBILE_PANEL_OUT_MS = 280;
+const MOBILE_GESTURE_HINT_MS = 4800;
+const MOBILE_MAX_ZOOM = 16;
+
+const MOBILE_BOLOGNA_BOUNDS = [
+  [11.229655388117, 44.421112955943],
+  [11.433714394127, 44.556205390267],
+];
+const MOBILE_CENTRO_BOUNDS = [
+  [11.326802672492, 44.489950590522],
+  [11.358517554921, 44.506549144341],
+];
+
+function getShadowMobileCameraPadding() {
+  const width = window.innerWidth;
+  const edge = width < 600 ? 18 : width < 900 ? 28 : 38;
+  return {
+    top: width < 600 ? 88 : 102,
+    right: edge,
+    bottom: width < 600 ? 218 : width < 900 ? 224 : 232,
+    left: edge,
+  };
+}
+
 const COLOR_AFTER_MS = 560;
 
 const COUNT_MS = 900;
@@ -324,12 +351,14 @@ const darkOpenfreemapStyle = {
   ],
 };
 
-function SceneDarkMap({ cameraKey, engaged, playbackRate }) {
+function SceneDarkMap({ cameraKey, engaged, playbackRate, mobileLayout, locale }) {
   const [map, setMap] = useState(null);
   const handleReady = useCallback((m) => setMap(m), []);
 
   const centroProminent = cameraKey === "centro";
   const playbackRateRef = useRef(playbackRate);
+  const mobileCameraTouchedRef = useRef(false);
+  const mobileCameraKeyRef = useRef(null);
   useEffect(() => {
     playbackRateRef.current = playbackRate;
   }, [playbackRate]);
@@ -458,19 +487,37 @@ function SceneDarkMap({ cameraKey, engaged, playbackRate }) {
 
   useEffect(() => {
     if (!map) return;
-    const camera =
-      shadowSceneTechnical.stages.find((s) => s.id === cameraKey)?.camera ?? shadowSceneTechnical.opening;
-    map.easeTo({
-      center: camera.center,
-      zoom: camera.zoom,
-      duration: prefersReducedMotion() ? 0 : CAMERA_MS / playbackRate,
-      easing: cameraEasing,
-      essential: true,
-    });
+    if (mobileLayout) {
+      const nextKey = cameraKey === "centro" ? "centro" : "overview";
+      if (mobileCameraKeyRef.current !== nextKey) {
+        mobileCameraKeyRef.current = nextKey;
+        mobileCameraTouchedRef.current = false;
+        map.fitBounds(
+          nextKey === "centro" ? MOBILE_CENTRO_BOUNDS : MOBILE_BOLOGNA_BOUNDS,
+          {
+            padding: getShadowMobileCameraPadding(),
+            duration: prefersReducedMotion() ? 0 : CAMERA_MS / playbackRate,
+            easing: cameraEasing,
+            essential: true,
+          },
+        );
+      }
+    } else {
+      mobileCameraKeyRef.current = null;
+      const camera =
+        shadowSceneTechnical.stages.find((s) => s.id === cameraKey)?.camera ?? shadowSceneTechnical.opening;
+      map.easeTo({
+        center: camera.center,
+        zoom: camera.zoom,
+        duration: prefersReducedMotion() ? 0 : CAMERA_MS / playbackRate,
+        easing: cameraEasing,
+        essential: true,
+      });
+    }
 
     const centroOpacity = {
-      "scene-centro-glow": 0.42,
-      "scene-centro-casing": 0.88,
+      "scene-centro-glow": mobileLayout ? 0.68 : 0.42,
+      "scene-centro-casing": mobileLayout ? 0.96 : 0.88,
       "scene-centro-line": 1,
     };
     Object.entries(centroOpacity).forEach(([layerId, opacity]) => {
@@ -480,7 +527,31 @@ function SceneDarkMap({ cameraKey, engaged, playbackRate }) {
       });
       map.setPaintProperty(layerId, "line-opacity", centroProminent ? opacity : 0);
     });
-  }, [map, cameraKey, centroProminent, playbackRate]);
+  }, [map, cameraKey, centroProminent, playbackRate, mobileLayout]);
+
+  useEffect(() => {
+    if (!map || !mobileLayout) return undefined;
+
+    const markCameraTouched = (event) => {
+      if (event.originalEvent) mobileCameraTouchedRef.current = true;
+    };
+    const refitUntouchedCamera = () => {
+      if (mobileCameraTouchedRef.current) return;
+      map.fitBounds(
+        cameraKey === "centro" ? MOBILE_CENTRO_BOUNDS : MOBILE_BOLOGNA_BOUNDS,
+        { padding: getShadowMobileCameraPadding(), duration: 0 },
+      );
+    };
+
+    map.on("zoomstart", markCameraTouched);
+    map.on("dragstart", markCameraTouched);
+    window.addEventListener("resize", refitUntouchedCamera);
+    return () => {
+      map.off("zoomstart", markCameraTouched);
+      map.off("dragstart", markCameraTouched);
+      window.removeEventListener("resize", refitUntouchedCamera);
+    };
+  }, [map, mobileLayout, cameraKey]);
 
   useEffect(() => {
     if (!map || !map.getLayer("scene-centro-fill")) return undefined;
@@ -516,14 +587,18 @@ function SceneDarkMap({ cameraKey, engaged, playbackRate }) {
       center={shadowSceneTechnical.opening.center}
       zoom={shadowSceneTechnical.opening.zoom}
       minZoom={10.4}
-      maxZoom={15}
+      maxZoom={mobileLayout ? MOBILE_MAX_ZOOM : 15}
+      interactive={mobileLayout}
+      cooperativeGestures={mobileLayout}
+      locale={locale}
+      collapseAttribution={mobileLayout}
     />
   );
 }
 
 
 export function ShadowFocusSection() {
-  const { content, locale } = useContent();
+  const { content, locale, uiContent } = useContent();
   const shadowContent = content.shadowFocus;
   const shadowFocus = shadowContent.intro;
   const shadowFinal = shadowContent.closing;
@@ -559,28 +634,128 @@ export function ShadowFocusSection() {
   const [exitVeil, setExitVeil] = useState(false);
   const [sequenceVisible, setSequenceVisible] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
+  const [mobileLayout, setMobileLayout] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      window.matchMedia(MOBILE_LAYOUT_QUERY).matches,
+  );
+  const [renderedMobileIndex, setRenderedMobileIndex] = useState(0);
+  const [mobilePanelExiting, setMobilePanelExiting] = useState(false);
+  const [mobileGestureHintVisible, setMobileGestureHintVisible] = useState(false);
+  const [legendOpen, setLegendOpen] = useState(false);
 
   const sceneRef = useRef(null);
+  const sceneMapRef = useRef(null);
   const holdRef = useRef(null);
+  const mobileTrackRef = useRef(null);
+  const engagedRef = useRef(false);
+  const mobileTransitionTimerRef = useRef(null);
+  const mobileGestureHintShownRef = useRef(false);
   const scrollAccelerationUnlockAtRef = useRef(Infinity);
 
   const stages = shadowScene.stages;
+  const mobileStepReadMs = useMemo(
+    () =>
+      shadowStageReadMs.map((duration) =>
+        Math.round(duration * MOBILE_READ_MS_MULTIPLIER),
+      ),
+    [shadowStageReadMs],
+  );
   const {
-    revealed,
-    complete,
-    activeIndex,
+    revealed: timedRevealed,
+    complete: timedComplete,
+    activeIndex: timedActiveIndex,
+    selected,
     goTo,
   } = useTimedSequence({
     count: stages.length,
     engaged,
     startDelay: START_DELAY,
-    readMs: shadowStageReadMs,
+    readMs: mobileLayout ? mobileStepReadMs : shadowStageReadMs,
     tailMs: TAIL_MS,
     pickDuringPlay: true,
     playbackRate,
   });
 
+  const activeIndex = timedActiveIndex;
+  const revealed = timedRevealed;
+  const complete = timedComplete;
   const cameraKey = engaged ? stages[activeIndex].id : "opening";
+
+  const mapLibreLocale = useMemo(
+    () => ({
+      "AttributionControl.ToggleAttribution": uiContent.map.toggleAttribution,
+      "Map.Title": uiContent.map.title,
+      "CooperativeGesturesHandler.WindowsHelpText":
+        uiContent.map.cooperativeGestures.windows,
+      "CooperativeGesturesHandler.MacHelpText":
+        uiContent.map.cooperativeGestures.mac,
+      "CooperativeGesturesHandler.MobileHelpText":
+        uiContent.map.cooperativeGestures.mobile,
+    }),
+    [uiContent],
+  );
+
+  useEffect(() => {
+    const mq = window.matchMedia(MOBILE_LAYOUT_QUERY);
+    const handler = (event) => setMobileLayout(event.matches);
+    mq.addEventListener?.("change", handler);
+    return () => mq.removeEventListener?.("change", handler);
+  }, []);
+
+  useEffect(() => {
+    if (!mobileLayout || !legendOpen) return undefined;
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") setLegendOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [mobileLayout, legendOpen]);
+
+  useEffect(() => {
+    if (
+      !mobileLayout ||
+      !engaged ||
+      mobileGestureHintShownRef.current
+    ) {
+      return undefined;
+    }
+    mobileGestureHintShownRef.current = true;
+    setMobileGestureHintVisible(true);
+    const dismissHint = () => setMobileGestureHintVisible(false);
+    const timer = window.setTimeout(dismissHint, MOBILE_GESTURE_HINT_MS);
+    const mapBox = sceneMapRef.current;
+    mapBox?.addEventListener("touchstart", dismissHint, {
+      passive: true,
+      once: true,
+    });
+    return () => {
+      window.clearTimeout(timer);
+      mapBox?.removeEventListener("touchstart", dismissHint);
+      setMobileGestureHintVisible(false);
+    };
+  }, [engaged, mobileLayout]);
+
+  useEffect(() => {
+    if (!mobileLayout || renderedMobileIndex === activeIndex) {
+      return undefined;
+    }
+    window.clearTimeout(mobileTransitionTimerRef.current);
+    mobileTransitionTimerRef.current = window.setTimeout(() => {
+      setMobilePanelExiting(true);
+      mobileTransitionTimerRef.current = window.setTimeout(() => {
+        setRenderedMobileIndex(activeIndex);
+        setMobilePanelExiting(false);
+        mobileTransitionTimerRef.current = null;
+      }, prefersReducedMotion() ? 0 : MOBILE_PANEL_OUT_MS);
+    }, 0);
+    return () => window.clearTimeout(mobileTransitionTimerRef.current);
+  }, [activeIndex, mobileLayout, renderedMobileIndex]);
+
+  const goToMobileStep = useCallback((nextIndex) => {
+    const index = Math.min(stages.length - 1, Math.max(0, nextIndex));
+    goTo(index);
+  }, [goTo, stages.length]);
 
   useEffect(() => {
     scrollAccelerationUnlockAtRef.current = engaged
@@ -604,9 +779,46 @@ export function ShadowFocusSection() {
       const sceneRect = sceneRef.current?.getBoundingClientRect();
       const holdRect = holdRef.current?.getBoundingClientRect();
       const inScene = Boolean(sceneRect) && sceneRect.top < vh && sceneRect.bottom > 0;
-      const mobileLayout = window.matchMedia("(max-width: 720px)").matches;
-      const revealLine = mobileLayout ? 0.62 : 0.55;
-      const nextEngaged = inScene && sceneRect.top <= vh * revealLine;
+
+      if (mobileLayout) {
+        const mobileReleaseLine = engagedRef.current ? 0.28 : 0.12;
+        const nextEngaged =
+          inScene && Boolean(sceneRect) && sceneRect.top <= vh * mobileReleaseLine;
+        const phaseLine = vh * MOBILE_PHASE_READING_LINE;
+        const phaseNodes = mobileTrackRef.current?.querySelectorAll(
+          ".sf-mobile-beat[data-mobile-step]",
+        );
+        const introRect = phaseNodes?.[0]?.getBoundingClientRect();
+        const introProgress = introRect
+          ? Math.min(
+              1,
+              Math.max(
+                0,
+                (phaseLine - introRect.top) / Math.max(1, introRect.height),
+              ),
+            )
+          : 0;
+        const scrollRate =
+          Math.round((1 + introProgress * (SCROLL_PLAYBACK_MAX - 1)) * 4) / 4;
+        const scrollAccelerationReady =
+          performance.now() >= scrollAccelerationUnlockAtRef.current;
+        const nextExitVeil =
+          nextEngaged &&
+          complete &&
+          Boolean(sceneRect) &&
+          sceneRect.bottom <= vh * 1.15;
+        setPlaybackRate(
+          nextEngaged && !complete && scrollAccelerationReady ? scrollRate : 1,
+        );
+        setSequenceVisible(nextEngaged && !nextExitVeil);
+        setExitVeil(nextExitVeil);
+        engagedRef.current = nextEngaged;
+        setEngaged(nextEngaged);
+        if (!nextEngaged || nextExitVeil) setLegendOpen(false);
+        return;
+      }
+
+      const nextEngaged = inScene && sceneRect.top <= vh * 0.55;
 
       const travelled = holdRect
         ? (vh - holdRect.top) / Math.max(1, holdRect.height)
@@ -645,7 +857,7 @@ export function ShadowFocusSection() {
       window.removeEventListener("scroll", requestUpdate);
       window.removeEventListener("resize", requestUpdate);
     };
-  }, [complete]);
+  }, [complete, mobileLayout, stages.length]);
 
   const values = useMemo(() => {
     if (!aggregates?.metrics) return null;
@@ -653,6 +865,26 @@ export function ShadowFocusSection() {
       ? aggregates.metrics
       : null;
   }, [aggregates, shadowTable]);
+
+  const legendContent = (
+    <>
+      <span className="sf-scene-legend-title">{shadowScene.legend.title}</span>
+      <span className="sf-scene-legend-description">{shadowScene.legend.description}</span>
+      <span className="sf-scene-legend-bar" />
+      <div className="sf-scene-legend-labels">
+        <span className="sf-scene-legend-label">{shadowScene.legend.from}</span>
+        <span className="sf-scene-legend-label">{shadowScene.legend.to}</span>
+      </div>
+      <a
+        className="sf-scene-legend-link"
+        href={editorialLinks.shadowFocus.data}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        {shadowScene.legend.sourceLink.label} →
+      </a>
+    </>
+  );
 
   return (
     <section
@@ -676,15 +908,20 @@ export function ShadowFocusSection() {
         className={`sf-scene${engaged ? " sf-scene--engaged" : ""}${exitVeil ? " sf-scene--exiting" : ""}`}
         aria-label={shadowScene.ariaLabel}
       >
-        <div className={`sf-scene-map${engaged ? " sf-scene-map--engaged" : ""}${exitVeil ? " sf-scene-map--exiting" : ""}`}>
+        <div
+          ref={sceneMapRef}
+          className={`sf-scene-map${engaged ? " sf-scene-map--engaged" : ""}${exitVeil ? " sf-scene-map--exiting" : ""}`}
+        >
           <SceneDarkMap
             cameraKey={cameraKey}
             engaged={engaged}
             playbackRate={playbackRate}
+            mobileLayout={mobileLayout}
+            locale={mapLibreLocale}
           />
           <div className="sf-scene-frame" aria-hidden="true" />
           <div className="sf-scene-exit-veil" aria-hidden="true" />
-          <div className="sf-scene-legend">
+          {!mobileLayout && <div className="sf-scene-legend">
             <span className="sf-scene-legend-title">{shadowScene.legend.title}</span>
             <span className="sf-scene-legend-description">{shadowScene.legend.description}</span>
             <span className="sf-scene-legend-bar" />
@@ -700,9 +937,9 @@ export function ShadowFocusSection() {
             >
               {shadowScene.legend.sourceLink.label} →
             </a>
-          </div>
+          </div>}
 
-          {engaged && (
+          {engaged && !mobileLayout && (
             <div
               className={`sf-sequence${sequenceVisible ? " sf-sequence--in" : " sf-sequence--out"}${complete ? " sf-sequence--complete" : ""}`}
               data-motion="story"
@@ -747,11 +984,150 @@ export function ShadowFocusSection() {
               </div>
             </div>
           )}
+
+          {engaged && mobileLayout && revealed > 0 && (
+            <div
+              className={`sf-mobile-story${sequenceVisible ? " sf-mobile-story--in" : " sf-mobile-story--out"}${mobilePanelExiting ? " is-exiting" : ""}`}
+              style={{ "--tier": STAGE_TONES[renderedMobileIndex] }}
+              data-motion="story"
+            >
+              <div className="sf-mobile-story-card" role="status" aria-live="polite">
+                <span className="sf-mobile-story-marker" aria-hidden="true" />
+                <div className="sf-mobile-story-copy">
+                  {renderLines(stages[renderedMobileIndex].body)}
+                </div>
+              </div>
+              <div
+                className={`sf-mobile-story-nav${complete ? " sf-mobile-story-nav--complete" : ""}`}
+              >
+                <div className="sf-mobile-nav-copy">
+                  <div className="sf-mobile-phase-dots" aria-hidden="true">
+                    {stages.map((stage, index) => {
+                      const isDone = index < revealed;
+                      const isCurrent = index === activeIndex;
+                      const isCounting =
+                        selected == null && !complete && index === revealed - 1;
+                      return (
+                        <span
+                          key={stage.id}
+                          className={`sf-mobile-phase-dot${isCurrent ? " is-current" : ""}${isDone ? " is-done" : ""}`}
+                          style={{ "--tier": STAGE_TONES[index] }}
+                        >
+                          {isCounting && (
+                            <svg
+                              className="sf-mobile-phase-ring"
+                              viewBox="0 0 24 24"
+                              aria-hidden="true"
+                              focusable="false"
+                              style={{
+                                "--step-ms": `${
+                                  (index === stages.length - 1
+                                    ? TAIL_MS
+                                    : mobileStepReadMs[index]) / playbackRate
+                                }ms`,
+                              }}
+                            >
+                              <circle cx="12" cy="12" r="10" />
+                            </svg>
+                          )}
+                        </span>
+                      );
+                    })}
+                  </div>
+                  {complete && (
+                    <span className="sf-mobile-sequence-status">
+                      {uiContent.map.hotspotSequenceDone}
+                    </span>
+                  )}
+                </div>
+                <div className="sf-mobile-sequence-controls">
+                  <button
+                    type="button"
+                    className="sf-mobile-sequence-control"
+                    onClick={() => goToMobileStep(activeIndex - 1)}
+                    disabled={activeIndex === 0}
+                    aria-label={uiContent.actions.previousItem}
+                  >
+                    <span aria-hidden="true">←</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="sf-mobile-sequence-control"
+                    onClick={() => goToMobileStep(activeIndex + 1)}
+                    disabled={activeIndex === stages.length - 1}
+                    aria-label={uiContent.actions.nextItem}
+                  >
+                    <span aria-hidden="true">→</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {mobileLayout && mobileGestureHintVisible && (
+            <div className="sf-mobile-gesture-hint" role="status" aria-live="polite">
+              <span>{uiContent.map.cooperativeGestures.mobile}</span>
+            </div>
+          )}
+
+          {engaged && mobileLayout && (
+            <>
+              <button
+                type="button"
+                className="sf-legend-toggle"
+                aria-expanded={legendOpen}
+                aria-label={uiContent.map.legend}
+                onClick={() => setLegendOpen(true)}
+              >
+                <span className="sf-legend-toggle-icon" aria-hidden="true">i</span>
+                <span>{uiContent.map.legend}</span>
+              </button>
+              {legendOpen && (
+                <div
+                  className="sf-legend-overlay"
+                  onClick={() => setLegendOpen(false)}
+                >
+                  <div
+                    className="sf-scene-legend sf-scene-legend--mobile"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label={shadowScene.legend.title}
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    <button
+                      type="button"
+                      className="sf-legend-close"
+                      aria-label={uiContent.actions.close}
+                      onClick={() => setLegendOpen(false)}
+                    >
+                      <span aria-hidden="true">×</span>
+                    </button>
+                    {legendContent}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </div>
 
         <div className="sf-scene-flow">
-          <div ref={holdRef} className="sf-sequence-hold" aria-hidden="true" />
-          <div className="sf-scene-buffer" aria-hidden="true" />
+          {mobileLayout ? (
+            <div ref={mobileTrackRef} className="sf-mobile-track" aria-hidden="true">
+              {stages.map((stage, index) => (
+                <div
+                  key={stage.id}
+                  className="sf-mobile-beat"
+                  data-mobile-step={index}
+                />
+              ))}
+              <div className="sf-mobile-track-tail" />
+            </div>
+          ) : (
+            <>
+              <div ref={holdRef} className="sf-sequence-hold" aria-hidden="true" />
+              <div className="sf-scene-buffer" aria-hidden="true" />
+            </>
+          )}
         </div>
       </section>
 

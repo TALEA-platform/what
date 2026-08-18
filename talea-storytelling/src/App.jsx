@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { Header } from "./components/layout/Header";
 import { Footer } from "./components/layout/Footer";
 import { ScrollStem } from "./components/layout/ScrollStem";
@@ -23,12 +23,31 @@ import { MethodDrawer } from "./components/ui/MethodDrawer";
 function App() {
   const [glossaryId, setGlossaryId] = useState(null);
   const [methodOpen, setMethodOpen] = useState(false);
+  const [mobileProgressOpen, setMobileProgressOpen] = useState(false);
+  const [shellHidden, setShellHidden] = useState(false);
+  const [mobileScrubbing, setMobileScrubbing] = useState(false);
+  const mobileScrubbingRef = useRef(false);
+  const handleMobileScrubbingChange = useCallback((active) => {
+    mobileScrubbingRef.current = active;
+    setMobileScrubbing(active);
+  }, []);
   const openMethod = () => setMethodOpen(true);
 
   return (
     <GlossaryTrailProvider>
-      <ScrollStem />
-      <Header onOpenMethod={openMethod} />
+      <ScrollStem
+        mobileOpen={mobileProgressOpen}
+        mobileHidden={shellHidden}
+        onMobileScrubbingChange={handleMobileScrubbingChange}
+      />
+      <Header
+        onOpenMethod={openMethod}
+        progressOpen={mobileProgressOpen}
+        mobileScrubbing={mobileScrubbing}
+        mobileScrubbingRef={mobileScrubbingRef}
+        onProgressOpenChange={setMobileProgressOpen}
+        onVisibilityChange={setShellHidden}
+      />
       <main className="page-main">
         <Hero />
         <SummerTrendSection />

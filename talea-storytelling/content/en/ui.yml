@@ -14,6 +14,7 @@ header:
 progress:
   id: reading-progress
   ariaLabel: "Reading progress"
+  hint: "Drag or tap to move through the story"
   chapters:
     - id: hero
       label: "Bologna is heating up"
@@ -48,6 +49,17 @@ glossary:
   closeLabel: "Close glossary"
   trailAriaLabel: "Terms already encountered"
   trailLabel: "Already encountered"
+
+map:
+  id: global-map-ui
+  title: "Map"
+  legend: "Legend"
+  hotspotSequenceDone: "Use the arrows to revisit a sentence, or scroll to continue"
+  toggleAttribution: "Toggle map attribution"
+  cooperativeGestures:
+    windows: "Use Ctrl + scroll to zoom the map"
+    mac: "Use ⌘ + scroll to zoom the map"
+    mobile: "Use two fingers to move the map"
 
 actions:
   id: global-actions

@@ -20,6 +20,9 @@
           // dichiarata della coppia, e perché è il numero da cambiare se un
           // giorno la reference cambia formato.
           referenceHeight: 1065,
+          // Sotto questa soglia la cornice smette di simulare i 1920 px e
+          // consegna all'app la larghezza fisica del browser.
+          mobileBreakpoint: 1280,
           // Il cancello degli schermi piccoli. Ora ogni risoluzione passa dalla
           // cornice qui sopra, quindi resta spento: rimettere `true` per
           // richiuderlo (le due soglie qui sotto tornano a valere).
@@ -536,12 +539,10 @@
           frame.title = "TALEA storytelling";
           frame.src = url.href;
 
-          // La cornice è SEMPRE larga `virtualWidth`: quello che cambia è di
-          // quanto la si rimpicciolisce — o la si ingrandisce. Sopra la
-          // reference il fattore passa sopra 1 (2560 → ~1.33, 3840 → 2.00) e la
-          // composizione cresce con lo schermo invece di restare un francobollo
-          // in mezzo al 4K. Nessun tetto: metterlo vorrebbe dire ricominciare a
-          // rimpicciolire la storia proprio dove c'è più spazio.
+          // In desktop la cornice resta larga `virtualWidth`: quello che cambia
+          // è di quanto la si rimpicciolisce — o la si ingrandisce. In mobile
+          // prende invece la larghezza fisica e scala 1, così React e le media
+          // query possono comporre un layout dedicato.
           //
           // La scala la decide SOLO la larghezza, e non `min(w/1920, h/1065)`:
           // sui formati elencati le due danno lo stesso numero (16:9 e 16:10
@@ -553,18 +554,27 @@
           // formato del viewport reale.
           var lastScale = 0;
           var lastHeight = 0;
+          var lastWidth = 0;
 
           function fitFrame() {
-            var scale = window.innerWidth / virtualWidth;
+            var physicalWidth = window.innerWidth;
+            var isMobile = physicalWidth < (config.mobileBreakpoint || 1280);
+            var frameWidth = isMobile ? physicalWidth : virtualWidth;
+            var scale = isMobile ? 1 : physicalWidth / virtualWidth;
             var virtualHeight = Math.ceil(window.innerHeight / scale);
             // `resize` arriva a raffica e `orientationchange` gli si sovrappone:
             // senza questo confronto si riscriverebbero gli stessi tre valori a
             // ogni evento, cioè un re-layout della cornice — e una nuova
             // rasterizzazione del testo — per nulla.
-            if (scale === lastScale && virtualHeight === lastHeight) return;
+            if (
+              frameWidth === lastWidth &&
+              scale === lastScale &&
+              virtualHeight === lastHeight
+            ) return;
+            lastWidth = frameWidth;
             lastScale = scale;
             lastHeight = virtualHeight;
-            frame.style.width = virtualWidth + "px";
+            frame.style.width = frameWidth + "px";
             frame.style.height = virtualHeight + "px";
             frame.style.transform = "scale(" + scale + ")";
           }

@@ -117,17 +117,40 @@ export function setOverviewFrame(map, geojson, padding = 44) {
   }
 }
 
-export function frameOverview(map, duration = 0) {
+const RESET_MAP_PADDING = { top: 0, right: 0, bottom: 0, left: 0 };
+
+export function frameOverview(map, duration = 0, options = {}) {
   if (!map) return;
+  const { resetPadding = false } = options;
   const b = map._reliefBounds;
   if (!b || b.isEmpty()) {
-    map.flyTo({ ...RELIEF_STORY_CAMERA, duration, essential: true });
+    map.flyTo({
+      ...RELIEF_STORY_CAMERA,
+      ...(resetPadding ? { padding: RESET_MAP_PADDING } : {}),
+      duration,
+      essential: true,
+    });
+    return;
+  }
+  const fitOptions = {
+    padding: map._reliefPad ?? 44,
+    maxZoom: 12.4,
+  };
+  if (resetPadding) {
+    const overviewCamera = map.cameraForBounds(b, fitOptions);
+    if (!overviewCamera) return;
+    map.flyTo({
+      ...overviewCamera,
+      padding: RESET_MAP_PADDING,
+      duration,
+      essential: true,
+      easing: EASE_OUT,
+    });
     return;
   }
   map.fitBounds(b, {
-    padding: map._reliefPad ?? 44,
+    ...fitOptions,
     duration,
-    maxZoom: 12.4,
     essential: true,
     easing: EASE_OUT,
   });

@@ -188,6 +188,13 @@ export function SummerTrendChart() {
     return { data, maxTemp, minTemp, yMin, yMax, ticks };
   }, [expanded]);
 
+  const xAxisTicks = useMemo(() => {
+    if (chartWidth > 520 || expanded) return view.ticks;
+    return view.ticks.filter(
+      (_, index) => index % 2 === 0 || index === view.ticks.length - 1,
+    );
+  }, [chartWidth, expanded, view.ticks]);
+
   const drawAnim = visible && !reduceMotion;
   const activeYear = activePoint?.data?.year;
   const invite = expanded
@@ -286,7 +293,7 @@ export function SummerTrendChart() {
               dataKey="year"
               type="number"
               domain={[view.data[0].year, view.data.at(-1).year]}
-              ticks={view.ticks}
+              ticks={xAxisTicks}
               allowDecimals={false}
               tick={{ fontSize: 11, fill: "var(--text-muted)", fontWeight: 500 }}
               tickLine={false}

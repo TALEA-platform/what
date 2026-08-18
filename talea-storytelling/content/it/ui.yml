@@ -14,6 +14,7 @@ header:
 progress:
   id: reading-progress
   ariaLabel: "Avanzamento lettura"
+  hint: "Trascina o premi per spostarti nel racconto"
   chapters:
     - id: hero
       label: "Bologna si scalda"
@@ -48,6 +49,17 @@ glossary:
   closeLabel: "Chiudi glossario"
   trailAriaLabel: "Parole già incontrate"
   trailLabel: "Già incontrate"
+
+map:
+  id: global-map-ui
+  title: "Mappa"
+  legend: "Legenda"
+  hotspotSequenceDone: "Usa le frecce per rivedere una frase, oppure scorri per continuare"
+  toggleAttribution: "Mostra o nascondi l'attribuzione della mappa"
+  cooperativeGestures:
+    windows: "Usa Ctrl + scorrimento per ingrandire la mappa"
+    mac: "Usa ⌘ + scorrimento per ingrandire la mappa"
+    mobile: "Usa due dita per spostare la mappa"
 
 actions:
   id: global-actions

@@ -14,6 +14,9 @@ export function MapLibreCanvas({
   minZoom = 10,
   maxZoom = 16,
   interactive = false,
+  cooperativeGestures = false,
+  locale,
+  collapseAttribution = false,
   hideLabels = false,
 }) {
   const containerRef = useRef(null);
@@ -31,6 +34,8 @@ export function MapLibreCanvas({
       maxZoom,
       attributionControl: false,
       interactive,
+      cooperativeGestures,
+      locale,
     });
 
     map.addControl(
@@ -41,6 +46,11 @@ export function MapLibreCanvas({
     mapRef.current = map;
 
     map.on("load", () => {
+      if (collapseAttribution) {
+        containerRef.current
+          ?.querySelector(".maplibregl-ctrl-attrib")
+          ?.classList.remove("maplibregl-compact-show");
+      }
       if (hideLabels) {
         map.getStyle().layers?.forEach((layer) => {
           if (layer.type === "symbol") {
@@ -57,6 +67,26 @@ export function MapLibreCanvas({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !locale) return;
+
+    // MapLibre has no public runtime locale setter. Updating its locale table
+    // keeps the existing camera/layers alive while language-specific gesture
+    // and accessibility strings change immediately.
+    map._locale = { ...map._locale, ...locale };
+    map.getCanvas()?.setAttribute("aria-label", locale["Map.Title"]);
+
+    const attributionButton = containerRef.current?.querySelector(
+      ".maplibregl-ctrl-attrib-button",
+    );
+    const attributionLabel = locale["AttributionControl.ToggleAttribution"];
+    if (attributionButton && attributionLabel) {
+      attributionButton.setAttribute("aria-label", attributionLabel);
+      attributionButton.setAttribute("title", attributionLabel);
+    }
+  }, [locale]);
 
   return (
     <div

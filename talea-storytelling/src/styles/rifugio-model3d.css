@@ -631,3 +631,55 @@
 .rifugio-model3d[data-idle="true"] .heat-line {
   animation-play-state: paused !important;
 }
+
+@media (max-width: 1279px) {
+  .relief-explainer--engaged .relief-figure-frame {
+    height: clamp(270px, 46svh, 500px);
+  }
+
+  .rifugio-model3d-controls {
+    display: none;
+  }
+
+  .rifugio-model3d-temp {
+    position: absolute;
+    z-index: 3;
+    left: clamp(7px, 1.5vw, 14px);
+    bottom: 7px;
+    min-height: 0;
+    margin: 0;
+    padding: 5px 9px 5px 8px;
+    gap: 7px;
+    border: 1px solid rgba(0, 77, 25, 0.13);
+    border-radius: 12px;
+    background: rgba(244, 242, 233, 0.84);
+    box-shadow: 0 5px 16px rgba(40, 54, 38, 0.09);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+
+  .rifugio-model3d-temp-value {
+    font-size: clamp(23px, 4vw, 30px);
+  }
+
+  .rifugio-model3d-temp-legend {
+    font-size: 8.5px;
+    letter-spacing: 0.11em;
+  }
+
+  .rifugio-model3d-temp-where {
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 560px) {
+  .relief-explainer--engaged .relief-figure-frame {
+    height: clamp(248px, 40svh, 350px);
+  }
+}
+
+@media (max-width: 560px) and (max-height: 760px) {
+  .relief-explainer--engaged .relief-figure-frame {
+    height: clamp(218px, 34svh, 250px);
+  }
+}

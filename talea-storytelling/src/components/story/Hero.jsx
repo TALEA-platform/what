@@ -184,7 +184,12 @@ export function Hero() {
           <h2 className="hero-title">{heroOpening.title}</h2>
 
           <p className="hero-subtitle">
-            <CopySegments parts={heroOpening.subtitle} kwClass="hero-kw" />
+            <span className="hero-subtitle-lead">
+              <CopySegments parts={heroOpening.subtitle.slice(0, 1)} kwClass="hero-kw" />
+            </span>
+            <span className="hero-subtitle-follow">
+              <CopySegments parts={heroOpening.subtitle.slice(1)} kwClass="hero-kw" />
+            </span>
           </p>
 
           <div className="hero-scroll">

@@ -12,6 +12,7 @@ const MOBILE_SCALE_STOPS = [[0, 1], [0.4, 1.12], [0.75, 1.26], [1, 1.38]];
 const TEXT_OPACITY_STOPS = [[0, 1], [0.24, 0.65], [0.4, 0.12], [0.48, 0]];
 const TEXT_Y_STOPS = [[0, 0], [0.26, -20], [0.48, -48], [1, -72]];
 const TEXT_SCALE_STOPS = [[0, 1], [0.24, 1.08], [0.4, 1.24], [0.48, 1.44]];
+const MOBILE_TEXT_SCALE_STOPS = [[0, 1], [0.24, 1.03], [0.4, 1.08], [0.48, 1.1]];
 const OVERLAY_STOPS = [[0, 0.1], [0.3, 0.24], [0.48, 0.38], [0.9, 0.38], [1, 0.12]];
 const BRIDGE_OPACITY_STOPS = [[0, 0], [0.26, 0], [0.38, 0.5], [0.48, 1], [0.9, 1], [1, 0]];
 const BRIDGE_Y_STOPS = [[0, 30], [0.38, 14], [0.48, 0], [0.9, 0], [1, -22]];
@@ -164,7 +165,9 @@ export function Hero() {
 
       const scale = interp(progress, mobileMode ? MOBILE_SCALE_STOPS : SCALE_STOPS);
       const textY = reduceMotion ? 0 : interp(progress, TEXT_Y_STOPS);
-      const textScale = reduceMotion ? 1 : interp(progress, TEXT_SCALE_STOPS);
+      const textScale = reduceMotion
+        ? 1
+        : interp(progress, mobileMode ? MOBILE_TEXT_SCALE_STOPS : TEXT_SCALE_STOPS);
       const bridgeY = reduceMotion ? 0 : interp(progress, BRIDGE_Y_STOPS);
       const bridgeScale = reduceMotion ? 1 : interp(progress, BRIDGE_SCALE_STOPS);
       const bridgeBlur = reduceMotion || mobileMode

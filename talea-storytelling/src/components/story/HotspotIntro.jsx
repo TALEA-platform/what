@@ -16,6 +16,7 @@ const VIGNETTE_RENDERERS = {
 const PANEL_STAGGER_MS = 720;
 const COLOR_AFTER_MS = 560;
 const CAPTION_AFTER_MS = 980;
+const BUILD_EFFECT_MS = 2250;
 
 function prefersReducedMotion() {
   return (
@@ -111,9 +112,10 @@ function IntroVignette({ vignette, html, delay, onGlossary }) {
         entries.forEach((entry) => {
           if (!entry.isIntersecting) return;
           io.unobserve(entry.target);
-          at(0, () => figure.classList.add("drawn"));
+          at(0, () => figure.classList.add("drawn", "is-building"));
           at(COLOR_AFTER_MS, () => figure.classList.add("colored"));
           at(CAPTION_AFTER_MS, () => panel.classList.add("is-told"));
+          at(BUILD_EFFECT_MS, () => figure.classList.remove("is-building"));
         });
       },
       { threshold: 0.28 },
@@ -122,6 +124,7 @@ function IntroVignette({ vignette, html, delay, onGlossary }) {
     return () => {
       io.disconnect();
       timers.forEach((t) => window.clearTimeout(t));
+      figure.classList.remove("is-building");
     };
   }, [delay]);
 

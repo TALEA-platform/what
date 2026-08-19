@@ -197,6 +197,8 @@ export function CityPlanScene() {
   const linkGeometryRef = useRef(null);
   const cameraFrameRef = useRef(null);
   const syncOverlayGeometryRef = useRef(null);
+  const syncScrollStateRef = useRef(null);
+  const mobileNearbyRef = useRef(true);
   const vignetteNodeRef = useRef(null);
   const holdsRef = useRef([]);
   const marksRef = useRef([]);
@@ -242,49 +244,59 @@ export function CityPlanScene() {
   );
 
   const syncOverlayGeometry = useCallback(
-    (commitLink = false) => {
+    (commitLink = false, frameOverride = null) => {
       const band = bandRef.current;
       const box = vignetteNodeRef.current;
-      const frame = cameraFrameRef.current;
+      const frame = frameOverride ?? cameraFrameRef.current;
       if (!band || !frame) return;
 
-      planAnnotationSpecs.forEach((note) => {
-        const x = frame.bandWidth / 2 + frame.sx + (note.point[0] - frame.cx) * frame.zc;
-        const y = frame.stageHeight / 2 + frame.sy + (note.point[1] - frame.cy) * frame.zc;
-        band.style.setProperty(`--annotation-${note.id}-x`, `${x.toFixed(2)}px`);
-        band.style.setProperty(`--annotation-${note.id}-y`, `${y.toFixed(2)}px`);
+      const annotationPositions = planAnnotationSpecs.map((note) => ({
+        id: note.id,
+        x: frame.bandWidth / 2 + frame.sx + (note.point[0] - frame.cx) * frame.zc,
+        y: frame.stageHeight / 2 + frame.sy + (note.point[1] - frame.cy) * frame.zc,
+      }));
+
+      let geometry = null;
+      if (vignetteName && box && box.dataset.vignette === vignetteName) {
+        const anchor = PLAN_ANCHORS[planVignetteMeta[vignetteName]?.anchor];
+        if (anchor) {
+          // Keep all layout reads before CSS/SVG writes in this frame.
+          const br = band.getBoundingClientRect();
+          const vr = box.getBoundingClientRect();
+          const ax = frame.bandWidth / 2 + frame.sx + (anchor[0] - frame.cx) * frame.zc;
+          const ay = frame.stageHeight / 2 + frame.sy + (anchor[1] - frame.cy) * frame.zc;
+          const vx = vr.left + vr.width / 2 - br.left;
+          const vy = vr.top + vr.height / 2 - br.top;
+          const dx = ax - vx;
+          const dy = ay - vy;
+          const len = Math.hypot(dx, dy) || 1;
+          const ux = dx / len;
+          const uy = dy / len;
+          const edge = Math.min(
+            Math.abs(ux) > 1e-3 ? vr.width / 2 / Math.abs(ux) : 1e9,
+            Math.abs(uy) > 1e-3 ? vr.height / 2 / Math.abs(uy) : 1e9,
+          );
+          geometry = {
+            name: vignetteName,
+            ax,
+            ay,
+            fx: Math.round(dx),
+            fy: Math.round(dy),
+            x1: vx + ux * (edge + 10),
+            y1: vy + uy * (edge + 10),
+            x2: ax - ux * (LINK_R + 6),
+            y2: ay - uy * (LINK_R + 6),
+            lead: len > edge + LINK_R + 26,
+          };
+        }
+      }
+
+      annotationPositions.forEach(({ id, x, y }) => {
+        band.style.setProperty(`--annotation-${id}-x`, `${x.toFixed(2)}px`);
+        band.style.setProperty(`--annotation-${id}-y`, `${y.toFixed(2)}px`);
       });
 
-      if (!vignetteName || !box || box.dataset.vignette !== vignetteName) return;
-      const anchor = PLAN_ANCHORS[planVignetteMeta[vignetteName]?.anchor];
-      if (!anchor) return;
-      const br = band.getBoundingClientRect();
-      const vr = box.getBoundingClientRect();
-      const ax = frame.bandWidth / 2 + frame.sx + (anchor[0] - frame.cx) * frame.zc;
-      const ay = frame.stageHeight / 2 + frame.sy + (anchor[1] - frame.cy) * frame.zc;
-      const vx = vr.left + vr.width / 2 - br.left;
-      const vy = vr.top + vr.height / 2 - br.top;
-      const dx = ax - vx;
-      const dy = ay - vy;
-      const len = Math.hypot(dx, dy) || 1;
-      const ux = dx / len;
-      const uy = dy / len;
-      const edge = Math.min(
-        Math.abs(ux) > 1e-3 ? vr.width / 2 / Math.abs(ux) : 1e9,
-        Math.abs(uy) > 1e-3 ? vr.height / 2 / Math.abs(uy) : 1e9,
-      );
-      const geometry = {
-        name: vignetteName,
-        ax,
-        ay,
-        fx: Math.round(dx),
-        fy: Math.round(dy),
-        x1: vx + ux * (edge + 10),
-        y1: vy + uy * (edge + 10),
-        x2: ax - ux * (LINK_R + 6),
-        y2: ay - uy * (LINK_R + 6),
-        lead: len > edge + LINK_R + 26,
-      };
+      if (!geometry) return;
       const changedVignette = linkGeometryRef.current?.name !== vignetteName;
       linkGeometryRef.current = geometry;
       if (commitLink || changedVignette) setLink(geometry);
@@ -308,15 +320,18 @@ export function CityPlanScene() {
     }
   }, [cityPlanContent.scene.svgDescription, vignetteDescriptions, vignetteMount, vignetteName]);
   const bindVignetteNode = useCallback((node) => {
-    if (vignetteNodeRef.current === node) return;
+    if (!node || vignetteNodeRef.current === node) return undefined;
     vignetteNodeRef.current = node;
     setVignetteNode(node);
-    if (node) {
-      node.querySelectorAll(".pv-i").forEach((el) => {
-        el.classList.remove("is-on", "is-gone");
-      });
-      setVignetteMount((current) => current + 1);
-    }
+    node.querySelectorAll(".pv-i").forEach((el) => {
+      el.classList.remove("is-on", "is-gone");
+    });
+    setVignetteMount((current) => current + 1);
+    return () => {
+      if (vignetteNodeRef.current !== node) return;
+      vignetteNodeRef.current = null;
+      setVignetteNode(null);
+    };
   }, []);
 
   useEffect(() => {
@@ -333,7 +348,9 @@ export function CityPlanScene() {
         previousBeat !== beat && previousHadVignette && !previousFinished;
       const id = window.setTimeout(
         () => setMapBeat(Math.max(0, beat - 1)),
-        waitForPreviousExit && !reduceMotion ? VIGNETTE_EXIT_MS : 0,
+        waitForPreviousExit && !reduceMotion && !mobileCameraActive
+          ? VIGNETTE_EXIT_MS
+          : 0,
       );
       return () => window.clearTimeout(id);
     }
@@ -341,14 +358,14 @@ export function CityPlanScene() {
     if (previousBeat !== beat && previousHadVignette && !previousFinished) {
       const id = window.setTimeout(
         () => setMapBeat(beat),
-        reduceMotion ? 0 : VIGNETTE_EXIT_MS,
+        reduceMotion || mobileCameraActive ? 0 : VIGNETTE_EXIT_MS,
       );
       return () => window.clearTimeout(id);
     }
 
     const id = window.setTimeout(() => setMapBeat(beat), 0);
     return () => window.clearTimeout(id);
-  }, [beat, entered, reduceMotion]);
+  }, [beat, entered, mobileCameraActive, reduceMotion]);
 
   useEffect(() => {
     if (!entered || !vignetteName || !vignetteComplete) return undefined;
@@ -385,6 +402,48 @@ export function CityPlanScene() {
     io.observe(root);
     return () => io.disconnect();
   }, []);
+
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return undefined;
+    if (!mobileCameraActive || typeof IntersectionObserver !== "function") {
+      mobileNearbyRef.current = true;
+      root.dataset.mobileNearby = "true";
+      syncScrollStateRef.current?.();
+      return undefined;
+    }
+
+    let syncFrame = null;
+    const viewportHeight = window.innerHeight || 768;
+    const rect = root.getBoundingClientRect();
+    mobileNearbyRef.current =
+      rect.top <= viewportHeight * 2 && rect.bottom >= -viewportHeight;
+    root.dataset.mobileNearby = String(mobileNearbyRef.current);
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        const nextNearby = entry.isIntersecting;
+        if (nextNearby === mobileNearbyRef.current) return;
+        mobileNearbyRef.current = nextNearby;
+        root.dataset.mobileNearby = String(nextNearby);
+        if (!nextNearby) return;
+        if (syncFrame) cancelAnimationFrame(syncFrame);
+        syncFrame = requestAnimationFrame(() => {
+          syncFrame = null;
+          // Measure and paint once before the scene can enter the viewport.
+          syncScrollStateRef.current?.();
+        });
+      },
+      { rootMargin: "1500px 0px 1500px 0px", threshold: 0 },
+    );
+    observer.observe(root);
+    if (mobileNearbyRef.current) syncScrollStateRef.current?.();
+    return () => {
+      observer.disconnect();
+      if (syncFrame) cancelAnimationFrame(syncFrame);
+      delete root.dataset.mobileNearby;
+    };
+  }, [mobileCameraActive]);
 
   useEffect(() => {
     let frame = null;
@@ -475,8 +534,11 @@ export function CityPlanScene() {
       });
     };
 
-    const update = () => {
+    const update = (force = false) => {
       frame = null;
+      const mobileViewport =
+        window.innerWidth <= planMobileCameraSettings.maxWidth;
+      if (mobileViewport && !mobileNearbyRef.current && !force) return;
       const marks = marksRef.current;
       if (!marks.length) return;
       const y = window.scrollY;
@@ -485,7 +547,6 @@ export function CityPlanScene() {
         1,
         Math.max(0, (y - marks.start) / (marks.end - marks.start)),
       );
-      rootRef.current?.style.setProperty("--plan-progress", progress.toFixed(4));
       const vh = window.innerHeight || 768;
       const entrySpan = Math.max(1, vh * 0.75);
       const entry = reduceMotion
@@ -496,8 +557,6 @@ export function CityPlanScene() {
       const exit = reduceMotion
         ? 0
         : Math.min(1, Math.max(0, (y - exitStart) / exitSpan));
-      rootRef.current?.style.setProperty("--plan-entry", entry.toFixed(4));
-      rootRef.current?.style.setProperty("--plan-exit", exit.toFixed(4));
       let reached = 0;
       for (let i = 0; i < marks.length; i += 1) if (y >= marks[i]) reached = i + 1;
       const next = Math.min(planBeatSpecs.length - 1, reached);
@@ -518,6 +577,17 @@ export function CityPlanScene() {
         const zc = bandWidth / camera.units;
         const sx = (camera.screen[0] - 0.5) * bandWidth;
         const sy = (camera.screen[1] - 0.5) * stageHeight;
+        const nextFrame = {
+          bandWidth,
+          stageHeight,
+          cx: camera.at[0],
+          cy: camera.at[1],
+          zc,
+          sx,
+          sy,
+        };
+        cameraFrameRef.current = nextFrame;
+        syncOverlayGeometryRef.current?.(false, nextFrame);
         cam.style.setProperty("--cx", camera.at[0].toFixed(2));
         cam.style.setProperty("--cy", camera.at[1].toFixed(2));
         cam.style.setProperty("--zc", zc.toFixed(5));
@@ -527,32 +597,43 @@ export function CityPlanScene() {
           "--plan-camera-step-progress",
           localProgress.toFixed(4),
         );
-        cameraFrameRef.current = {
-          bandWidth,
-          stageHeight,
-          cx: camera.at[0],
-          cy: camera.at[1],
-          zc,
-          sx,
-          sy,
-        };
-        syncOverlayGeometryRef.current?.();
       }
+      rootRef.current?.style.setProperty("--plan-progress", progress.toFixed(4));
+      rootRef.current?.style.setProperty("--plan-entry", entry.toFixed(4));
+      rootRef.current?.style.setProperty("--plan-exit", exit.toFixed(4));
       paintCopy(y, next);
       setBeat((current) => (current === next ? current : next));
     };
 
     const requestUpdate = () => {
+      if (
+        window.innerWidth <= planMobileCameraSettings.maxWidth &&
+        !mobileNearbyRef.current
+      )
+        return;
       if (frame) return;
       frame = requestAnimationFrame(update);
     };
     const onResize = () => {
+      if (
+        window.innerWidth <= planMobileCameraSettings.maxWidth &&
+        !mobileNearbyRef.current
+      )
+        return;
       measure();
       update();
     };
+    const syncNow = () => {
+      measure();
+      update(true);
+    };
+    syncScrollStateRef.current = syncNow;
 
-    measure();
-    update();
+    if (
+      window.innerWidth > planMobileCameraSettings.maxWidth ||
+      mobileNearbyRef.current
+    )
+      syncNow();
     window.addEventListener("scroll", requestUpdate, { passive: true });
     window.addEventListener("resize", onResize);
     const layoutObserver = new ResizeObserver(onResize);
@@ -569,6 +650,8 @@ export function CityPlanScene() {
     const settleId = window.setTimeout(onResize, 1100);
     return () => {
       live = false;
+      if (syncScrollStateRef.current === syncNow)
+        syncScrollStateRef.current = null;
       window.clearTimeout(settleId);
       layoutObserver.disconnect();
       if (frame) cancelAnimationFrame(frame);
@@ -627,6 +710,7 @@ export function CityPlanScene() {
     ) return;
 
     enteredVignetteMountRef.current = vignetteMount;
+    if (mobileCameraActive) return;
     if (reduceMotion) {
       vignetteControls.set({ opacity: 1, x: 0, y: 0, scale: 1, filter: "none" });
       return;
@@ -644,7 +728,7 @@ export function CityPlanScene() {
       x: 0,
       y: 0,
       scale: 1,
-      filter: "blur(0px)",
+      filter: "none",
       transition: {
         duration: VIGNETTE_ENTER_MS / 1000,
         ease: [0.22, 1, 0.36, 1],
@@ -652,6 +736,7 @@ export function CityPlanScene() {
     });
   }, [
     currentLink,
+    mobileCameraActive,
     reduceMotion,
     vignetteControls,
     vignetteLive,
@@ -796,7 +881,10 @@ export function CityPlanScene() {
             ))}
           </AnimatePresence>
 
-          <AnimatePresence mode="wait" initial={false}>
+          <AnimatePresence
+            mode={mobileCameraActive ? "sync" : "wait"}
+            initial={false}
+          >
             {vignetteName && entered && currentLink ? (
               <motion.svg
                 ref={linkSvgRef}
@@ -806,8 +894,8 @@ export function CityPlanScene() {
                 data-motion="story"
                 exit={{ opacity: 0 }}
                 transition={{
-                  duration: reduceMotion ? 0 : 0.45,
-                  delay: reduceMotion ? 0 : 0.08,
+                  duration: reduceMotion ? 0 : mobileCameraActive ? 0.28 : 0.45,
+                  delay: reduceMotion || mobileCameraActive ? 0 : 0.08,
                 }}
               >
               {["halo", "ink"].map((layer) => (
@@ -851,18 +939,61 @@ export function CityPlanScene() {
             ) : null}
           </AnimatePresence>
 
-          <AnimatePresence mode="wait" initial={false}>
+          <AnimatePresence
+            mode={mobileCameraActive ? "sync" : "wait"}
+            initial={false}
+          >
             {vignetteLive ? (
               <motion.div
                 ref={bindVignetteNode}
                 key={vignetteName}
-                className={`plan-vignette plan-vignette--${place} plan-vignette--${vignetteSide}`}
+                className={`plan-vignette plan-vignette--${place} plan-vignette--${vignetteSide}${
+                  vignetteComplete ? "" : " is-building"
+                }`}
                 style={{ "--ratio": planVignetteMeta[vignetteName].ratio }}
-                initial={reduceMotion ? false : { opacity: 0 }}
-                animate={vignetteControls}
+                initial={
+                  reduceMotion
+                    ? false
+                    : mobileCameraActive
+                      ? {
+                          opacity: 0,
+                          x: (currentLink?.fx ?? 0) * 0.12,
+                          y: (currentLink?.fy ?? 0) * 0.12,
+                          scale: 0.96,
+                          filter: "none",
+                        }
+                      : { opacity: 0 }
+                }
+                animate={
+                  mobileCameraActive
+                    ? {
+                        opacity: 1,
+                        x: 0,
+                        y: 0,
+                        scale: 1,
+                        filter: "none",
+                        transition: {
+                          duration: reduceMotion ? 0 : 0.42,
+                          ease: [0.22, 1, 0.36, 1],
+                        },
+                      }
+                    : vignetteControls
+                }
                 exit={
                   reduceMotion
                     ? { opacity: 0, transition: { duration: 0 } }
+                    : mobileCameraActive
+                      ? {
+                          opacity: 0,
+                          x: 0,
+                          y: 0,
+                          scale: 0.98,
+                          filter: "none",
+                          transition: {
+                            duration: 0.34,
+                            ease: [0.45, 0, 0.25, 1],
+                          },
+                        }
                     : {
                         opacity: 0,
                         x: currentLink?.fx ?? 0,

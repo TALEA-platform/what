@@ -267,6 +267,8 @@
 
   .hero-sticky {
     height: 100svh;
+    filter: none;
+    will-change: opacity;
   }
 
   .hero-content {
@@ -302,6 +304,8 @@
 
   .hero-bridge-preview {
     padding: calc(var(--header-height) + 34px) 24px 48px;
+    filter: none;
+    will-change: opacity, transform;
   }
 
   .hero-bridge-preview::before {
@@ -5515,6 +5519,28 @@
   }
 }
 
+@media (max-width: 1279px) {
+  .vulnerability-vignette.is-building .scene {
+    filter: none !important;
+  }
+
+  .vulnerability-vignette .material-hatch path {
+    opacity: 0;
+    stroke-dasharray: none;
+    stroke-dashoffset: 0;
+    transition: opacity 0.62s ease 0.28s;
+  }
+
+  .vulnerability-vignette.drawn .material-hatch path {
+    opacity: 1;
+  }
+
+  .vulnerability-vignette:not(.is-effects-active) .haze,
+  .vulnerability-vignette:not(.is-effects-active) .heat path {
+    animation-play-state: paused;
+  }
+}
+
 
 
 .relief-chapter {
@@ -6792,6 +6818,18 @@
 .relief-map-info-head,
 .relief-map-control-close {
   display: none;
+}
+
+@media (max-width: 1279px) {
+  .relief-figure.is-building .scene {
+    filter: none !important;
+  }
+
+  .relief-figure[data-effects-active="false"] .layer.on .water,
+  .relief-figure[data-effects-active="false"] .layer.on .mist ellipse,
+  .relief-figure[data-effects-active="false"] .layer.on .jets path {
+    animation-play-state: paused;
+  }
 }
 
 .relief-map-count-group {
@@ -8271,6 +8309,37 @@
   }
 
   .plan-camera { will-change: transform; }
+
+  .plan-scene[data-mobile-nearby="false"] .plan-link-dot {
+    animation-play-state: paused;
+  }
+
+  .plan-vignette.is-building .plan-vignette-art svg {
+    filter: none;
+  }
+
+  .plan-vignette[data-vignette="costruire"]
+    .pv-i[data-step="10"]
+    .pv-l {
+    opacity: 0;
+    transition: opacity 0.52s var(--ease-cine);
+  }
+
+  .plan-vignette[data-vignette="costruire"]
+    .pv-i[data-step="10"].is-on
+    .pv-l {
+    opacity: 0.44;
+  }
+
+  .plan-vignette[data-vignette="costruire"]
+    .pv-i[data-step="10"]
+    .pv-l
+    path {
+    opacity: 1;
+    stroke-dasharray: none;
+    stroke-dashoffset: 0;
+    transition: none;
+  }
 
   .plan-veil--l,
   .plan-veil--r {

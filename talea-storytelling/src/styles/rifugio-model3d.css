@@ -633,6 +633,26 @@
 }
 
 @media (max-width: 1279px) {
+  .rifugio-model3d.is-mobile-interacting #model,
+  .rifugio-model3d.is-mobile-interacting #model-svg {
+    filter: none !important;
+  }
+
+  .rifugio-model3d.is-mobile-interacting #annotation {
+    opacity: 0;
+  }
+
+  .rifugio-model3d.is-mobile-interacting .cast-alive,
+  .rifugio-model3d.is-mobile-interacting .bird,
+  .rifugio-model3d.is-mobile-interacting .water-jet,
+  .rifugio-model3d.is-mobile-interacting .water-ring,
+  .rifugio-model3d.is-mobile-interacting .moving-car,
+  .rifugio-model3d.is-mobile-interacting .bus-door,
+  .rifugio-model3d.is-mobile-interacting .bus-stop-cue,
+  .rifugio-model3d.is-mobile-interacting .heat-line {
+    animation-play-state: paused !important;
+  }
+
   .relief-explainer--engaged .relief-figure-frame {
     height: clamp(270px, 46svh, 500px);
   }

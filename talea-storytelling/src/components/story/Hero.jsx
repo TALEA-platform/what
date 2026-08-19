@@ -44,8 +44,15 @@ export function Hero() {
   const videoRef = useRef(null);
   const wrapperRef = useRef(null);
   const stickyRef = useRef(null);
+  const mobileHeroNearbyRef = useRef(true);
+  const mobileHeroPastRef = useRef(false);
+  const heroEndScrollRef = useRef(Infinity);
+  const syncHeroScrollRef = useRef(null);
   const [videoReady, setVideoReady] = useState(false);
   const [posterVisible, setPosterVisible] = useState(false);
+  const [mobileMode, setMobileMode] = useState(
+    () => typeof window !== "undefined" && window.innerWidth < 1280,
+  );
   const [reduceMotion, setReduceMotion] = useState(
     () =>
       typeof window !== "undefined" &&
@@ -55,6 +62,13 @@ export function Hero() {
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
     const handler = (event) => setReduceMotion(event.matches);
+    mq.addEventListener?.("change", handler);
+    return () => mq.removeEventListener?.("change", handler);
+  }, []);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 1279px)");
+    const handler = (event) => setMobileMode(event.matches);
     mq.addEventListener?.("change", handler);
     return () => mq.removeEventListener?.("change", handler);
   }, []);
@@ -74,9 +88,9 @@ export function Hero() {
       ([entry]) => (entry.isIntersecting ? resume() : video.pause()),
       { threshold: 0 },
     );
-    observer.observe(video);
+    observer.observe(mobileMode ? wrapperRef.current ?? video : video);
     return () => observer.disconnect();
-  }, []);
+  }, [mobileMode]);
 
   useEffect(() => {
     if (videoReady) window.__taleaBoot?.ready("hero");
@@ -86,6 +100,43 @@ export function Hero() {
     const id = window.setTimeout(() => setPosterVisible(true), POSTER_GRACE_MS);
     return () => window.clearTimeout(id);
   }, []);
+
+  useEffect(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return undefined;
+    if (!mobileMode || typeof IntersectionObserver !== "function") {
+      mobileHeroNearbyRef.current = true;
+      syncHeroScrollRef.current?.();
+      return undefined;
+    }
+
+    let syncFrame = null;
+    const vh = window.innerHeight || 768;
+    const rect = wrapper.getBoundingClientRect();
+    mobileHeroNearbyRef.current = rect.top <= vh * 2 && rect.bottom >= -vh;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        const nextNearby = entry.isIntersecting;
+        if (nextNearby === mobileHeroNearbyRef.current) return;
+        mobileHeroNearbyRef.current = nextNearby;
+        if (!nextNearby) {
+          videoRef.current?.pause();
+          return;
+        }
+        if (syncFrame) cancelAnimationFrame(syncFrame);
+        syncFrame = requestAnimationFrame(() => {
+          syncFrame = null;
+          syncHeroScrollRef.current?.();
+        });
+      },
+      { rootMargin: "100% 0px 100% 0px", threshold: 0 },
+    );
+    observer.observe(wrapper);
+    return () => {
+      observer.disconnect();
+      if (syncFrame) cancelAnimationFrame(syncFrame);
+    };
+  }, [mobileMode]);
 
   useEffect(() => {
     const wrapper = wrapperRef.current;
@@ -99,14 +150,19 @@ export function Hero() {
       frame = null;
       const vh = window.innerHeight || 1;
       const scrollable = Math.max(1, wrapper.offsetHeight - vh);
-      const progress = clamp01(-wrapper.getBoundingClientRect().top / scrollable);
+      const wrapperRect = wrapper.getBoundingClientRect();
+      const progress = clamp01(-wrapperRect.top / scrollable);
+      heroEndScrollRef.current = window.scrollY + wrapperRect.top + scrollable;
+      mobileHeroPastRef.current = mobileMode && progress >= 0.9995;
 
       const scale = interp(progress, SCALE_STOPS);
       const textY = reduceMotion ? 0 : interp(progress, TEXT_Y_STOPS);
       const textScale = reduceMotion ? 1 : interp(progress, TEXT_SCALE_STOPS);
       const bridgeY = reduceMotion ? 0 : interp(progress, BRIDGE_Y_STOPS);
       const bridgeScale = reduceMotion ? 1 : interp(progress, BRIDGE_SCALE_STOPS);
-      const bridgeBlur = reduceMotion ? 0 : interp(progress, BRIDGE_BLUR_STOPS);
+      const bridgeBlur = reduceMotion || mobileMode
+        ? 0
+        : interp(progress, BRIDGE_BLUR_STOPS);
 
       sticky.style.setProperty("--hero-scale", scale.toFixed(4));
       sticky.style.setProperty("--hero-text-opacity", interp(progress, TEXT_OPACITY_STOPS).toFixed(3));
@@ -119,8 +175,16 @@ export function Hero() {
       sticky.style.setProperty("--bridge-blur", `${bridgeBlur.toFixed(2)}px`);
       const heroFade = interp(progress, HERO_FADE_STOPS);
       sticky.style.setProperty("--hero-fade", heroFade.toFixed(3));
-      const exitBlur = reduceMotion ? 0 : (1 - heroFade) * 16;
+      const exitBlur = reduceMotion || mobileMode ? 0 : (1 - heroFade) * 16;
       sticky.style.setProperty("--hero-exit-blur", `${exitBlur.toFixed(1)}px`);
+
+      if (mobileMode) {
+        const video = videoRef.current;
+        const shouldPlay =
+          wrapperRect.bottom > 0 && wrapperRect.top < vh && progress < 0.9995;
+        if (shouldPlay && video?.paused) video.play().catch(() => {});
+        else if (!shouldPlay && video && !video.paused) video.pause();
+      }
 
       const nextLit = bridgeLit
         ? progress > BRIDGE_LIT_OFF
@@ -132,17 +196,31 @@ export function Hero() {
     };
 
     const requestUpdate = () => {
+      if (mobileMode) {
+        if (!mobileHeroNearbyRef.current) return;
+        if (
+          mobileHeroPastRef.current &&
+          window.scrollY >= heroEndScrollRef.current - 1
+        )
+          return;
+        mobileHeroPastRef.current = false;
+      }
       if (!frame) frame = requestAnimationFrame(update);
     };
-    update();
+    const syncNow = () => {
+      if (!frame) frame = requestAnimationFrame(update);
+    };
+    syncHeroScrollRef.current = syncNow;
+    if (!mobileMode || mobileHeroNearbyRef.current) update();
     window.addEventListener("scroll", requestUpdate, { passive: true });
     window.addEventListener("resize", requestUpdate);
     return () => {
+      if (syncHeroScrollRef.current === syncNow) syncHeroScrollRef.current = null;
       if (frame) cancelAnimationFrame(frame);
       window.removeEventListener("scroll", requestUpdate);
       window.removeEventListener("resize", requestUpdate);
     };
-  }, [reduceMotion]);
+  }, [mobileMode, reduceMotion]);
 
   return (
     <section

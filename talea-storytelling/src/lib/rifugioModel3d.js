@@ -95,11 +95,13 @@ export function createRifugioModel(shell, options = {}) {
   const roadVolumeClipShape = svg.querySelector("#road-volume-clip-shape");
   const onFrame = typeof options.onFrame === "function" ? options.onFrame : null;
   const onZoom = typeof options.onZoom === "function" ? options.onZoom : null;
+  const mobileMode = options.mobile === true;
 
   const MIN_ZOOM = 1;
   const MAX_ZOOM = 2.4;
  const DEFAULT_ZOOM = 1;
   let zoom = DEFAULT_ZOOM;
+  let notifiedZoomBand = 0;
   let panX = 0;
   let panY = 0;
   let panning = false;
@@ -1679,7 +1681,8 @@ export function createRifugioModel(shell, options = {}) {
     const delay = `animation-delay:-${phase.toFixed(3)}s`;
 
     const near = visible({x:0,y:1,z:0}, radians) ? 1 : -1;
-    const parts = dragging ? busLod : [...busSolids, ...busDetails];
+    const lightweight = interactionLightweight();
+    const parts = lightweight ? busLod : [...busSolids, ...busDetails];
     const paint = (list) => list.sort((a,b)=>compareItems(a,b,radians))
       .map((item) => renderItem(item,radians,true)).join("");
     const onSide = (list, s) => active(list).filter((item) => (item.busSide|0) === s);
@@ -1688,7 +1691,7 @@ export function createRifugioModel(shell, options = {}) {
       if (!doors.length) return "";
       return `<g class="bus-door bus-door--${dir < 0 ? "left" : "right"}" style="${delay};--car-duration:${BUS_SECONDS}s">${paint(doors)}</g>`;
     };
-    const side = (s) => paint(onSide(parts, s)) + (dragging ? "" : doorGroup(s,-1) + doorGroup(s,1));
+    const side = (s) => paint(onSide(parts, s)) + (lightweight ? "" : doorGroup(s,-1) + doorGroup(s,1));
     const body = side(-near) + paint(onSide(parts, 0)) + side(near);
     const ground = paint(onSide(busGround, 0));
 
@@ -1697,7 +1700,7 @@ export function createRifugioModel(shell, options = {}) {
                  : t < BUS_LEAVE  ? stopX
                  : stopX + (toX-stopX) * ((t-BUS_LEAVE)/(1-BUS_LEAVE));
 
-    const cue = dragging ? ""
+    const cue = lightweight ? ""
       : `<ellipse class="bus-stop-cue" style="${delay};--car-duration:${BUS_SECONDS}s" cx="0" cy="14" rx="31" ry="7" fill="#E8D9A8" opacity="0"/>`;
     const html = `<g class="moving-car bus-run" clip-path="url(#road-volume-clip)"`
       + ` style="--car-start-x:${sx};--car-start-y:${sy};--bus-stop-x:${mx};--bus-stop-y:${my};`
@@ -1723,6 +1726,16 @@ export function createRifugioModel(shell, options = {}) {
 
   let angle = DEFAULT_ANGLE;
   let raf = 0;
+  let interactionFrameTimer = 0;
+  let interactionIdleTimer = 0;
+  let mobileInteracting = false;
+  let lastInteractionRenderAt = 0;
+  const MOBILE_FRAME_MS = 1000 / 30;
+  const MOBILE_IDLE_MS = 180;
+
+  function interactionLightweight() {
+    return dragging || (mobileMode && mobileInteracting);
+  }
 
   function renderSun(radians) {
     const d = camera2d(SUN_WORLD, radians);
@@ -1851,19 +1864,21 @@ export function createRifugioModel(shell, options = {}) {
   function render() {
     raf = 0;
     const started = performance.now();
+    const lightweight = interactionLightweight();
+    if (mobileMode && mobileInteracting) lastInteractionRenderAt = started;
     const radians = angle * Math.PI / 180;
     computeFit(radians);
     updateRoadVolumeClip(radians);
     renderSun(radians);
     const background = sorted(baseFaces,radians).map((item) => renderItem(item,radians)).join("");
     const materials = active(groundSurfaces).map((item) => renderItem(item,radians)).join("");
-    const pavingItems = dragging
+    const pavingItems = lightweight
       ? active(groundLines).filter((item)=>["curb-line","road-line","drain-line","threshold-line","aiuola-line"].includes(item.className))
       : active(groundLines);
     const paving = pavingItems.map((item) => renderItem(item,radians)).join("");
     const heatFloor = active(heatFaces).map((item) => renderItem(item,radians)).join("");
-    const shade = dragging ? "" : renderShadows(radians);
-    const contacts = dragging ? "" : sorted(contactFaces,radians).map((item) => renderItem(item,radians)).join("");
+    const shade = lightweight ? "" : renderShadows(radians);
+    const contacts = lightweight ? "" : sorted(contactFaces,radians).map((item) => renderItem(item,radians)).join("");
     const traffic = renderTraffic(radians);
     const busOverlay = renderBus(radians);
 
@@ -1875,9 +1890,9 @@ export function createRifugioModel(shell, options = {}) {
 
     const visibleSolids = active(solids).filter((item) => {
       if(item.revealGroup === "pergola-green" && !pergolaGreenReady) return false;
-      return dragging ? !item.dragSkip : !item.dragOnly;
+      return lightweight ? !item.dragSkip : !item.dragOnly;
     });
-    const sceneItems = [...visibleSolids,...(dragging ? [] : active(details).filter((item) => !item.surfaceKey && !item.dragOnly))];
+    const sceneItems = [...visibleSolids,...(lightweight ? [] : active(details).filter((item) => !item.surfaceKey && !item.dragOnly))];
 
     const byFigure = new Map();
     const byObject = new Map();
@@ -1917,7 +1932,7 @@ export function createRifugioModel(shell, options = {}) {
     const renderSurfacePart = (item, quiet = false) => {
       const surface = renderItem(item,radians,false,quiet);
       if (!surface || !item.surfaceKey) return surface;
-      const openings = dragging ? "" : (attachedDetails.get(item.surfaceKey) || [])
+      const openings = lightweight ? "" : (attachedDetails.get(item.surfaceKey) || [])
         .sort((a,b) => compareItems(a,b,radians))
         .map((detail) => renderItem(detail,radians,true,quiet))
         .join("");
@@ -1927,7 +1942,7 @@ export function createRifugioModel(shell, options = {}) {
     const scene = units.map((unit) => {
       if (unit.html != null) return unit.html;
       if (unit.figureId) {
-        if (dragging) return renderFigureLOD(unit.figureId,radians);
+        if (lightweight) return renderFigureLOD(unit.figureId,radians);
         const inner = [...unit.parts]
           .sort((a,b) => compareItems(a,b,radians))
           .map((part) => renderItem(part,radians))
@@ -1977,7 +1992,7 @@ export function createRifugioModel(shell, options = {}) {
 
     const w = fit.scale * .30;
     const h = fit.scale * .46;
-    const heat = dragging ? "" : heatAnchors.filter((a) => liveAt(a)).map((a, i) => {
+    const heat = lightweight ? "" : heatAnchors.filter((a) => liveAt(a)).map((a, i) => {
       const q = project(a.p,radians);
       return `<path class="heat-line" style="animation-delay:-${phaseOf(HEAT_DUR, i * 1.2)}s"`
         + ` d="M${q.x.toFixed(1)} ${q.y.toFixed(1)} q${(-w).toFixed(1)} ${(-h).toFixed(1)} 0 ${(-h*2).toFixed(1)} q${w.toFixed(1)} ${(-h).toFixed(1)} 0 ${(-h*2).toFixed(1)}"`
@@ -2009,8 +2024,25 @@ export function createRifugioModel(shell, options = {}) {
 
   }
 
-  function scheduleRender() {
+  function queueRenderFrame() {
     if (!raf) raf = requestAnimationFrame(render);
+  }
+
+  function scheduleRender(force = false) {
+    if (mobileMode && mobileInteracting && !force) {
+      const remaining = MOBILE_FRAME_MS -
+        (performance.now() - lastInteractionRenderAt);
+      if (remaining > 1) {
+        if (!interactionFrameTimer) {
+          interactionFrameTimer = later(() => {
+            interactionFrameTimer = 0;
+            queueRenderFrame();
+          }, remaining);
+        }
+        return;
+      }
+    }
+    queueRenderFrame();
   }
 
   function turn(delta) {
@@ -2039,7 +2071,13 @@ export function createRifugioModel(shell, options = {}) {
     zoom = clamped;
     clampPan();
     shell.dataset.zoom = zoom > 1.02 ? "in" : "out";
-    if (!silent && onZoom) onZoom(zoom);
+    if (!silent && onZoom) {
+      const nextBand = zoom <= 1.02 ? 0 : zoom >= 2.38 ? 2 : 1;
+      if (!mobileMode || nextBand !== notifiedZoomBand) {
+        notifiedZoomBand = nextBand;
+        onZoom(zoom);
+      }
+    }
     scheduleRender();
   }
 
@@ -2075,16 +2113,42 @@ export function createRifugioModel(shell, options = {}) {
   let dragging = false;
   let lastX = 0;
   let lastY = 0;
+  let gestureBox = null;
   const pointers = new Map();
   let pinchStart = 0;
   let pinchZoomStart = 1;
   let pinchCentre = null;
 
+  const beginMobileInteraction = () => {
+    if (!mobileMode) return;
+    if (interactionIdleTimer) {
+      clearTimeout(interactionIdleTimer);
+      interactionIdleTimer = 0;
+    }
+    mobileInteracting = true;
+    shell.classList.add("is-mobile-interacting");
+  };
+
+  const finishMobileInteractionSoon = () => {
+    if (!mobileMode) return;
+    if (interactionIdleTimer) clearTimeout(interactionIdleTimer);
+    interactionIdleTimer = later(() => {
+      interactionIdleTimer = 0;
+      mobileInteracting = false;
+      shell.classList.remove("is-mobile-interacting");
+      if (interactionFrameTimer) {
+        clearTimeout(interactionFrameTimer);
+        interactionFrameTimer = 0;
+      }
+      scheduleRender(true);
+    }, MOBILE_IDLE_MS);
+  };
+
   const stopDragging = () => {
     if (!dragging) return;
     dragging = false;
     shell.classList.remove("is-dragging");
-    scheduleRender();
+    if (!mobileMode) scheduleRender();
   };
 
   const twoFingers = () => {
@@ -2099,6 +2163,8 @@ export function createRifugioModel(shell, options = {}) {
   const wantsPan = (event) => zoom > 1.001 && (event.shiftKey || event.button === 1);
 
   on(shell, "pointerdown", (event) => {
+    beginMobileInteraction();
+    if (mobileMode) gestureBox = shell.getBoundingClientRect();
     pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
     if (pointers.size === 2) {
       stopDragging();
@@ -2124,7 +2190,9 @@ export function createRifugioModel(shell, options = {}) {
     if (pointers.size === 2 && pinchStart > 0) {
       event.preventDefault();
       const two = twoFingers();
-      const box = shell.getBoundingClientRect();
+      const box = mobileMode && gestureBox
+        ? gestureBox
+        : shell.getBoundingClientRect();
       setZoom(pinchZoomStart * (two.distance / pinchStart), {
         x: (pinchCentre.x - box.left) / box.width * 960,
         y: (pinchCentre.y - box.top) / box.height * 660,
@@ -2137,7 +2205,9 @@ export function createRifugioModel(shell, options = {}) {
       return;
     }
     if (!dragging) return;
-    const box = shell.getBoundingClientRect();
+    const box = mobileMode && gestureBox
+      ? gestureBox
+      : shell.getBoundingClientRect();
     const dx = event.clientX - lastX;
     const dy = event.clientY - lastY;
     lastX = event.clientX;
@@ -2155,22 +2225,31 @@ export function createRifugioModel(shell, options = {}) {
     pointers.delete(event.pointerId);
     if (pointers.size < 2) { pinchStart = 0; pinchCentre = null; }
     if (shell.hasPointerCapture?.(event.pointerId)) shell.releasePointerCapture(event.pointerId);
-    if (pointers.size === 0) { panning = false; stopDragging(); }
+    if (pointers.size === 0) {
+      panning = false;
+      stopDragging();
+      gestureBox = null;
+      finishMobileInteractionSoon();
+    }
   };
   on(shell, "pointerup", releasePointer);
   on(shell, "pointercancel", releasePointer);
 
   on(shell, "dblclick", (event) => {
     event.preventDefault();
-    if (zoom >= MAX_ZOOM - 0.01) { resetView(); return; }
-    setZoom(zoom * 1.5, toViewBox(event));
+    beginMobileInteraction();
+    if (zoom >= MAX_ZOOM - 0.01) resetView();
+    else setZoom(zoom * 1.5, toViewBox(event));
+    finishMobileInteractionSoon();
   });
 
   // `passive: false` is required for Ctrl+wheel to zoom the model instead of the page.
   on(shell, "wheel", (event) => {
     if (!event.ctrlKey && !event.metaKey) return;
     event.preventDefault();
+    beginMobileInteraction();
     setZoom(zoom * (event.deltaY < 0 ? 1.12 : 1 / 1.12), toViewBox(event));
+    finishMobileInteractionSoon();
   }, { passive: false });
 
   on(shell, "keydown", (event) => {

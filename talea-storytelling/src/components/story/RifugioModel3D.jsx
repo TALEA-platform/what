@@ -46,13 +46,37 @@ export function RifugioModel3D({ step = 0, label, content, idle = false }) {
   const modelRef = useRef(null);
   const [zoom, setZoom] = useState(1);
   const [touched, setTouched] = useState(false);
+  const [mobileMode, setMobileMode] = useState(
+    () => typeof window !== "undefined" && window.innerWidth < 1280,
+  );
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 1279px)");
+    const updateMode = (event) => setMobileMode(event.matches);
+    media.addEventListener?.("change", updateMode);
+    return () => media.removeEventListener?.("change", updateMode);
+  }, []);
 
   useEffect(() => {
     const shell = shellRef.current;
     if (!shell) return undefined;
 
+    setZoom(1);
     const model = createRifugioModel(shell, {
-      onZoom: setZoom,
+      mobile: mobileMode,
+      onZoom: (nextZoom) => {
+        if (!mobileMode) {
+          setZoom(nextZoom);
+          return;
+        }
+        // Mobile controls only need the discrete min/max states; the renderer
+        // keeps the continuous pinch value outside React.
+        setZoom((currentZoom) => {
+          const band = (value) =>
+            value <= 1.02 ? 0 : value >= 2.38 ? 2 : 1;
+          return band(currentZoom) === band(nextZoom) ? currentZoom : nextZoom;
+        });
+      },
       title: content.title,
       description: content.description,
     });
@@ -95,7 +119,7 @@ export function RifugioModel3D({ step = 0, label, content, idle = false }) {
       if (import.meta.env?.DEV && window.__rifugio === model)
         delete window.__rifugio;
     };
-  }, [content.description, content.title]);
+  }, [content.description, content.title, mobileMode]);
 
   useEffect(() => {
     modelRef.current?.setStep(step);

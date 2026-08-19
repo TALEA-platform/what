@@ -442,6 +442,23 @@
   }
 }
 
+@media (max-width: 1279px) {
+  .hotspot-intro-vg.is-building .scene {
+    filter: none !important;
+  }
+
+  .hotspot-intro-vg .material-hatch path {
+    opacity: 0;
+    stroke-dasharray: none;
+    stroke-dashoffset: 0;
+    transition: opacity 0.62s ease 0.28s;
+  }
+
+  .hotspot-intro-vg.drawn .material-hatch path {
+    opacity: 1;
+  }
+}
+
 @media (max-width: 700px) {
   .hotspot-intro-vg .tag,
   .hotspot-intro-vg .tag-word,

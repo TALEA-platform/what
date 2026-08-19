@@ -176,14 +176,17 @@ export function RifugioExplainer({ onGlossary }) {
 
     if (!fresh.length) return undefined;
     // Keep one painted frame between hidden and active states so SVG strokes animate.
+    fig.classList.add("is-building");
     fresh.forEach((node) => node.classList.add("draw"));
     const frame = requestAnimationFrame(() => fresh.forEach((node) => node.classList.add("on")));
     const timer = window.setTimeout(() => {
       fresh.forEach((node) => { node.classList.remove("draw"); node.classList.add("seen"); });
+      fig.classList.remove("is-building");
     }, VIGNETTE_DRAW_MS);
     return () => {
       cancelAnimationFrame(frame);
       window.clearTimeout(timer);
+      fig.classList.remove("is-building");
     };
   }, [entered, engaged, figureInView, step]);
 
@@ -286,6 +289,7 @@ export function RifugioExplainer({ onGlossary }) {
               <figure
                 ref={figureRef}
                 className="relief-figure"
+                data-effects-active={String(figureInView)}
                 data-motion="story"
                 aria-hidden={engaged ? "true" : undefined}
                 aria-label={engaged ? undefined : reliefExplainer.figure.ariaLabel}

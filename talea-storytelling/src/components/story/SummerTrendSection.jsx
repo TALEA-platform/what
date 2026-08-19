@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { SummerTrendChart } from "../charts/SummerTrendChart";
 import { TitleSprig } from "../ui/TitleSprig";
@@ -8,6 +9,7 @@ import { CopySegments } from "./CopySegments";
 const EASE = [0.22, 1, 0.36, 1];
 
 const REVEAL_VIEWPORT = { once: true, margin: "0px 0px -42% 0px" };
+const MOBILE_REVEAL_VIEWPORT = { once: true, margin: "0px 0px 8% 0px" };
 
 const textGroup = {
   hidden: {},
@@ -28,6 +30,22 @@ const chartRise = {
 export function SummerTrendSection() {
   const { content, locale } = useContent();
   const { summerTrend } = content;
+  const [mobileLayout, setMobileLayout] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      window.matchMedia("(max-width: 1279px)").matches,
+  );
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 1279px)");
+    const updateLayout = (event) => setMobileLayout(event.matches);
+    media.addEventListener?.("change", updateLayout);
+    return () => media.removeEventListener?.("change", updateLayout);
+  }, []);
+
+  const revealViewport = mobileLayout
+    ? MOBILE_REVEAL_VIEWPORT
+    : REVEAL_VIEWPORT;
 
   return (
     <section className="trend-section" aria-label={summerTrend.ariaLabel}>
@@ -38,9 +56,10 @@ export function SummerTrendSection() {
             className="trend-text"
             lang={locale}
             variants={textGroup}
-            initial="hidden"
-            whileInView="show"
-            viewport={REVEAL_VIEWPORT}
+            initial={mobileLayout ? "show" : "hidden"}
+            animate={mobileLayout ? "show" : undefined}
+            whileInView={mobileLayout ? undefined : "show"}
+            viewport={mobileLayout ? undefined : REVEAL_VIEWPORT}
           >
             <motion.h2 className="trend-title" variants={textItem}>
               {summerTrend.title}
@@ -63,7 +82,11 @@ export function SummerTrendSection() {
             </motion.p>
           </motion.div>
 
-          <motion.div className="trend-chart-wrapper" {...chartRise}>
+          <motion.div
+            className="trend-chart-wrapper"
+            {...chartRise}
+            viewport={revealViewport}
+          >
             <div className="trend-chart-frame">
               <SummerTrendChart />
             </div>

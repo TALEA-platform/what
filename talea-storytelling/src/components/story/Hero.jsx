@@ -22,6 +22,7 @@ const BRIDGE_SCALE_STOPS = [[0, 1.1], [0.38, 1.04], [0.48, 1], [0.9, 1], [1, 1.1
 const MOBILE_BRIDGE_SCALE_STOPS = [[0, 1], [1, 1]];
 const BRIDGE_BLUR_STOPS = [[0, 6], [0.38, 2], [0.48, 0], [0.9, 0], [1, 10]];
 const HERO_FADE_STOPS = [[0, 1], [0.87, 1], [1, 0]];
+const MOBILE_HERO_FADE_STOPS = [[0, 1], [0.75, 1], [1, 0]];
 
 const BRIDGE_LIT_ON = 0.46;
 const BRIDGE_LIT_OFF = 0.4;
@@ -188,7 +189,10 @@ export function Hero() {
       sticky.style.setProperty("--bridge-y", `${bridgeY.toFixed(1)}px`);
       sticky.style.setProperty("--bridge-scale", bridgeScale.toFixed(4));
       sticky.style.setProperty("--bridge-blur", `${bridgeBlur.toFixed(2)}px`);
-      const heroFade = interp(progress, HERO_FADE_STOPS);
+      const heroFade = interp(
+        progress,
+        mobileMode ? MOBILE_HERO_FADE_STOPS : HERO_FADE_STOPS,
+      );
       sticky.style.setProperty("--hero-fade", heroFade.toFixed(3));
       const exitBlur = reduceMotion || mobileMode ? 0 : (1 - heroFade) * 16;
       sticky.style.setProperty("--hero-exit-blur", `${exitBlur.toFixed(1)}px`);

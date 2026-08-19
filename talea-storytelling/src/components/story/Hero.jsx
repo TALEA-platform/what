@@ -8,7 +8,6 @@ const heroVideo = assetUrl("/data/hero/bologna.mp4");
 const heroPoster = assetUrl("/data/hero/bologna-poster.jpg");
 
 const SCALE_STOPS = [[0, 1], [0.4, 1.14], [0.75, 1.34], [1, 1.58]];
-const MOBILE_SCALE_STOPS = [[0, 1], [0.4, 1.12], [0.75, 1.26], [1, 1.38]];
 const TEXT_OPACITY_STOPS = [[0, 1], [0.24, 0.65], [0.4, 0.12], [0.48, 0]];
 const TEXT_Y_STOPS = [[0, 0], [0.26, -20], [0.48, -48], [1, -72]];
 const MOBILE_TEXT_Y_STOPS = [[0, 0], [0.26, -4], [0.4, -10], [0.48, -16], [1, -20]];
@@ -163,7 +162,7 @@ export function Hero() {
       heroEndScrollRef.current = window.scrollY + wrapperRect.top + scrollable;
       mobileHeroPastRef.current = mobileMode && progress >= 0.9995;
 
-      const scale = interp(progress, mobileMode ? MOBILE_SCALE_STOPS : SCALE_STOPS);
+      const scale = mobileMode ? 1 : interp(progress, SCALE_STOPS);
       const textY = reduceMotion
         ? 0
         : interp(progress, mobileMode ? MOBILE_TEXT_Y_STOPS : TEXT_Y_STOPS);

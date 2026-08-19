@@ -8,6 +8,7 @@ const heroVideo = assetUrl("/data/hero/bologna.mp4");
 const heroPoster = assetUrl("/data/hero/bologna-poster.jpg");
 
 const SCALE_STOPS = [[0, 1], [0.4, 1.14], [0.75, 1.34], [1, 1.58]];
+const MOBILE_SCALE_STOPS = [[0, 1], [0.4, 1.12], [0.75, 1.26], [1, 1.38]];
 const TEXT_OPACITY_STOPS = [[0, 1], [0.24, 0.65], [0.4, 0.12], [0.48, 0]];
 const TEXT_Y_STOPS = [[0, 0], [0.26, -20], [0.48, -48], [1, -72]];
 const TEXT_SCALE_STOPS = [[0, 1], [0.24, 1.08], [0.4, 1.24], [0.48, 1.44]];
@@ -22,6 +23,8 @@ const BRIDGE_LIT_ON = 0.46;
 const BRIDGE_LIT_OFF = 0.4;
 
 const POSTER_GRACE_MS = 700;
+const MOBILE_VIDEO_FREEZE_PROGRESS = 0.36;
+const MOBILE_VIDEO_RESUME_PROGRESS = 0.3;
 
 function interp(p, stops) {
   if (p <= stops[0][0]) return stops[0][1];
@@ -46,6 +49,7 @@ export function Hero() {
   const stickyRef = useRef(null);
   const mobileHeroNearbyRef = useRef(true);
   const mobileHeroPastRef = useRef(false);
+  const mobileVideoFrozenRef = useRef(false);
   const heroEndScrollRef = useRef(Infinity);
   const syncHeroScrollRef = useRef(null);
   const [videoReady, setVideoReady] = useState(false);
@@ -78,7 +82,10 @@ export function Hero() {
     if (!video) return undefined;
     if (video.readyState >= 2) setVideoReady(true);
 
-    const resume = () => video.play().catch(() => {});
+    const resume = () => {
+      if (mobileMode && mobileVideoFrozenRef.current) return;
+      video.play().catch(() => {});
+    };
     if (typeof IntersectionObserver !== "function") {
       resume();
       return undefined;
@@ -155,7 +162,7 @@ export function Hero() {
       heroEndScrollRef.current = window.scrollY + wrapperRect.top + scrollable;
       mobileHeroPastRef.current = mobileMode && progress >= 0.9995;
 
-      const scale = interp(progress, SCALE_STOPS);
+      const scale = interp(progress, mobileMode ? MOBILE_SCALE_STOPS : SCALE_STOPS);
       const textY = reduceMotion ? 0 : interp(progress, TEXT_Y_STOPS);
       const textScale = reduceMotion ? 1 : interp(progress, TEXT_SCALE_STOPS);
       const bridgeY = reduceMotion ? 0 : interp(progress, BRIDGE_Y_STOPS);
@@ -180,10 +187,32 @@ export function Hero() {
 
       if (mobileMode) {
         const video = videoRef.current;
-        const shouldPlay =
-          wrapperRect.bottom > 0 && wrapperRect.top < vh && progress < 0.9995;
-        if (shouldPlay && video?.paused) video.play().catch(() => {});
-        else if (!shouldPlay && video && !video.paused) video.pause();
+        const inViewport = wrapperRect.bottom > 0 && wrapperRect.top < vh;
+        const shouldFreeze =
+          !inViewport ||
+          progress >= MOBILE_VIDEO_FREEZE_PROGRESS ||
+          progress >= 0.9995;
+        const shouldResume =
+          inViewport && progress <= MOBILE_VIDEO_RESUME_PROGRESS;
+
+        if (shouldFreeze && !mobileVideoFrozenRef.current) {
+          mobileVideoFrozenRef.current = true;
+          sticky.dataset.videoFrozen = "true";
+          video?.pause();
+        } else if (shouldResume && mobileVideoFrozenRef.current) {
+          mobileVideoFrozenRef.current = false;
+          delete sticky.dataset.videoFrozen;
+          video?.play().catch(() => {});
+        } else if (!mobileVideoFrozenRef.current && inViewport && video?.paused) {
+          video.play().catch(() => {});
+        }
+
+        if (progress >= 0.9995) sticky.dataset.heroPast = "true";
+        else delete sticky.dataset.heroPast;
+      } else {
+        mobileVideoFrozenRef.current = false;
+        delete sticky.dataset.videoFrozen;
+        delete sticky.dataset.heroPast;
       }
 
       const nextLit = bridgeLit

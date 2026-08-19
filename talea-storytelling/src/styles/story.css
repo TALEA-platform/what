@@ -271,6 +271,16 @@
     will-change: opacity;
   }
 
+  .hero-sticky[data-hero-past="true"] .hero-bg {
+    transform: none;
+    will-change: auto;
+  }
+
+  .hero-sticky[data-hero-past="true"] .hero-content,
+  .hero-sticky[data-hero-past="true"] .hero-bridge-preview {
+    will-change: auto;
+  }
+
   .hero-content {
     align-items: center;
     justify-content: center;
@@ -8310,12 +8320,65 @@
 
   .plan-camera { will-change: transform; }
 
+  .plan-beat {
+    filter: none;
+    will-change: opacity;
+  }
+
+  .plan-annotation {
+    will-change: opacity;
+  }
+
+  .plan-annotation--mobile {
+    opacity: 0;
+    transition: opacity 300ms var(--ease-cine);
+  }
+
+  .plan-annotation--mobile.is-visible {
+    opacity: 1;
+  }
+
+  .plan-annotation--mobile .plan-annotation-line {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+
   .plan-scene[data-mobile-nearby="false"] .plan-link-dot {
     animation-play-state: paused;
   }
 
+  .plan-vignette-art::before,
+  .plan-vignette-art svg,
   .plan-vignette.is-building .plan-vignette-art svg {
     filter: none;
+  }
+
+  .plan-vignette--mobile {
+    opacity: 0;
+    transition: opacity 300ms var(--ease-cine);
+    will-change: opacity;
+  }
+
+  .plan-vignette--mobile[data-mobile-vignette-phase="visible"] {
+    opacity: 1;
+  }
+
+  .plan-vignette--mobile[data-mobile-vignette-phase="exiting"] {
+    opacity: 0;
+  }
+
+  .plan-link--mobile {
+    opacity: 0;
+    transition: opacity 300ms var(--ease-cine);
+    will-change: opacity;
+  }
+
+  .plan-link--mobile[data-mobile-link-phase="visible"] {
+    opacity: 1;
+  }
+
+  .plan-link--mobile[data-mobile-link-phase="exiting"] {
+    opacity: 0;
   }
 
   .plan-vignette[data-vignette="costruire"]

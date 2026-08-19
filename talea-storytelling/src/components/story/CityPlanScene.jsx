@@ -43,6 +43,7 @@ const VIGNETTE_FIRST_STEP_MS = 620;
 const MAP_HANDOFF_MS = 320;
 // Must match the Framer Motion exit duration used for the vignette.
 const VIGNETTE_EXIT_MS = 720;
+const MOBILE_LAYER_EXIT_FALLBACK_MS = 700;
 
 const LINK_R = 30;
 
@@ -144,6 +145,281 @@ function updateLinkSvg(node, geometry) {
   });
 }
 
+function MobileVignetteHandoff({
+  name,
+  place,
+  vignetteSide,
+  ratio,
+  html,
+  complete,
+  bindCurrentNode,
+}) {
+  const sequenceRef = useRef(0);
+  const targetNameRef = useRef(null);
+  const [layers, setLayers] = useState([]);
+
+  useLayoutEffect(() => {
+    const nextName = name ?? null;
+    if (targetNameRef.current === nextName) return;
+    targetNameRef.current = nextName;
+
+    setLayers((current) => {
+      if (!nextName) {
+        return current
+          .slice(-2)
+          .map((layer) => ({ ...layer, phase: "exiting" }));
+      }
+
+      const nextLayer = {
+        name: nextName,
+        place,
+        vignetteSide,
+        ratio,
+        html,
+      };
+      const existing = current.find((layer) => layer.name === nextName);
+      if (existing) {
+        const outgoing = current
+          .filter((layer) => layer.name !== nextName)
+          .slice(-1)
+          .map((layer) => ({ ...layer, phase: "exiting" }));
+        return [
+          ...outgoing,
+          { ...existing, ...nextLayer, phase: "visible" },
+        ];
+      }
+
+      const outgoing = current.slice(-1);
+      sequenceRef.current += 1;
+      return [
+        ...outgoing,
+        {
+          ...nextLayer,
+          id: `${nextName}-${sequenceRef.current}`,
+          phase: "preparing",
+        },
+      ];
+    });
+  }, [html, name, place, ratio, vignetteSide]);
+
+  useEffect(() => {
+    const preparing = layers.find((layer) => layer.phase === "preparing");
+    if (!preparing) return undefined;
+
+    const frame = requestAnimationFrame(() => {
+      setLayers((current) =>
+        current.map((layer) =>
+          layer.id === preparing.id
+            ? { ...layer, phase: "visible" }
+            : { ...layer, phase: "exiting" },
+        ),
+      );
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [layers]);
+
+  useEffect(() => {
+    if (
+      targetNameRef.current ||
+      !layers.some((layer) => layer.phase === "exiting")
+    ) return undefined;
+    const id = window.setTimeout(() => {
+      setLayers((current) =>
+        current.filter((layer) => layer.phase !== "exiting"),
+      );
+    }, MOBILE_LAYER_EXIT_FALLBACK_MS);
+    return () => window.clearTimeout(id);
+  }, [layers]);
+
+  const handleTransitionEnd = useCallback((event, layerId) => {
+    if (
+      event.target !== event.currentTarget ||
+      event.propertyName !== "opacity"
+    ) return;
+
+    setLayers((current) => {
+      const completed = current.find((layer) => layer.id === layerId);
+      if (!completed) return current;
+      if (completed.phase === "visible") {
+        return current.filter((layer) => layer.phase !== "exiting");
+      }
+      if (completed.phase === "exiting" && !targetNameRef.current) {
+        return current.filter((layer) => layer.id !== layerId);
+      }
+      return current;
+    });
+  }, []);
+
+  return layers.map((layer) => {
+    const isCurrent = layer.name === name && layer.phase !== "exiting";
+    return (
+      <div
+        ref={isCurrent ? bindCurrentNode : undefined}
+        key={layer.id}
+        className={`plan-vignette plan-vignette--mobile plan-vignette--${layer.place} plan-vignette--${layer.vignetteSide}${
+          isCurrent && !complete ? " is-building" : ""
+        }`}
+        style={{ "--ratio": layer.ratio }}
+        data-mobile-vignette-phase={layer.phase}
+        data-vignette={layer.name}
+        onTransitionEnd={(event) => handleTransitionEnd(event, layer.id)}
+        aria-hidden="true"
+      >
+        <div
+          className="plan-vignette-art"
+          dangerouslySetInnerHTML={layer.html}
+        />
+      </div>
+    );
+  });
+}
+
+function MobileLinkHandoff({ geometry, ready, linkRef }) {
+  const sequenceRef = useRef(0);
+  const targetNameRef = useRef(null);
+  const [layers, setLayers] = useState([]);
+  const name = geometry?.name ?? null;
+
+  useLayoutEffect(() => {
+    if (targetNameRef.current === name) return;
+    targetNameRef.current = name;
+
+    setLayers((current) => {
+      if (!name) {
+        return current
+          .slice(-2)
+          .map((layer) => ({ ...layer, phase: "exiting" }));
+      }
+
+      const existing = current.find((layer) => layer.name === name);
+      if (existing) {
+        const outgoing = current
+          .filter((layer) => layer.name !== name)
+          .slice(-1)
+          .map((layer) => ({ ...layer, phase: "exiting" }));
+        return [
+          ...outgoing,
+          { ...existing, geometry, phase: "visible" },
+        ];
+      }
+
+      const outgoing = current.slice(-1);
+      sequenceRef.current += 1;
+      return [
+        ...outgoing,
+        {
+          id: `link-${name}-${sequenceRef.current}`,
+          name,
+          geometry,
+          phase: "preparing",
+        },
+      ];
+    });
+  }, [geometry, name]);
+
+  useEffect(() => {
+    const preparing = layers.find((layer) => layer.phase === "preparing");
+    if (!preparing) return undefined;
+    const frame = requestAnimationFrame(() => {
+      setLayers((current) =>
+        current.map((layer) =>
+          layer.id === preparing.id
+            ? { ...layer, phase: "visible" }
+            : { ...layer, phase: "exiting" },
+        ),
+      );
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [layers]);
+
+  useEffect(() => {
+    if (
+      targetNameRef.current ||
+      !layers.some((layer) => layer.phase === "exiting")
+    ) return undefined;
+    const id = window.setTimeout(() => {
+      setLayers((current) =>
+        current.filter((layer) => layer.phase !== "exiting"),
+      );
+    }, MOBILE_LAYER_EXIT_FALLBACK_MS);
+    return () => window.clearTimeout(id);
+  }, [layers]);
+
+  const handleTransitionEnd = useCallback((event, layerId) => {
+    if (
+      event.target !== event.currentTarget ||
+      event.propertyName !== "opacity"
+    ) return;
+    setLayers((current) => {
+      const completed = current.find((layer) => layer.id === layerId);
+      if (!completed) return current;
+      if (completed.phase === "visible") {
+        return current.filter((layer) => layer.phase !== "exiting");
+      }
+      if (completed.phase === "exiting" && !targetNameRef.current) {
+        return current.filter((layer) => layer.id !== layerId);
+      }
+      return current;
+    });
+  }, []);
+
+  return layers.map((layer) => {
+    const isCurrent = layer.name === name && layer.phase !== "exiting";
+    const currentGeometry = isCurrent ? geometry : layer.geometry;
+    if (!currentGeometry) return null;
+    return (
+      <svg
+        ref={isCurrent ? linkRef : undefined}
+        key={layer.id}
+        className={`plan-link plan-link--mobile${
+          isCurrent && ready ? " is-ready" : ""
+        }`}
+        data-mobile-link-phase={layer.phase}
+        aria-hidden="true"
+        onTransitionEnd={(event) => handleTransitionEnd(event, layer.id)}
+      >
+        {["halo", "ink"].map((linkLayer) => (
+          <g key={linkLayer} className={`plan-link-${linkLayer}`}>
+            {currentGeometry.lead ? (
+              <line
+                className="plan-link-lead"
+                x1={currentGeometry.x1}
+                y1={currentGeometry.y1}
+                x2={currentGeometry.x2}
+                y2={currentGeometry.y2}
+                pathLength="1"
+              />
+            ) : null}
+            <circle
+              className="plan-link-ring"
+              cx={currentGeometry.ax}
+              cy={currentGeometry.ay}
+              r={LINK_R}
+              pathLength="1"
+            />
+            <path
+              className="plan-link-ticks"
+              d={[
+                `M ${currentGeometry.ax - LINK_R - 8} ${currentGeometry.ay} h 6`,
+                `M ${currentGeometry.ax + LINK_R + 2} ${currentGeometry.ay} h 6`,
+                `M ${currentGeometry.ax} ${currentGeometry.ay - LINK_R - 8} v 6`,
+                `M ${currentGeometry.ax} ${currentGeometry.ay + LINK_R + 2} v 6`,
+              ].join(" ")}
+              pathLength="1"
+            />
+          </g>
+        ))}
+        <circle
+          className="plan-link-dot"
+          cx={currentGeometry.ax}
+          cy={currentGeometry.ay}
+          r="2.8"
+        />
+      </svg>
+    );
+  });
+}
+
 export function CityPlanScene() {
   const { content } = useContent();
   const cityPlanContent = content.climateRelief.cityPlan;
@@ -237,10 +513,11 @@ export function CityPlanScene() {
   const vignetteComplete =
     vignetteName && vstep >= (planVignetteMeta[vignetteName]?.steps ?? 1) - 1;
   const currentLink = link?.name === vignetteName ? link : null;
+  const synchronizedMapBeat = mobileCameraActive ? beat : mapBeat;
   const activeAnnotations = planAnnotations.filter(
     (note) =>
-      (mapBeat >= note.from && mapBeat <= note.until) ||
-      (mobileCameraActive && note.id === "corridor" && mapBeat === 5),
+      (synchronizedMapBeat >= note.from && synchronizedMapBeat <= note.until) ||
+      (mobileCameraActive && note.id === "corridor" && synchronizedMapBeat === 5),
   );
 
   const syncOverlayGeometry = useCallback(
@@ -338,6 +615,9 @@ export function CityPlanScene() {
     if (!entered) return undefined;
     const previousBeat = previousBeatRef.current;
     previousBeatRef.current = beat;
+    if (mobileCameraActive) {
+      return undefined;
+    }
     const name = planBeatSpecs[beat]?.vignette;
     const previousHadVignette = Boolean(planBeatSpecs[previousBeat]?.vignette);
     const previousFinished = completedVignetteBeatsRef.current.has(previousBeat);
@@ -368,7 +648,12 @@ export function CityPlanScene() {
   }, [beat, entered, mobileCameraActive, reduceMotion]);
 
   useEffect(() => {
-    if (!entered || !vignetteName || !vignetteComplete) return undefined;
+    if (
+      mobileCameraActive ||
+      !entered ||
+      !vignetteName ||
+      !vignetteComplete
+    ) return undefined;
     const completedBeat = beat;
     const id = window.setTimeout(
       () => {
@@ -378,7 +663,7 @@ export function CityPlanScene() {
       reduceMotion ? 0 : MAP_HANDOFF_MS,
     );
     return () => window.clearTimeout(id);
-  }, [beat, entered, reduceMotion, vignetteComplete, vignetteName]);
+  }, [beat, entered, mobileCameraActive, reduceMotion, vignetteComplete, vignetteName]);
 
   useEffect(() => {
     const media = window.matchMedia(
@@ -466,7 +751,7 @@ export function CityPlanScene() {
       );
     };
 
-    const paintCopy = (y, activeBeat) => {
+    const paintCopy = (y, activeBeat, mobileViewport) => {
       const items = copyItemsRef.current;
       if (!items.length) return;
 
@@ -500,7 +785,13 @@ export function CityPlanScene() {
             Math.max(0, (y - (marksRef.current[nearest] - half)) / (half * 2)),
           );
           swap = Math.sin(linear * Math.PI);
-          if (linear < 0.48) {
+          if (mobileViewport) {
+            const eased = smoothstep(linear);
+            fromOpacity = 1 - eased;
+            toOpacity = eased;
+            fromBlur = 0;
+            toBlur = 0;
+          } else if (linear < 0.48) {
             const t = linear / 0.48;
             const eased = t * t * t * (t * (t * 6 - 15) + 10);
             fromOpacity = 1 - eased;
@@ -601,7 +892,10 @@ export function CityPlanScene() {
       rootRef.current?.style.setProperty("--plan-progress", progress.toFixed(4));
       rootRef.current?.style.setProperty("--plan-entry", entry.toFixed(4));
       rootRef.current?.style.setProperty("--plan-exit", exit.toFixed(4));
-      paintCopy(y, next);
+      paintCopy(y, next, mobileViewport);
+      if (mobileViewport) {
+        setMapBeat((current) => (current === next ? current : next));
+      }
       setBeat((current) => (current === next ? current : next));
     };
 
@@ -744,7 +1038,7 @@ export function CityPlanScene() {
     vignetteName,
   ]);
 
-  useEffect(() => {
+  const paintMapBeat = useCallback((activeBeat) => {
     const fig = figRef.current;
     if (!fig || !entered) return;
     if (!itemsRef.current) {
@@ -755,11 +1049,21 @@ export function CityPlanScene() {
       }));
     }
     itemsRef.current.forEach(({ el, at, until }) => {
-      const on = mapBeat >= at && (until == null || mapBeat < until);
+      const on = activeBeat >= at && (until == null || activeBeat < until);
       el.classList.toggle("is-on", on);
-      el.classList.toggle("is-now", on && at === mapBeat);
+      el.classList.toggle("is-now", on && at === activeBeat);
     });
-  }, [mapBeat, entered]);
+  }, [entered]);
+
+  useLayoutEffect(() => {
+    if (!mobileCameraActive) return;
+    paintMapBeat(beat);
+  }, [beat, mobileCameraActive, paintMapBeat]);
+
+  useEffect(() => {
+    if (mobileCameraActive) return;
+    paintMapBeat(mapBeat);
+  }, [mapBeat, mobileCameraActive, paintMapBeat]);
 
   useLayoutEffect(() => {
     const art = bandRef.current?.querySelector(
@@ -799,7 +1103,7 @@ export function CityPlanScene() {
       <div
         ref={stageRef}
         className={`plan-stage plan-stage--${side}`}
-        data-beat={mapBeat}
+        data-beat={synchronizedMapBeat}
         data-story-beat={beat}
         aria-hidden="true"
       >
@@ -826,66 +1130,114 @@ export function CityPlanScene() {
         <div className="plan-curtain plan-curtain--exit" aria-hidden="true" />
 
         <div ref={bandRef} className="plan-band">
-          <AnimatePresence initial={false}>
-            {activeAnnotations.map((activeAnnotation) => (
-              <motion.div
-                key={activeAnnotation.id}
-                className={`plan-annotation plan-annotation--${activeAnnotation.id}`}
-                style={{
-                  left: `var(--annotation-${activeAnnotation.id}-x, -1000px)`,
-                  top: `var(--annotation-${activeAnnotation.id}-y, -1000px)`,
-                  "--annotation-x": `${activeAnnotation.offset[0]}px`,
-                  "--annotation-y": `${activeAnnotation.offset[1]}px`,
-                }}
-                initial={
-                  reduceMotion
-                    ? { opacity: 1 }
-                    : { opacity: 0, y: 7, filter: "blur(3px)" }
-                }
-                animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                exit={
-                  reduceMotion
-                    ? { opacity: 0 }
-                    : { opacity: 0, y: -5, filter: "blur(2px)" }
-                }
-                transition={{
-                  duration: reduceMotion ? 0 : 0.48,
-                  ease: [0.22, 1, 0.36, 1],
-                }}
-                aria-hidden="true"
-                data-motion="story"
-              >
-                <svg className="plan-annotation-leader" aria-hidden="true">
-                  <line
-                    className="plan-annotation-line plan-annotation-line--halo"
-                    x1="0"
-                    y1="0"
-                    x2={activeAnnotation.offset[0]}
-                    y2={activeAnnotation.offset[1]}
-                    pathLength="1"
-                  />
-                  <line
-                    className="plan-annotation-line plan-annotation-line--ink"
-                    x1="0"
-                    y1="0"
-                    x2={activeAnnotation.offset[0]}
-                    y2={activeAnnotation.offset[1]}
-                    pathLength="1"
-                  />
-                </svg>
-                <span className="plan-annotation-dot" />
-                <span className="plan-annotation-label">
-                  {activeAnnotation.label}
-                </span>
-              </motion.div>
-            ))}
-          </AnimatePresence>
+          {mobileCameraActive ? (
+            entered && planAnnotations.map((annotation) => {
+              const active = activeAnnotations.some(
+                (activeAnnotation) => activeAnnotation.id === annotation.id,
+              );
+              return (
+                <div
+                  key={annotation.id}
+                  className={`plan-annotation plan-annotation--mobile plan-annotation--${annotation.id}${
+                    active ? " is-visible" : ""
+                  }`}
+                  style={{
+                    left: `var(--annotation-${annotation.id}-x, -1000px)`,
+                    top: `var(--annotation-${annotation.id}-y, -1000px)`,
+                    "--annotation-x": `${annotation.offset[0]}px`,
+                    "--annotation-y": `${annotation.offset[1]}px`,
+                  }}
+                  aria-hidden="true"
+                >
+                  <svg className="plan-annotation-leader" aria-hidden="true">
+                    <line
+                      className="plan-annotation-line plan-annotation-line--halo"
+                      x1="0"
+                      y1="0"
+                      x2={annotation.offset[0]}
+                      y2={annotation.offset[1]}
+                      pathLength="1"
+                    />
+                    <line
+                      className="plan-annotation-line plan-annotation-line--ink"
+                      x1="0"
+                      y1="0"
+                      x2={annotation.offset[0]}
+                      y2={annotation.offset[1]}
+                      pathLength="1"
+                    />
+                  </svg>
+                  <span className="plan-annotation-dot" />
+                  <span className="plan-annotation-label">{annotation.label}</span>
+                </div>
+              );
+            })
+          ) : (
+            <AnimatePresence initial={false}>
+              {activeAnnotations.map((activeAnnotation) => (
+                <motion.div
+                  key={activeAnnotation.id}
+                  className={`plan-annotation plan-annotation--${activeAnnotation.id}`}
+                  style={{
+                    left: `var(--annotation-${activeAnnotation.id}-x, -1000px)`,
+                    top: `var(--annotation-${activeAnnotation.id}-y, -1000px)`,
+                    "--annotation-x": `${activeAnnotation.offset[0]}px`,
+                    "--annotation-y": `${activeAnnotation.offset[1]}px`,
+                  }}
+                  initial={
+                    reduceMotion
+                      ? { opacity: 1 }
+                      : { opacity: 0, y: 7, filter: "blur(3px)" }
+                  }
+                  animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                  exit={
+                    reduceMotion
+                      ? { opacity: 0 }
+                      : { opacity: 0, y: -5, filter: "blur(2px)" }
+                  }
+                  transition={{
+                    duration: reduceMotion ? 0 : 0.48,
+                    ease: [0.22, 1, 0.36, 1],
+                  }}
+                  aria-hidden="true"
+                  data-motion="story"
+                >
+                  <svg className="plan-annotation-leader" aria-hidden="true">
+                    <line
+                      className="plan-annotation-line plan-annotation-line--halo"
+                      x1="0"
+                      y1="0"
+                      x2={activeAnnotation.offset[0]}
+                      y2={activeAnnotation.offset[1]}
+                      pathLength="1"
+                    />
+                    <line
+                      className="plan-annotation-line plan-annotation-line--ink"
+                      x1="0"
+                      y1="0"
+                      x2={activeAnnotation.offset[0]}
+                      y2={activeAnnotation.offset[1]}
+                      pathLength="1"
+                    />
+                  </svg>
+                  <span className="plan-annotation-dot" />
+                  <span className="plan-annotation-label">
+                    {activeAnnotation.label}
+                  </span>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          )}
 
-          <AnimatePresence
-            mode={mobileCameraActive ? "sync" : "wait"}
-            initial={false}
-          >
-            {vignetteName && entered && currentLink ? (
+          {mobileCameraActive ? (
+            <MobileLinkHandoff
+              geometry={vignetteName && entered ? currentLink : null}
+              ready={Boolean(vignetteComplete)}
+              linkRef={linkSvgRef}
+            />
+          ) : (
+            <AnimatePresence mode="wait" initial={false}>
+              {vignetteName && entered && currentLink ? (
               <motion.svg
                 ref={linkSvgRef}
                 key={`link-${vignetteName}`}
@@ -894,8 +1246,8 @@ export function CityPlanScene() {
                 data-motion="story"
                 exit={{ opacity: 0 }}
                 transition={{
-                  duration: reduceMotion ? 0 : mobileCameraActive ? 0.28 : 0.45,
-                  delay: reduceMotion || mobileCameraActive ? 0 : 0.08,
+                  duration: reduceMotion ? 0 : 0.45,
+                  delay: reduceMotion ? 0 : 0.08,
                 }}
               >
               {["halo", "ink"].map((layer) => (
@@ -936,14 +1288,23 @@ export function CityPlanScene() {
                   r="2.8"
                 />
               </motion.svg>
-            ) : null}
-          </AnimatePresence>
+              ) : null}
+            </AnimatePresence>
+          )}
 
-          <AnimatePresence
-            mode={mobileCameraActive ? "sync" : "wait"}
-            initial={false}
-          >
-            {vignetteLive ? (
+          {mobileCameraActive ? (
+            <MobileVignetteHandoff
+              name={vignetteLive ? vignetteName : null}
+              place={place}
+              vignetteSide={vignetteSide}
+              ratio={vignetteName ? planVignetteMeta[vignetteName].ratio : null}
+              html={vignetteName ? VIGNETTE_HTML[vignetteName] : null}
+              complete={Boolean(vignetteComplete)}
+              bindCurrentNode={bindVignetteNode}
+            />
+          ) : (
+            <AnimatePresence mode="wait" initial={false}>
+              {vignetteLive ? (
               <motion.div
                 ref={bindVignetteNode}
                 key={vignetteName}
@@ -954,46 +1315,12 @@ export function CityPlanScene() {
                 initial={
                   reduceMotion
                     ? false
-                    : mobileCameraActive
-                      ? {
-                          opacity: 0,
-                          x: (currentLink?.fx ?? 0) * 0.12,
-                          y: (currentLink?.fy ?? 0) * 0.12,
-                          scale: 0.96,
-                          filter: "none",
-                        }
-                      : { opacity: 0 }
+                    : { opacity: 0 }
                 }
-                animate={
-                  mobileCameraActive
-                    ? {
-                        opacity: 1,
-                        x: 0,
-                        y: 0,
-                        scale: 1,
-                        filter: "none",
-                        transition: {
-                          duration: reduceMotion ? 0 : 0.42,
-                          ease: [0.22, 1, 0.36, 1],
-                        },
-                      }
-                    : vignetteControls
-                }
+                animate={vignetteControls}
                 exit={
                   reduceMotion
                     ? { opacity: 0, transition: { duration: 0 } }
-                    : mobileCameraActive
-                      ? {
-                          opacity: 0,
-                          x: 0,
-                          y: 0,
-                          scale: 0.98,
-                          filter: "none",
-                          transition: {
-                            duration: 0.34,
-                            ease: [0.45, 0, 0.25, 1],
-                          },
-                        }
                     : {
                         opacity: 0,
                         x: currentLink?.fx ?? 0,
@@ -1015,8 +1342,9 @@ export function CityPlanScene() {
                   dangerouslySetInnerHTML={VIGNETTE_HTML[vignetteName]}
                 />
               </motion.div>
-            ) : null}
-          </AnimatePresence>
+              ) : null}
+            </AnimatePresence>
+          )}
 
           {COPY_SIDES.map((copySide) => {
             const currentSide = copySide === side;
@@ -1061,7 +1389,7 @@ export function CityPlanScene() {
 
                 <div
                   className={`plan-legend${
-                    currentSide && mapBeat >= planLegend[0].at ? " is-on" : ""
+                    currentSide && synchronizedMapBeat >= planLegend[0].at ? " is-on" : ""
                   }`}
                   aria-hidden="true"
                 >
@@ -1071,8 +1399,8 @@ export function CityPlanScene() {
                       <li
                         key={item.label}
                         className={`plan-legend-item plan-legend-item--${item.tone}${
-                          currentSide && mapBeat >= item.at ? " is-on" : ""
-                        }${currentSide && mapBeat === item.at ? " is-now" : ""}`}
+                          currentSide && synchronizedMapBeat >= item.at ? " is-on" : ""
+                        }${currentSide && synchronizedMapBeat === item.at ? " is-now" : ""}`}
                       >
                         <span className="plan-legend-swatch" />
                         <span className="plan-legend-word">{item.label}</span>

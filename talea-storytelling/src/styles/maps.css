@@ -827,11 +827,6 @@
     height: 9px;
   }
 
-  .hotspot-seq-text {
-    font-size: 0.82rem;
-    line-height: 1.5;
-  }
-
   .hotspot-sequence-foot {
     margin-top: 12px;
   }
@@ -874,10 +869,6 @@
     box-shadow: none;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
-  }
-
-  .hotspot-exit-phrase {
-    font-size: clamp(1.7rem, 8vw, 2.3rem);
   }
 
   .hotspot-legend {
@@ -2169,11 +2160,6 @@
     height: 11px;
   }
 
-  .hotspot-sequence--mobile .hotspot-seq-text {
-    font-size: clamp(1rem, 2.2vw, 1.14rem);
-    line-height: 1.58;
-  }
-
   .hotspot-sequence-meta {
     display: flex;
     align-items: flex-start;
@@ -2250,10 +2236,6 @@
     -webkit-backdrop-filter: none;
   }
 
-  .hotspot-exit-phrase {
-    font-size: clamp(2rem, 5.2vw, 3.2rem);
-  }
-
   .hotspot-slider-hold {
     min-height: 0;
     width: min(720px, 100%);
@@ -2293,9 +2275,7 @@
     background: rgba(255, 255, 255, 0.96);
     color: var(--talea-dark-green);
     font: inherit;
-    font-size: 0.78rem;
     font-weight: 700;
-    line-height: 1.22;
     text-align: left;
     box-shadow: 0 10px 30px -14px rgba(27, 58, 41, 0.48);
     backdrop-filter: blur(8px);
@@ -2344,16 +2324,6 @@
 
   .hotspot-legend--mobile .hotspot-legend-title {
     padding-right: 48px;
-    font-size: clamp(1rem, 2.2vw, 1.18rem);
-  }
-
-  .hotspot-legend--mobile .hotspot-legend-active {
-    font-size: clamp(0.9rem, 2vw, 1rem);
-  }
-
-  .hotspot-legend--mobile .hotspot-legend-caption,
-  .hotspot-legend--mobile .hotspot-legend-link {
-    font-size: clamp(0.82rem, 1.8vw, 0.92rem);
   }
 
   .hotspot-legend-close {
@@ -2410,10 +2380,6 @@
     padding: 10px 12px;
   }
 
-  .hotspot-sequence--mobile .hotspot-sequence-caption {
-    font-size: 0.7rem;
-  }
-
   .hotspot-sequence-control {
     width: 46px;
     height: 46px;
@@ -2421,7 +2387,6 @@
 
   .hotspot-legend-toggle {
     max-width: calc(100% - 80px);
-    font-size: 0.72rem;
   }
 
   .hotspot-legend-overlay {
@@ -2469,9 +2434,7 @@
     padding: 28px;
     background: rgba(18, 35, 25, 0.34);
     color: #fff;
-    font-size: clamp(0.9rem, 2.4vw, 1.05rem);
     font-weight: 600;
-    line-height: 1.45;
     text-align: center;
     text-shadow: 0 2px 12px rgba(0, 0, 0, 0.58);
     pointer-events: none;
@@ -2621,8 +2584,6 @@
   .hotspot-mobile-story-text {
     display: block;
     color: var(--ink);
-    font-size: clamp(0.88rem, 1.7vw, 1.02rem);
-    line-height: 1.45;
     letter-spacing: -0.003em;
     text-wrap: pretty;
   }
@@ -2630,7 +2591,6 @@
   .hotspot-mobile-story-text + .hotspot-mobile-story-text {
     margin-top: 6px;
     color: var(--ink-soft);
-    font-size: clamp(0.8rem, 1.55vw, 0.94rem);
   }
 
   .hotspot-mobile-story-card--handoff {
@@ -2641,9 +2601,7 @@
     margin: 0;
     color: var(--ink-deep);
     font-family: var(--font-display);
-    font-size: clamp(1.34rem, 3.6vw, 2rem);
     font-weight: 500;
-    line-height: 1.08;
     letter-spacing: -0.025em;
   }
 
@@ -2675,22 +2633,13 @@
 
   .hotspot-mobile-annotation strong {
     color: var(--talea-dark-green);
-    font-size: 0.79rem;
-    line-height: 1.25;
   }
 
   .hotspot-mobile-annotation span {
     color: #b13b1a;
-    font-size: 0.61rem;
     font-weight: 700;
-    line-height: 1.25;
     letter-spacing: 0.04em;
     text-transform: uppercase;
-  }
-
-  .hotspot-mobile-annotation small {
-    font-size: 0.69rem;
-    line-height: 1.35;
   }
 
   .hotspot-mobile-story-nav {
@@ -2719,9 +2668,7 @@
   .hotspot-mobile-sequence-status {
     max-width: 310px;
     color: var(--ink-soft);
-    font-size: 0.69rem;
     font-weight: 600;
-    line-height: 1.3;
     text-wrap: pretty;
   }
 
@@ -2894,9 +2841,7 @@
     background: rgba(255, 255, 255, 0.93);
     color: var(--talea-dark-green);
     font: inherit;
-    font-size: 0.72rem;
     font-weight: 700;
-    line-height: 1.2;
     text-align: left;
     box-shadow: 0 10px 28px -16px rgba(27, 58, 41, 0.48);
     backdrop-filter: blur(9px);
@@ -2945,16 +2890,6 @@
 
   .hotspot-legend--mobile .hotspot-legend-title {
     padding-right: 48px;
-    font-size: clamp(1rem, 2.2vw, 1.18rem);
-  }
-
-  .hotspot-legend--mobile .hotspot-legend-active {
-    font-size: clamp(0.9rem, 2vw, 1rem);
-  }
-
-  .hotspot-legend--mobile .hotspot-legend-caption,
-  .hotspot-legend--mobile .hotspot-legend-link {
-    font-size: clamp(0.82rem, 1.8vw, 0.92rem);
   }
 
   .hotspot-legend-close {
@@ -2995,20 +2930,9 @@
     -webkit-backdrop-filter: blur(6px);
   }
 
-  .hotspot-scene .annotation-label--priority .annotation-name {
-    font-size: 13.5px;
-    line-height: 1.2;
-  }
-
-  .hotspot-scene .annotation-label--priority .annotation-tag {
-    font-size: 9.5px;
-  }
-
   .hotspot-scene .annotation-label--priority .annotation-context {
     margin: 7px 0 0;
     color: var(--text-secondary);
-    font-size: 11.5px;
-    line-height: 1.5;
   }
 
   .hotspot-scene .annotation-hovercard {
@@ -3050,19 +2974,6 @@
     gap: 10px;
   }
 
-  .hotspot-mobile-story-text {
-    font-size: 0.87rem;
-    line-height: 1.42;
-  }
-
-  .hotspot-mobile-story-text + .hotspot-mobile-story-text {
-    font-size: 0.79rem;
-  }
-
-  .hotspot-mobile-handoff {
-    font-size: clamp(1.28rem, 6.1vw, 1.62rem);
-  }
-
   .hotspot-mobile-annotation {
     flex-basis: calc(100vw - 72px);
   }
@@ -3083,7 +2994,6 @@
     top: max(72px, calc(env(safe-area-inset-top) + 64px));
     right: max(12px, env(safe-area-inset-right));
     max-width: calc(100% - 24px);
-    font-size: 0.68rem;
   }
 
   .hotspot-legend-overlay {

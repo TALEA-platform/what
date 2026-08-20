@@ -289,7 +289,7 @@ export function RifugioExplainer({ onGlossary }) {
               <figure
                 ref={figureRef}
                 className="relief-figure"
-                data-effects-active={String(figureInView)}
+                data-effects-active={String(figureInView && !engaged)}
                 data-motion="story"
                 aria-hidden={engaged ? "true" : undefined}
                 aria-label={engaged ? undefined : reliefExplainer.figure.ariaLabel}

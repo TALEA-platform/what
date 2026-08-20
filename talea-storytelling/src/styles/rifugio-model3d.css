@@ -632,7 +632,19 @@
   animation-play-state: paused !important;
 }
 
+.relief-figure[data-effects-active="false"] .layer.on .water,
+.relief-figure[data-effects-active="false"] .layer.on .mist ellipse,
+.relief-figure[data-effects-active="false"] .layer.on .jets path {
+  animation-play-state: paused;
+}
+
 @media (max-width: 1279px) {
+  /* Mobile keeps the small static backdrop texture but skips scene-wide filters. */
+  .rifugio-model3d #model,
+  .rifugio-model3d #model-svg {
+    filter: none !important;
+  }
+
   .rifugio-model3d.is-mobile-interacting #model,
   .rifugio-model3d.is-mobile-interacting #model-svg {
     filter: none !important;
@@ -672,10 +684,10 @@
     gap: 7px;
     border: 1px solid rgba(0, 77, 25, 0.13);
     border-radius: 12px;
-    background: rgba(244, 242, 233, 0.84);
+    background: rgba(244, 242, 233, 0.92);
     box-shadow: 0 5px 16px rgba(40, 54, 38, 0.09);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
 
   .rifugio-model3d-temp-value {

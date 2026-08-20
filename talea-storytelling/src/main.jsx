@@ -5,6 +5,7 @@ import './styles/layout.css'
 import './styles/story.css'
 import './styles/rifugio-model3d.css'
 import './styles/maps.css'
+import './styles/mobile-typography.css'
 import App from './App.jsx'
 import { ContentProvider } from './content'
 

@@ -99,7 +99,7 @@ export function createRifugioModel(shell, options = {}) {
 
   const MIN_ZOOM = 1;
   const MAX_ZOOM = 2.4;
- const DEFAULT_ZOOM = 1;
+  const DEFAULT_ZOOM = 1;
   let zoom = DEFAULT_ZOOM;
   let notifiedZoomBand = 0;
   let panX = 0;
@@ -249,7 +249,11 @@ export function createRifugioModel(shell, options = {}) {
   }
 
   function depthOf(points, radians) {
-    const p = rotate(average(points), radians);
+    return depthOfPoint(average(points), radians);
+  }
+
+  function depthOfPoint(pointValue, radians) {
+    const p = rotate(pointValue, radians);
     const elevation = viewTilt * Math.PI / 180;
     return (p.x + p.y) * Math.cos(elevation) / Math.SQRT2 + p.z * Math.sin(elevation);
   }
@@ -282,7 +286,7 @@ export function createRifugioModel(shell, options = {}) {
 
   let currentLayer = 0;
   let currentGoneAt = null;
- let step = 7;
+  let step = 7;
   let renderStep = step;
 
   const layerObjects = new Map();
@@ -318,8 +322,6 @@ export function createRifugioModel(shell, options = {}) {
   const liveAt = (item, k = renderStep) =>
     (item.layer ?? 0) <= k && (item.goneAt == null || k < item.goneAt);
 
-  const active = (list, k = renderStep) => list.filter((item) => liveAt(item, k));
-
   function addFace(target, points, fill, normal, options = {}) {
     target.push({
       type: "face", points, fill, normal,
@@ -353,10 +355,16 @@ export function createRifugioModel(shell, options = {}) {
   const FIGURE_BASE = { className: "face face--figure", figure: true };
   let figureOptions = FIGURE_BASE;
   const figureAnchors = new Map();
+  const figureTopology = new Map();
 
   function beginFigure(id, x, y) {
     figureOptions = { ...FIGURE_BASE, figureId: id };
     figureAnchors.set(id, point(x, y, .95));
+    figureTopology.set(id, {
+      layer: currentLayer,
+      goneAt: currentGoneAt,
+      seq: itemSeq,
+    });
   }
   function endFigure() { figureOptions = FIGURE_BASE; }
 
@@ -381,8 +389,8 @@ export function createRifugioModel(shell, options = {}) {
   const JET_DUR = 1.9;
   const PERCH_DUR = 11;
 
-  function phaseOf(dur, offset = 0) {
-    return (((performance.now() - trafficEpoch) / 1000 + offset) % dur).toFixed(3);
+  function phaseOf(now, dur, offset = 0) {
+    return (((now - trafficEpoch) / 1000 + offset) % dur).toFixed(3);
   }
 
   const {
@@ -398,7 +406,7 @@ export function createRifugioModel(shell, options = {}) {
     personYaw: PERSON_YAW,
     figureOptions: () => figureOptions,
     benchSeatZ: () => BENCH_SEAT_Z,
-    detail: 1,
+    detail: mobileMode ? .75 : 1,
   });
 
   function shadowPolygon(x0, y0, x1, y1, height, opacity = .11) {
@@ -412,11 +420,11 @@ export function createRifugioModel(shell, options = {}) {
   }
 
 
-  function renderShadows(radians) {
+  function renderShadows(radians, activeShadows) {
     const clip = shadowGroundSurfaces
       .map((surface) => `<polygon points="${ptsAttr(surface,radians)}"/>`)
       .join("");
-    const shade = active(shadows).map((shadow) => {
+    const shade = activeShadows.map((shadow) => {
       const footprint = shadow.footprint.map((p) => project(p,radians));
       const center = footprint.reduce((acc,p) => ({x:acc.x+p.x/footprint.length,y:acc.y+p.y/footprint.length}),{x:0,y:0});
       const vx = center.x - SUN_SCREEN.x;
@@ -1590,11 +1598,10 @@ export function createRifugioModel(shell, options = {}) {
     ["grow","x","y","pop"].includes(item.buildAxis) ? item.buildAxis : "pop";
 
   // One group animation replaces hundreds of identical per-face animations.
-  function unitAnimation(parts) {
+  function unitAnimation(parts, now) {
     const first = parts[0];
     if (!first) return null;
     const k = first.layer ?? 0;
-    const now = performance.now();
 
     if (building0(first, k)) {
       const delay = buildDelay(first);
@@ -1620,13 +1627,12 @@ export function createRifugioModel(shell, options = {}) {
     return null;
   }
 
-  function renderItem(item, radians, forceVisible = false, quiet = false) {
+  function renderItem(item, radians, now, forceVisible = false, quiet = false) {
     if (!forceVisible && item.normal && !item.doubleSided && !visible(item.normal,radians)) return "";
     const k = item.layer ?? 0;
     const isFace = item.type === "face";
     let cls = item.className || (isFace ? "face" : "detail");
     let extra = ` data-layer="${k}"`;
-    const now = performance.now();
     const buildAt = !quiet && building0(item, k) ? buildDelay(item) - (now - buildEpoch) : null;
     const building = buildAt != null && buildAt + BUILD_MS > 0;
     const leaving = !quiet && unbuilding != null && k >= unbuilding.from && k <= unbuilding.to && !item.noBuild;
@@ -1637,9 +1643,9 @@ export function createRifugioModel(shell, options = {}) {
       ? `animation-delay:${buildAt.toFixed(0)}ms`
       : leaving
         ? `animation-delay:${leaveAt.toFixed(0)}ms`
-      : item.ripple != null ? `animation-delay:-${phaseOf(RIPPLE_DUR, item.ripple)}s`
-      : item.jet != null ? `animation-delay:-${phaseOf(JET_DUR, item.jet)}s`
-      : item.perch != null ? `animation-delay:-${phaseOf(PERCH_DUR, item.perch)}s`
+      : item.ripple != null ? `animation-delay:-${phaseOf(now, RIPPLE_DUR, item.ripple)}s`
+      : item.jet != null ? `animation-delay:-${phaseOf(now, JET_DUR, item.jet)}s`
+      : item.perch != null ? `animation-delay:-${phaseOf(now, PERCH_DUR, item.perch)}s`
       : (item.style || "");
     if (building) cls += ` is-building-${axis}`;
     else if (leaving) cls += ` is-unbuilding-${axis}`;
@@ -1656,8 +1662,8 @@ export function createRifugioModel(shell, options = {}) {
     return `<path class="${cls}"${extra} d="${d}"${item.stroke ? ` stroke="${item.stroke}"` : ""}${opacity}/>`;
   }
 
-  function sorted(items, radians) {
-    return active(items)
+  function sortedVisible(items, radians) {
+    return items
       .filter((item) => !item.normal || item.doubleSided || visible(item.normal,radians))
       .sort((a,b) => compareItems(a,b,radians));
   }
@@ -1668,7 +1674,7 @@ export function createRifugioModel(shell, options = {}) {
 
   const BUS_ARRIVE = .42, BUS_LEAVE = .61;
 
-  function renderBus(radians) {
+  function renderBus(radians, now, lightweight) {
     if (renderStep < 6) return null;
     const centre = project(point(0,CAR_LANE_Y,.15),radians);
     const fromX = PIAZZA.x0 - 5.2, stopX = 3.2, toX = PIAZZA.x1 + 5.2;
@@ -1677,15 +1683,14 @@ export function createRifugioModel(shell, options = {}) {
       return [`${(p.x-centre.x).toFixed(1)}px`, `${(p.y-centre.y).toFixed(1)}px`];
     };
     const [sx,sy] = off(fromX), [mx,my] = off(stopX), [ex,ey] = off(toX);
-    const phase = ((performance.now() - trafficEpoch) / 1000 + 2.4) % BUS_SECONDS;
+    const phase = ((now - trafficEpoch) / 1000 + 2.4) % BUS_SECONDS;
     const delay = `animation-delay:-${phase.toFixed(3)}s`;
 
     const near = visible({x:0,y:1,z:0}, radians) ? 1 : -1;
-    const lightweight = interactionLightweight();
     const parts = lightweight ? busLod : [...busSolids, ...busDetails];
     const paint = (list) => list.sort((a,b)=>compareItems(a,b,radians))
-      .map((item) => renderItem(item,radians,true)).join("");
-    const onSide = (list, s) => active(list).filter((item) => (item.busSide|0) === s);
+      .map((item) => renderItem(item,radians,now,true)).join("");
+    const onSide = (list, s) => list.filter((item) => (item.busSide|0) === s);
     const doorGroup = (s, dir) => {
       const doors = onSide(busDoors, s).filter((_, i) => i % 2 === (dir < 0 ? 0 : 1));
       if (!doors.length) return "";
@@ -1709,16 +1714,16 @@ export function createRifugioModel(shell, options = {}) {
     return { html, depth: laneDepth(worldX, .9, radians) };
   }
 
-  function renderTraffic(radians) {
+  function renderTraffic(radians, now) {
     if (!liveAt({ layer: 0, goneAt: 5 })) return null;
-    const ground=active(carGround).map((item)=>renderItem(item,radians)).join("");
-    const car=sorted([...carSolids,...carDetails],radians).map((item)=>renderItem(item,radians)).join("");
+    const ground=carGround.map((item)=>renderItem(item,radians,now)).join("");
+    const car=sortedVisible([...carSolids,...carDetails],radians).map((item)=>renderItem(item,radians,now)).join("");
     const centre=project(point(0,CAR_LANE_Y,.15),radians);
     const start=project(point(PIAZZA.x0-2.4,laneY(),.15),radians);
     const end=project(point(PIAZZA.x1+2.4,laneY(),.15),radians);
     const startX=(start.x-centre.x).toFixed(1),startY=(start.y-centre.y).toFixed(1);
     const endX=(end.x-centre.x).toFixed(1),endY=(end.y-centre.y).toFixed(1);
-    const phase=((performance.now()-trafficEpoch)/1000)%CAR_DURATION_SECONDS;
+    const phase=((now-trafficEpoch)/1000)%CAR_DURATION_SECONDS;
     const worldX=(PIAZZA.x0-2.4)+((PIAZZA.x1+2.4)-(PIAZZA.x0-2.4))*(phase/CAR_DURATION_SECONDS);
     const html=`<g class="moving-car" style="--car-start-x:${startX}px;--car-start-y:${startY}px;--car-end-x:${endX}px;--car-end-y:${endY}px;--car-duration:${CAR_DURATION_SECONDS}s;animation-delay:-${phase.toFixed(3)}s">${ground}${car}</g>`;
     return { html, depth: laneDepth(worldX, .5, radians) };
@@ -1730,6 +1735,18 @@ export function createRifugioModel(shell, options = {}) {
   let interactionIdleTimer = 0;
   let mobileInteracting = false;
   let lastInteractionRenderAt = 0;
+  let restoreRequest = 0;
+  let restoreRequestIsIdle = false;
+  let restoreEffectsRaf = 0;
+  let restorePending = false;
+  let viewPreviewActive = false;
+  let renderedView = {
+    angle,
+    viewTilt,
+    zoom,
+    panX,
+    panY,
+  };
   const MOBILE_FRAME_MS = 1000 / 30;
   const MOBILE_IDLE_MS = 180;
 
@@ -1738,6 +1755,7 @@ export function createRifugioModel(shell, options = {}) {
   }
 
   function renderSun(radians) {
+    sun.removeAttribute("transform");
     const d = camera2d(SUN_WORLD, radians);
     const len = Math.hypot(d.x, d.y) || 1;
     const p = {
@@ -1759,7 +1777,14 @@ export function createRifugioModel(shell, options = {}) {
   }
 
 
-  const frameCost = [];
+  const frameCost = onFrame ? [] : null;
+  const diagnostics = {
+    fullRenders: 0,
+    lightweightRenders: 0,
+    previewUpdates: 0,
+    svgSwaps: 0,
+    detailedFigurePartsTraversed: 0,
+  };
 
   let buildLayer = -1;
   let buildEpoch = 0;
@@ -1861,65 +1886,159 @@ export function createRifugioModel(shell, options = {}) {
     roadVolumeClipShape.setAttribute("points",hull.map(p=>`${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" "));
   }
 
+  const LIGHT_GROUND_CLASSES = new Set([
+    "curb-line",
+    "road-line",
+    "drain-line",
+    "threshold-line",
+    "aiuola-line",
+  ]);
+  let renderTopology = null;
+
+  function prepareSceneUnits(k, lightweight, greenReady) {
+    const byFigure = new Map();
+    const byObject = new Map();
+    const activeSolids = solids.filter((item) => {
+      if (!liveAt(item, k) || item.figureId) return false;
+      if (item.revealGroup === "pergola-green" && !greenReady) return false;
+      return lightweight ? !item.dragSkip : !item.dragOnly;
+    });
+    const sceneItems = lightweight
+      ? activeSolids
+      : activeSolids.concat(details.filter(
+          (item) => liveAt(item, k) && !item.surfaceKey && !item.dragOnly,
+        ));
+
+    if (!lightweight) {
+      for (const item of solids) {
+        if (!item.figureId || !liveAt(item, k) || item.dragOnly) continue;
+        let bucket = byFigure.get(item.figureId);
+        if (!bucket) {
+          bucket = [];
+          byFigure.set(item.figureId, bucket);
+        }
+        bucket.push(item);
+      }
+    }
+
+    for (const item of sceneItems) {
+      const key = item.depthGroup
+        ? `depth-${item.depthGroup}`
+        : item.surfaceKey
+          ? `surface-${item.surfaceKey}`
+          : (item.objectUid || `single-${item.seq}`);
+      let bucket = byObject.get(key);
+      if (!bucket) {
+        bucket = [];
+        byObject.set(key, bucket);
+      }
+      bucket.push(item);
+    }
+
+    const units = [];
+    if (lightweight) {
+      for (const [id, life] of figureTopology) {
+        if (!liveAt(life, k)) continue;
+        units.push({
+          figureId: id,
+          centre: figureAnchors.get(id),
+          seq: life.seq || 0,
+        });
+      }
+    } else {
+      for (const [id, parts] of byFigure) {
+        units.push({
+          figureId: id,
+          parts,
+          centre: figureAnchors.get(id),
+          seq: parts[0]?.seq || 0,
+        });
+      }
+    }
+    for (const [id, parts] of byObject) {
+      const points = parts.flatMap((item) => item.points);
+      units.push({
+        objectId: id,
+        parts,
+        centre: average(points),
+        seq: parts[0]?.seq || 0,
+      });
+    }
+    return units;
+  }
+
+  function prepareRenderTopology() {
+    const activeByStep = Array.from({ length: RIFUGIO_STEP_COUNT }, (_, k) => {
+      const activeGroundLines = groundLines.filter((item) => liveAt(item, k));
+      const attachedDetails = new Map();
+      for (const item of details) {
+        if (!item.surfaceKey || !liveAt(item, k)) continue;
+        let bucket = attachedDetails.get(item.surfaceKey);
+        if (!bucket) {
+          bucket = [];
+          attachedDetails.set(item.surfaceKey, bucket);
+        }
+        bucket.push(item);
+      }
+      return {
+        baseFaces: baseFaces.filter((item) => liveAt(item, k)),
+        groundSurfaces: groundSurfaces.filter((item) => liveAt(item, k)),
+        groundLines: activeGroundLines,
+        lightGroundLines: activeGroundLines.filter(
+          (item) => LIGHT_GROUND_CLASSES.has(item.className),
+        ),
+        heatFaces: heatFaces.filter((item) => liveAt(item, k)),
+        contactFaces: contactFaces.filter((item) => liveAt(item, k)),
+        shadows: shadows.filter((item) => liveAt(item, k)),
+        heatAnchors: heatAnchors.filter((item) => liveAt(item, k)),
+        attachedDetails,
+      };
+    });
+    const fullByStep = Array.from({ length: RIFUGIO_STEP_COUNT }, (_, k) => [
+      prepareSceneUnits(k, false, false),
+      prepareSceneUnits(k, false, true),
+    ]);
+    const lightweightByStep = Array.from({ length: RIFUGIO_STEP_COUNT }, (_, k) => [
+      prepareSceneUnits(k, true, false),
+      prepareSceneUnits(k, true, true),
+    ]);
+    renderTopology = { activeByStep, fullByStep, lightweightByStep };
+  }
+
   function render() {
     raf = 0;
-    const started = performance.now();
+    const now = performance.now();
     const lightweight = interactionLightweight();
-    if (mobileMode && mobileInteracting) lastInteractionRenderAt = started;
+    if (lightweight) diagnostics.lightweightRenders += 1;
+    else diagnostics.fullRenders += 1;
+    if (mobileMode && mobileInteracting) lastInteractionRenderAt = now;
     const radians = angle * Math.PI / 180;
     computeFit(radians);
     updateRoadVolumeClip(radians);
     renderSun(radians);
-    const background = sorted(baseFaces,radians).map((item) => renderItem(item,radians)).join("");
-    const materials = active(groundSurfaces).map((item) => renderItem(item,radians)).join("");
-    const pavingItems = lightweight
-      ? active(groundLines).filter((item)=>["curb-line","road-line","drain-line","threshold-line","aiuola-line"].includes(item.className))
-      : active(groundLines);
-    const paving = pavingItems.map((item) => renderItem(item,radians)).join("");
-    const heatFloor = active(heatFaces).map((item) => renderItem(item,radians)).join("");
-    const shade = lightweight ? "" : renderShadows(radians);
-    const contacts = lightweight ? "" : sorted(contactFaces,radians).map((item) => renderItem(item,radians)).join("");
-    const traffic = renderTraffic(radians);
-    const busOverlay = renderBus(radians);
+    const activeSet = renderTopology.activeByStep[renderStep];
+    const background = sortedVisible(activeSet.baseFaces,radians)
+      .map((item) => renderItem(item,radians,now)).join("");
+    const materials = activeSet.groundSurfaces
+      .map((item) => renderItem(item,radians,now)).join("");
+    const pavingItems = lightweight ? activeSet.lightGroundLines : activeSet.groundLines;
+    const paving = pavingItems.map((item) => renderItem(item,radians,now)).join("");
+    const heatFloor = activeSet.heatFaces
+      .map((item) => renderItem(item,radians,now)).join("");
+    const shade = lightweight ? "" : renderShadows(radians, activeSet.shadows);
+    const contacts = lightweight ? "" : sortedVisible(activeSet.contactFaces,radians)
+      .map((item) => renderItem(item,radians,now)).join("");
+    const traffic = renderTraffic(radians, now);
+    const busOverlay = renderBus(radians, now, lightweight);
 
-    const attachedDetails = new Map();
-    active(details).filter((item) => item.surfaceKey).forEach((item) => {
-      if (!attachedDetails.has(item.surfaceKey)) attachedDetails.set(item.surfaceKey, []);
-      attachedDetails.get(item.surfaceKey).push(item);
-    });
-
-    const visibleSolids = active(solids).filter((item) => {
-      if(item.revealGroup === "pergola-green" && !pergolaGreenReady) return false;
-      return lightweight ? !item.dragSkip : !item.dragOnly;
-    });
-    const sceneItems = [...visibleSolids,...(lightweight ? [] : active(details).filter((item) => !item.surfaceKey && !item.dragOnly))];
-
-    const byFigure = new Map();
-    const byObject = new Map();
-    const units = [];
-    for (const item of sceneItems) {
-      if (item.figureId) {
-        let bucket = byFigure.get(item.figureId);
-        if (!bucket) { bucket = []; byFigure.set(item.figureId, bucket); }
-        bucket.push(item);
-      } else {
-        const key = item.depthGroup
-          ? `depth-${item.depthGroup}`
-          : item.surfaceKey
-            ? `surface-${item.surfaceKey}`
-            : (item.objectUid || `single-${item.seq}`);
-        let bucket = byObject.get(key);
-        if (!bucket) { bucket = []; byObject.set(key, bucket); }
-        bucket.push(item);
-      }
-    }
-    for (const [id, parts] of byFigure) {
-      units.push({ figureId: id, parts, depth: depthOf([figureAnchors.get(id)],radians), seq: parts[0]?.seq || 0 });
-    }
-    for (const [id, parts] of byObject) {
-      const allPoints = parts.flatMap((item) => item.points);
-      units.push({ objectId: id, parts, depth: depthOf(allPoints,radians), seq: parts[0]?.seq || 0 });
-    }
+    const greenState = pergolaGreenReady ? 1 : 0;
+    const cachedUnits = lightweight
+      ? renderTopology.lightweightByStep[renderStep][greenState]
+      : renderTopology.fullByStep[renderStep][greenState];
+    const units = cachedUnits.map((unit) => ({
+      ...unit,
+      depth: depthOfPoint(unit.centre, radians),
+    }));
     for (const vehicle of [traffic, busOverlay]) {
       if (vehicle) units.push({ html: vehicle.html, depth: vehicle.depth, seq: Number.MAX_SAFE_INTEGER });
     }
@@ -1930,11 +2049,11 @@ export function createRifugioModel(shell, options = {}) {
     });
 
     const renderSurfacePart = (item, quiet = false) => {
-      const surface = renderItem(item,radians,false,quiet);
+      const surface = renderItem(item,radians,now,false,quiet);
       if (!surface || !item.surfaceKey) return surface;
-      const openings = lightweight ? "" : (attachedDetails.get(item.surfaceKey) || [])
+      const openings = lightweight ? "" : (activeSet.attachedDetails.get(item.surfaceKey) || [])
         .sort((a,b) => compareItems(a,b,radians))
-        .map((detail) => renderItem(detail,radians,true,quiet))
+        .map((detail) => renderItem(detail,radians,now,true,quiet))
         .join("");
       return `<g data-surface="${item.surfaceKey}">${surface}${openings}</g>`;
     };
@@ -1943,9 +2062,10 @@ export function createRifugioModel(shell, options = {}) {
       if (unit.html != null) return unit.html;
       if (unit.figureId) {
         if (lightweight) return renderFigureLOD(unit.figureId,radians);
+        diagnostics.detailedFigurePartsTraversed += unit.parts.length;
         const inner = [...unit.parts]
           .sort((a,b) => compareItems(a,b,radians))
-          .map((part) => renderItem(part,radians))
+          .map((part) => renderItem(part,radians,now))
           .join("");
         if (!inner) return "";
         const life = CAST_LIFE[unit.figureId] || CAST_LIFE.default;
@@ -1953,29 +2073,29 @@ export function createRifugioModel(shell, options = {}) {
         const foot = project(point(a.x, a.y, 0), radians);
         const fx = foot.x.toFixed(1), fy = foot.y.toFixed(1);
         const arrivalAt = buildLayer === unit.parts[0]?.layer
-          ? buildDelay(unit.parts[0]) - (performance.now() - buildEpoch)
+          ? buildDelay(unit.parts[0]) - (now - buildEpoch)
           : null;
         const arriving = arrivalAt != null && arrivalAt + 820 > 0
           ? ` class="cast-arrival" style="animation-delay:${arrivalAt.toFixed(0)}ms"`
           : "";
         return `<g${arriving} transform="translate(${fx} ${fy}) scale(${CAST_SCALE}) translate(${-foot.x.toFixed(1)} ${-foot.y.toFixed(1)})">`
           + `<g class="cast-alive" data-figure="${unit.figureId}" style="transform-origin:${fx}px ${fy}px;--idle-dur:${life.dur}s;`
-          + `animation-delay:-${phaseOf(life.dur, life.offset)}s;--idle-lift:${life.lift}">${inner}</g></g>`;
+          + `animation-delay:-${phaseOf(now, life.dur, life.offset)}s;--idle-lift:${life.lift}">${inner}</g></g>`;
       }
       if (unit.objectId != null) {
         const ordered = [...unit.parts].sort((a,b) => compareItems(a,b,radians));
         const regularParts=ordered.filter((item)=>!item.revealGroup);
         const revealParts=ordered.filter((item)=>item.revealGroup);
-        const anim = unitAnimation(regularParts);
+        const anim = unitAnimation(regularParts, now);
         const quiet = anim != null;
         let regular=regularParts.map((item)=>renderSurfacePart(item,quiet)).join("");
-        if (!regular && regularParts.length) regular=regularParts.map((item)=>renderItem(item,radians,true,quiet)).join("");
+        if (!regular && regularParts.length) regular=regularParts.map((item)=>renderItem(item,radians,now,true,quiet)).join("");
         let revealed="";
         if(revealParts.length){
           let green=revealParts.map(renderSurfacePart).join("");
-          if(!green) green=revealParts.map((item)=>renderItem(item,radians,true)).join("");
+          if(!green) green=revealParts.map((item)=>renderItem(item,radians,now,true)).join("");
           const revealAt = pergolaGreenAnimating && revealParts[0].revealGroup === "pergola-green"
-            ? (revealParts[0].revealDelay || 220) - (performance.now() - pergolaGreenEpoch)
+            ? (revealParts[0].revealDelay || 220) - (now - pergolaGreenEpoch)
             : null;
           const cls = revealAt != null && revealAt + 460 > 0 ? "reveal-after-build" : "";
           const style = cls ? ` style="animation-delay:${revealAt.toFixed(0)}ms"` : "";
@@ -1992,33 +2112,52 @@ export function createRifugioModel(shell, options = {}) {
 
     const w = fit.scale * .30;
     const h = fit.scale * .46;
-    const heat = lightweight ? "" : heatAnchors.filter((a) => liveAt(a)).map((a, i) => {
+    const heat = lightweight ? "" : activeSet.heatAnchors.map((a, i) => {
       const q = project(a.p,radians);
-      return `<path class="heat-line" style="animation-delay:-${phaseOf(HEAT_DUR, i * 1.2)}s"`
+      return `<path class="heat-line" style="animation-delay:-${phaseOf(now, HEAT_DUR, i * 1.2)}s"`
         + ` d="M${q.x.toFixed(1)} ${q.y.toFixed(1)} q${(-w).toFixed(1)} ${(-h).toFixed(1)} 0 ${(-h*2).toFixed(1)} q${w.toFixed(1)} ${(-h).toFixed(1)} 0 ${(-h*2).toFixed(1)}"`
         + ` stroke-width="${Math.max(1.4, fit.scale*.075).toFixed(2)}"/>`;
     }).join("");
 
     const nextFrame = background + materials + paving + heatFloor + shade + contacts + scene + heat;
     // Swap complete buffers so a partially rebuilt model is never painted.
+    hiddenModelBuffer.removeAttribute("transform");
     hiddenModelBuffer.innerHTML = nextFrame;
     hiddenModelBuffer.setAttribute("visibility", "visible");
     visibleModelBuffer.setAttribute("visibility", "hidden");
     visibleModelBuffer.innerHTML = "";
+    visibleModelBuffer.removeAttribute("transform");
     const previousBuffer = visibleModelBuffer;
     visibleModelBuffer = hiddenModelBuffer;
     hiddenModelBuffer = previousBuffer;
+    diagnostics.svgSwaps += 1;
+    renderedView = { angle, viewTilt, zoom, panX, panY };
+    viewPreviewActive = false;
 
     rendered = true;
-    frameCost.push(performance.now() - started);
-    if (frameCost.length > 30) frameCost.shift();
-    const sortedCost = [...frameCost].sort((a, b) => a - b);
     if (onFrame) {
+      frameCost.push(performance.now() - now);
+      if (frameCost.length > 30) frameCost.shift();
+      const sortedCost = [...frameCost].sort((a, b) => a - b);
       onFrame({
         angle: Math.round((angle % 360 + 360) % 360),
         tilt: Math.round(viewTilt),
         zoom,
         ms: sortedCost[sortedCost.length >> 1],
+      });
+    }
+    if (mobileMode && restorePending && !lightweight && !mobileInteracting) {
+      if (restoreRequest) {
+        if (restoreRequestIsIdle) window.cancelIdleCallback?.(restoreRequest);
+        else cancelAnimationFrame(restoreRequest);
+        restoreRequest = 0;
+      }
+      if (restoreEffectsRaf) cancelAnimationFrame(restoreEffectsRaf);
+      restoreEffectsRaf = requestAnimationFrame(() => {
+        restoreEffectsRaf = 0;
+        if (mobileInteracting) return;
+        shell.classList.remove("is-mobile-interacting");
+        restorePending = false;
       });
     }
 
@@ -2057,28 +2196,66 @@ export function createRifugioModel(shell, options = {}) {
     panY = Math.max(-maxY, Math.min(maxY, panY));
   }
 
+  function notifyViewZoom(silent = false) {
+    shell.dataset.zoom = zoom > 1.02 ? "in" : "out";
+    if (silent || !onZoom) return;
+    const nextBand = zoom <= 1.02 ? 0 : zoom >= 2.38 ? 2 : 1;
+    if (!mobileMode || nextBand !== notifiedZoomBand) {
+      notifiedZoomBand = nextBand;
+      onZoom(zoom);
+    }
+  }
+
+  function applyViewPreview() {
+    if (!mobileMode || !rendered) return;
+    const scale = zoom / renderedView.zoom;
+    const frameCx = FRAME.x + FRAME.w / 2;
+    const frameCy = FRAME.y + FRAME.h / 2;
+    const tx = frameCx + panX - scale * (frameCx + renderedView.panX);
+    const ty = frameCy + panY - scale * (frameCy + renderedView.panY);
+    visibleModelBuffer.setAttribute(
+      "transform",
+      `matrix(${scale} 0 0 ${scale} ${tx} ${ty})`,
+    );
+    sun.setAttribute(
+      "transform",
+      `matrix(${scale} 0 0 ${scale} ${(SUN_SCREEN.x * (1 - scale)).toFixed(4)} ${(SUN_SCREEN.y * (1 - scale)).toFixed(4)})`,
+    );
+    viewPreviewActive = true;
+    diagnostics.previewUpdates += 1;
+  }
+
+  function setViewTransform(next, { preview = false, silent = false } = {}) {
+    const nextZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, next.zoom ?? zoom));
+    const nextPanX = next.panX ?? panX;
+    const nextPanY = next.panY ?? panY;
+    const changed = Math.abs(nextZoom - zoom) >= .001
+      || Math.abs(nextPanX - panX) >= .001
+      || Math.abs(nextPanY - panY) >= .001;
+    if (!changed) return;
+    zoom = nextZoom;
+    panX = nextPanX;
+    panY = nextPanY;
+    clampPan();
+    notifyViewZoom(silent);
+    if (preview && mobileMode) applyViewPreview();
+    else scheduleRender();
+  }
+
   function setZoom(next, at = null, silent = false) {
     const clamped = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, next));
     if (Math.abs(clamped - zoom) < 0.001) return;
     const k = clamped / zoom;
+    let nextPanX;
+    let nextPanY;
     if (at) {
-      panX = (at.x - (FRAME.x + FRAME.w / 2)) * (1 - k) + k * panX;
-      panY = (at.y - (FRAME.y + FRAME.h / 2)) * (1 - k) + k * panY;
+      nextPanX = (at.x - (FRAME.x + FRAME.w / 2)) * (1 - k) + k * panX;
+      nextPanY = (at.y - (FRAME.y + FRAME.h / 2)) * (1 - k) + k * panY;
     } else {
-      panX *= k;
-      panY *= k;
+      nextPanX = panX * k;
+      nextPanY = panY * k;
     }
-    zoom = clamped;
-    clampPan();
-    shell.dataset.zoom = zoom > 1.02 ? "in" : "out";
-    if (!silent && onZoom) {
-      const nextBand = zoom <= 1.02 ? 0 : zoom >= 2.38 ? 2 : 1;
-      if (!mobileMode || nextBand !== notifiedZoomBand) {
-        notifiedZoomBand = nextBand;
-        onZoom(zoom);
-      }
-    }
-    scheduleRender();
+    setViewTransform({ zoom: clamped, panX: nextPanX, panY: nextPanY }, { silent });
   }
 
   function zoomBy(factor, at = null) {
@@ -2087,10 +2264,7 @@ export function createRifugioModel(shell, options = {}) {
 
   function panBy(dx, dy) {
     if (zoom <= 1.001) return;
-    panX += dx;
-    panY += dy;
-    clampPan();
-    scheduleRender();
+    setViewTransform({ zoom, panX: panX + dx, panY: panY + dy });
   }
 
   function resetView() {
@@ -2118,6 +2292,20 @@ export function createRifugioModel(shell, options = {}) {
   let pinchStart = 0;
   let pinchZoomStart = 1;
   let pinchCentre = null;
+  let pinchPanStart = { x: 0, y: 0 };
+  let pinchAnchor = null;
+
+  const cancelRestoreRequest = () => {
+    if (restoreRequest) {
+      if (restoreRequestIsIdle) window.cancelIdleCallback?.(restoreRequest);
+      else cancelAnimationFrame(restoreRequest);
+      restoreRequest = 0;
+    }
+    if (restoreEffectsRaf) {
+      cancelAnimationFrame(restoreEffectsRaf);
+      restoreEffectsRaf = 0;
+    }
+  };
 
   const beginMobileInteraction = () => {
     if (!mobileMode) return;
@@ -2125,6 +2313,8 @@ export function createRifugioModel(shell, options = {}) {
       clearTimeout(interactionIdleTimer);
       interactionIdleTimer = 0;
     }
+    cancelRestoreRequest();
+    restorePending = false;
     mobileInteracting = true;
     shell.classList.add("is-mobile-interacting");
   };
@@ -2135,12 +2325,22 @@ export function createRifugioModel(shell, options = {}) {
     interactionIdleTimer = later(() => {
       interactionIdleTimer = 0;
       mobileInteracting = false;
-      shell.classList.remove("is-mobile-interacting");
+      restorePending = true;
       if (interactionFrameTimer) {
         clearTimeout(interactionFrameTimer);
         interactionFrameTimer = 0;
       }
-      scheduleRender(true);
+      const restore = () => {
+        restoreRequest = 0;
+        scheduleRender(true);
+      };
+      if (typeof window.requestIdleCallback === "function") {
+        restoreRequestIsIdle = true;
+        restoreRequest = window.requestIdleCallback(restore, { timeout: 80 });
+      } else {
+        restoreRequestIsIdle = false;
+        restoreRequest = requestAnimationFrame(restore);
+      }
     }, MOBILE_IDLE_MS);
   };
 
@@ -2166,12 +2366,24 @@ export function createRifugioModel(shell, options = {}) {
     beginMobileInteraction();
     if (mobileMode) gestureBox = shell.getBoundingClientRect();
     pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    // Capture every active pointer. Without capturing the second touch, a
+    // pinch that strays outside the SVG can miss its release and leave the
+    // gesture map stuck until the next interaction.
+    shell.setPointerCapture?.(event.pointerId);
     if (pointers.size === 2) {
       stopDragging();
       const two = twoFingers();
       pinchStart = two.distance;
       pinchZoomStart = zoom;
       pinchCentre = { x: two.x, y: two.y };
+      pinchPanStart = { x: panX, y: panY };
+      const box = mobileMode && gestureBox
+        ? gestureBox
+        : shell.getBoundingClientRect();
+      pinchAnchor = {
+        x: (two.x - box.left) / box.width * 960,
+        y: (two.y - box.top) / box.height * 660,
+      };
       return;
     }
     if (pointers.size > 2) return;
@@ -2180,7 +2392,6 @@ export function createRifugioModel(shell, options = {}) {
     shell.classList.add("is-dragging");
     lastX = event.clientX;
     lastY = event.clientY;
-    shell.setPointerCapture(event.pointerId);
   });
 
   on(shell, "pointermove", (event) => {
@@ -2193,6 +2404,29 @@ export function createRifugioModel(shell, options = {}) {
       const box = mobileMode && gestureBox
         ? gestureBox
         : shell.getBoundingClientRect();
+      if (mobileMode) {
+        const targetZoom = Math.max(
+          MIN_ZOOM,
+          Math.min(MAX_ZOOM, pinchZoomStart * (two.distance / pinchStart)),
+        );
+        const scale = targetZoom / pinchZoomStart;
+        const currentCentre = {
+          x: (two.x - box.left) / box.width * 960,
+          y: (two.y - box.top) / box.height * 660,
+        };
+        const frameCx = FRAME.x + FRAME.w / 2;
+        const frameCy = FRAME.y + FRAME.h / 2;
+        setViewTransform({
+          zoom: targetZoom,
+          panX: (pinchAnchor.x - frameCx) * (1 - scale)
+            + scale * pinchPanStart.x
+            + currentCentre.x - pinchAnchor.x,
+          panY: (pinchAnchor.y - frameCy) * (1 - scale)
+            + scale * pinchPanStart.y
+            + currentCentre.y - pinchAnchor.y,
+        }, { preview: true });
+        return;
+      }
       setZoom(pinchZoomStart * (two.distance / pinchStart), {
         x: (pinchCentre.x - box.left) / box.width * 960,
         y: (pinchCentre.y - box.top) / box.height * 660,
@@ -2213,7 +2447,17 @@ export function createRifugioModel(shell, options = {}) {
     lastX = event.clientX;
     lastY = event.clientY;
     if (panning) {
-      panBy(dx / box.width * 960, dy / box.height * 660);
+      const viewDx = dx / box.width * 960;
+      const viewDy = dy / box.height * 660;
+      if (mobileMode) {
+        setViewTransform({
+          zoom,
+          panX: panX + viewDx,
+          panY: panY + viewDy,
+        }, { preview: true });
+      } else {
+        panBy(viewDx, viewDy);
+      }
       return;
     }
     angle -= dx * .42;
@@ -2223,7 +2467,11 @@ export function createRifugioModel(shell, options = {}) {
 
   const releasePointer = (event) => {
     pointers.delete(event.pointerId);
-    if (pointers.size < 2) { pinchStart = 0; pinchCentre = null; }
+    if (pointers.size < 2) {
+      pinchStart = 0;
+      pinchCentre = null;
+      pinchAnchor = null;
+    }
     if (shell.hasPointerCapture?.(event.pointerId)) shell.releasePointerCapture(event.pointerId);
     if (pointers.size === 0) {
       panning = false;
@@ -2234,6 +2482,9 @@ export function createRifugioModel(shell, options = {}) {
   };
   on(shell, "pointerup", releasePointer);
   on(shell, "pointercancel", releasePointer);
+  on(shell, "lostpointercapture", (event) => {
+    if (pointers.has(event.pointerId)) releasePointer(event);
+  });
 
   on(shell, "dblclick", (event) => {
     event.preventDefault();
@@ -2342,6 +2593,7 @@ export function createRifugioModel(shell, options = {}) {
 
   buildScene();
   measureBuildTimes();
+  prepareRenderTopology();
   setStep(0);
 
   return {
@@ -2349,15 +2601,27 @@ export function createRifugioModel(shell, options = {}) {
     turn,
     zoomBy,
     setZoom,
+    setViewTransform,
     panBy,
     resetView,
     get zoom() {
       return zoom;
     },
+    get diagnostics() {
+      return {
+        ...diagnostics,
+        previewActive: viewPreviewActive,
+        quality: interactionLightweight() ? "lightweight" : "full",
+        zoom,
+        panX,
+        panY,
+      };
+    },
     refresh: scheduleRender,
     destroy() {
       if (raf) cancelAnimationFrame(raf);
       raf = 0;
+      cancelRestoreRequest();
       timers.forEach((timer) => clearTimeout(timer));
       timers.clear();
       bindings.forEach((off) => off());

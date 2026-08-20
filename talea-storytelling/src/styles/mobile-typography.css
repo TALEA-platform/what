@@ -1,0 +1,410 @@
+/* Approved mobile typography scale. Desktop remains governed by the existing
+   component styles because this file has no rules outside the mobile regime. */
+@media (max-width: 1279px) {
+  :root {
+    --type-hero: clamp(3.25rem, calc(2.7016rem + 2.25vw), 4.5rem);
+    --type-chapter: clamp(2.5rem, calc(2.2258rem + 1.125vw), 3.125rem);
+    --type-section: clamp(2rem, calc(1.8903rem + 0.45vw), 2.25rem);
+    --type-card-title: clamp(1.5rem, calc(1.4452rem + 0.225vw), 1.625rem);
+    --type-lead: clamp(1.25rem, calc(1.1952rem + 0.225vw), 1.375rem);
+    --type-body: 1.125rem;
+    --type-body-compact: clamp(0.9375rem, calc(0.6518rem + 1.4286vw), 1rem);
+    --type-ui: 0.875rem;
+    --type-caption: 0.75rem;
+    --type-stat-large: 3.75rem;
+    --type-stat-medium: clamp(2.5rem, calc(2.2806rem + 0.9vw), 3rem);
+    --type-stat-small: clamp(2rem, calc(1.9452rem + 0.225vw), 2.125rem);
+  }
+
+  body {
+    font-size: var(--type-body);
+    line-height: 1.6;
+  }
+
+  .hero-title {
+    font-size: var(--type-hero);
+    line-height: 0.98;
+  }
+
+  .trend-title,
+  .causes-title,
+  .sf-title,
+  .vulnerability-title,
+  .relief-title,
+  .talea-title,
+  .talea-say-title {
+    max-width: min(12ch, 100%);
+    font-size: var(--type-chapter);
+    line-height: 1.06;
+    text-wrap: balance;
+  }
+
+  .sf-title,
+  .relief-title,
+  .talea-say-title {
+    margin-inline: auto;
+    text-align: center;
+  }
+
+  .relief-intro-heading .relief-title {
+    margin-inline: auto;
+  }
+
+  .sf-final-pivot,
+  .rifugi-title,
+  .plan-intro-lead,
+  .talea-bridge,
+  .talea-partners-title,
+  .closing-final-standout,
+  .sources-title {
+    font-size: var(--type-section);
+    line-height: 1.1;
+  }
+
+  .hotspot-mobile-handoff,
+  .hotspot-exit-phrase,
+  .zones-caption-title,
+  .r-card-name,
+  .method-drawer-title,
+  .method-fact-value,
+  .glossary-drawer-term,
+  .tg-title {
+    max-width: min(22ch, 100%);
+    overflow: visible;
+    font-size: var(--type-card-title);
+    line-height: 1.15;
+    text-overflow: clip;
+    white-space: normal;
+  }
+
+  .hotspot-intro-lead,
+  .sf-pivot,
+  .sf-strip-kicker,
+  .vulnerability-health,
+  .talea-gloss,
+  .talea-fact-value {
+    font-size: var(--type-lead);
+    line-height: 1.45;
+  }
+
+  .hero-subtitle,
+  .hero-bridge-body,
+  .hero-bridge-callout-text,
+  .trend-lead,
+  .trend-body,
+  .trend-bridge,
+  .hotspot-intro-caption p,
+  .hotspot-intro-copy p,
+  .hotspot-intro-closer-text,
+  .causes-aperture,
+  .causes-aperture-close,
+  .causes-exit,
+  .sf-opening,
+  .sf-lead,
+  .sf-final,
+  .sf-chapter-handoff,
+  .vulnerability-person,
+  .vulnerability-handoff,
+  .vulnerability-source,
+  .vulnerability-statistic-qualifier,
+  .vulnerability-statistic-label-line,
+  .vulnerability-closing,
+  .relief-lead,
+  .relief-body,
+  .relief-thesis,
+  .relief-intro-copy .relief-lead,
+  .relief-intro-copy .relief-body,
+  .relief-intro-copy .relief-thesis,
+  .rifugi-intro-copy .relief-body,
+  .rifugi-map-invitation,
+  .plan-intro-body,
+  .talea-body,
+  .talea-say-body,
+  .footer-label {
+    font-size: var(--type-body);
+    line-height: 1.6;
+  }
+
+  .trend-chart-meta-value,
+  .trend-zoom-invite-lead,
+  .hotspot-sequence--mobile .hotspot-seq-text,
+  .sf-seq-item .sf-line,
+  .hotspot-mobile-story-text,
+  .hotspot-legend--mobile .hotspot-legend-title,
+  .causes-mobile-story-body,
+  .sf-mobile-story-copy .sf-line,
+  .sf-scene-legend--mobile .sf-scene-legend-title,
+  .sf-strip-scope,
+  .relief-map-find-prompt,
+  .relief-count-label,
+  .zones-caption-text,
+  .plan-text,
+  .talea-partner-name,
+  .sources-intro,
+  .source-name,
+  .source-desc,
+  .method-intro,
+  .method-section-heading,
+  .method-section-body,
+  .glossary-drawer-text,
+  .tg-body {
+    font-size: var(--type-body-compact);
+    line-height: 1.45;
+  }
+
+  .header-nav.open .header-link,
+  .link-label,
+  .scroll-stem-node-label,
+  .trend-zoom-link,
+  .hotspot-mobile-gesture-hint,
+  .hotspot-mobile-annotation strong,
+  .hotspot-legend-toggle,
+  .hotspot-legend--mobile .hotspot-legend-active,
+  .hotspot-legend--mobile .hotspot-legend-caption,
+  .hotspot-legend--mobile .hotspot-legend-link,
+  .hotspot-slider-badge,
+  .hotspot-slider-mark,
+  .hotspot-scene .annotation-label--priority .annotation-name,
+  .compare-label span,
+  .causes-topic-label,
+  .sf-mobile-gesture-hint,
+  .sf-legend-toggle,
+  .sf-scene-legend--mobile .sf-scene-legend-description,
+  .sf-scene-legend--mobile .sf-scene-legend-link,
+  .sf-lead-label,
+  .sf-strip-because,
+  .sf-support-label,
+  .relief-recipe-word,
+  .relief-map-hint,
+  .relief-map-search input,
+  .relief-map-search button,
+  .relief-map-search-toggle,
+  .relief-count-sub,
+  .relief-map-link,
+  .r-card-meta,
+  .r-card-offers,
+  .r-fact-val,
+  .r-card-foot,
+  .plan-legend-word,
+  .shade-route,
+  .talea-lockup-label,
+  .talea-fact-label,
+  .talea-fact-note,
+  .talea-funding span,
+  .source-open,
+  .footer-link,
+  .method-progress-note,
+  .method-progress-toggle,
+  .method-link-label,
+  .glossary-trail-item,
+  .glossary-trail-num,
+  .glossary-trail-term {
+    font-size: var(--type-ui);
+    line-height: 1.4;
+  }
+
+  .mobile-progress-hint,
+  .hero-scroll-label,
+  .trend-step,
+  .trend-step-label,
+  .trend-chart-meta-kicker,
+  .trend-chart-meta-unit,
+  .trend-source,
+  .trend-tooltip-delta,
+  .hotspot-mobile-annotation span,
+  .hotspot-mobile-annotation small,
+  .hotspot-mobile-sequence-status,
+  .hotspot-sequence-caption,
+  .hotspot-legend-scale,
+  .hotspot-slider-label,
+  .hotspot-scene .annotation-label--priority .annotation-tag,
+  .hotspot-scene .annotation-label--priority .annotation-context,
+  .compare-label small,
+  .drivers-maplibre-legend,
+  .drivers-district-cell,
+  .causes-maplegend-labels,
+  .causes-hotspot-legend-label,
+  .causes-compare-handle-hint,
+  .sf-mobile-sequence-status,
+  .sf-scene-legend-labels,
+  .sf-lead-note,
+  .sf-municipal-compare,
+  .sf-strip-hinge,
+  .seq-caption,
+  .relief-recipe-label,
+  .relief-map-message,
+  .relief-map-note,
+  .r-card-badge,
+  .r-fact-key,
+  .r-near-head,
+  .plan-annotation-label,
+  .plan-step,
+  .plan-step-count,
+  .plan-legend-label,
+  .zones-key,
+  .talea-partner-role,
+  .source-tag,
+  .footer-funding-text,
+  .footer-disclaimer,
+  .method-eyebrow,
+  .method-progress-count,
+  .method-fact-label,
+  .method-section-num,
+  .method-links-label,
+  .method-link-note,
+  .glossary-eyebrow,
+  .glossary-trail-label,
+  .glossary-trail-count {
+    font-size: var(--type-caption);
+    line-height: 1.4;
+  }
+
+  .vulnerability-statistic-value {
+    font-size: var(--type-stat-large);
+    line-height: 0.96;
+  }
+
+  .sf-lead-value,
+  .relief-count-num {
+    font-size: var(--type-stat-medium);
+    line-height: 1;
+  }
+
+  .sf-support-value,
+  .relief-count--second .relief-count-num {
+    font-size: var(--type-stat-small);
+    line-height: 1.05;
+  }
+
+  .kw,
+  .hero-kw,
+  .trend-punch,
+  .glossary-term,
+  .plan-text-lead,
+  .copy-link,
+  .hero-bridge-callout-text strong,
+  .trend-body strong,
+  .trend-bridge strong,
+  .hotspot-intro-caption strong,
+  .causes-aperture strong,
+  .causes-mobile-story-body strong,
+  .sf-mobile-story-copy strong,
+  .sf-final strong,
+  .relief-seq-text strong,
+  .relief-map-find-prompt strong,
+  .zones-caption-text strong,
+  .plan-text strong,
+  .talea-body strong,
+  .talea-say-body strong,
+  .sources-intro strong,
+  .source-desc strong,
+  .method-intro strong,
+  .method-section-body strong,
+  .glossary-drawer-text strong,
+  .vulnerability-handoff a,
+  .vulnerability-source a {
+    font-size: inherit;
+    line-height: inherit;
+  }
+
+  /* Approved non-token exceptions. Map attribution and the 3D/SVG labels are
+     already scoped in their component styles and intentionally untouched. */
+  .brand-title {
+    font-size: 16px;
+  }
+
+  .lang-switch--mobile button,
+  .lang-switch--desktop button {
+    font-size: 12px;
+  }
+
+  .trend-chart .recharts-cartesian-axis-tick-value,
+  .trend-chart .recharts-cartesian-axis-tick-value tspan,
+  .trend-chart .recharts-label,
+  .trend-chart .recharts-label tspan {
+    font-size: 12px !important;
+  }
+
+  .hotspot-intro-lead,
+  .sf-pivot,
+  .vulnerability-health,
+  .talea-gloss {
+    max-width: min(34ch, 100%);
+  }
+
+  .trend-lead,
+  .trend-body,
+  .causes-aperture,
+  .causes-aperture-close,
+  .sf-opening,
+  .sf-lead,
+  .sf-final,
+  .sf-chapter-handoff,
+  .vulnerability-handoff,
+  .vulnerability-source,
+  .vulnerability-closing,
+  .relief-lead,
+  .relief-body,
+  .relief-thesis,
+  .rifugi-map-invitation,
+  .plan-intro-body {
+    max-width: min(44ch, 100%);
+  }
+
+  .talea-body,
+  .talea-say-body {
+    max-width: min(44ch, 100%);
+  }
+
+  .hotspot-mobile-story-text,
+  .causes-mobile-story-body,
+  .sf-mobile-story-copy .sf-line,
+  .plan-text {
+    max-width: min(34ch, 100%);
+  }
+
+  .zones-caption-text,
+  .relief-map-find-prompt {
+    max-width: min(38ch, 100%);
+  }
+}
+
+@media (min-width: 600px) and (max-width: 1279px) {
+  .hotspot-intro-lead,
+  .sf-pivot,
+  .vulnerability-health,
+  .talea-gloss {
+    max-width: min(52ch, 100%);
+  }
+
+  .trend-lead,
+  .trend-body,
+  .causes-aperture,
+  .causes-aperture-close,
+  .sf-opening,
+  .sf-lead,
+  .sf-final,
+  .sf-chapter-handoff,
+  .vulnerability-handoff,
+  .vulnerability-source,
+  .vulnerability-closing,
+  .relief-lead,
+  .relief-body,
+  .relief-thesis,
+  .rifugi-map-invitation,
+  .plan-intro-body {
+    max-width: min(60ch, 100%);
+  }
+
+  .talea-body,
+  .talea-say-body {
+    max-width: min(58ch, 100%);
+  }
+
+  .hotspot-mobile-story-text,
+  .causes-mobile-story-body,
+  .sf-mobile-story-copy .sf-line,
+  .plan-text {
+    max-width: min(38ch, 100%);
+  }
+}

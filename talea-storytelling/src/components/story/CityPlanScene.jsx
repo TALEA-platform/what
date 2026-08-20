@@ -43,9 +43,10 @@ const VIGNETTE_FIRST_STEP_MS = 620;
 const MAP_HANDOFF_MS = 320;
 // Must match the Framer Motion exit duration used for the vignette.
 const VIGNETTE_EXIT_MS = 720;
-const MOBILE_LAYER_EXIT_FALLBACK_MS = 700;
 
 const LINK_R = 30;
+const MOBILE_PREWARM_FORWARD = 0.58;
+const MOBILE_PREWARM_REVERSE = 0.42;
 
 const VIGNETTE_PLACE = {
   costruire: "top",
@@ -54,6 +55,19 @@ const VIGNETTE_PLACE = {
 };
 const COPY_SIDES = ["left", "right"];
 const COPY_BLEND_VH = 0.26;
+const MOBILE_VIGNETTE_CONFIG = Object.fromEntries(
+  planBeatSpecs
+    .map((spec, beat) => ({ spec, beat }))
+    .filter(({ spec }) => spec.vignette)
+    .map(({ spec, beat }) => [
+      spec.vignette,
+      {
+        beat,
+        place: VIGNETTE_PLACE[spec.vignette] ?? "top",
+        side: spec.side === "left" ? "right" : "left",
+      },
+    ]),
+);
 
 const clamp01 = (value) => Math.min(1, Math.max(0, value));
 const lerp = (from, to, amount) => from + (to - from) * amount;
@@ -123,6 +137,7 @@ function updateLinkSvg(node, geometry) {
     line.setAttribute("y1", geometry.y1);
     line.setAttribute("x2", geometry.x2);
     line.setAttribute("y2", geometry.y2);
+    line.style.display = geometry.lead ? "" : "none";
   });
   node.querySelectorAll(".plan-link-ring").forEach((circle) => {
     circle.setAttribute("cx", geometry.ax);
@@ -145,279 +160,86 @@ function updateLinkSvg(node, geometry) {
   });
 }
 
-function MobileVignetteHandoff({
-  name,
-  place,
-  vignetteSide,
-  ratio,
-  html,
-  complete,
-  bindCurrentNode,
-}) {
-  const sequenceRef = useRef(0);
-  const targetNameRef = useRef(null);
-  const [layers, setLayers] = useState([]);
+function collectVignetteItems(node) {
+  return Array.from(node?.querySelectorAll(".pv-i") ?? []).map((el) => {
+    const at = Number(el.dataset.step || 0);
+    return {
+      el,
+      at,
+      goneAt: Number(el.dataset.goneStep || at + 2),
+      goes: el.classList.contains("pv-goes"),
+    };
+  });
+}
 
-  useLayoutEffect(() => {
-    const nextName = name ?? null;
-    if (targetNameRef.current === nextName) return;
-    targetNameRef.current = nextName;
+function paintVignetteStep(items, step) {
+  items.forEach(({ el, at, goneAt, goes }) => {
+    el.classList.toggle("is-on", step >= at);
+    el.classList.toggle("is-gone", goes && step >= goneAt);
+  });
+}
 
-    setLayers((current) => {
-      if (!nextName) {
-        return current
-          .slice(-2)
-          .map((layer) => ({ ...layer, phase: "exiting" }));
-      }
+function resetVignetteItems(items) {
+  paintVignetteStep(items, 0);
+}
 
-      const nextLayer = {
-        name: nextName,
-        place,
-        vignetteSide,
-        ratio,
-        html,
-      };
-      const existing = current.find((layer) => layer.name === nextName);
-      if (existing) {
-        const outgoing = current
-          .filter((layer) => layer.name !== nextName)
-          .slice(-1)
-          .map((layer) => ({ ...layer, phase: "exiting" }));
-        return [
-          ...outgoing,
-          { ...existing, ...nextLayer, phase: "visible" },
-        ];
-      }
-
-      const outgoing = current.slice(-1);
-      sequenceRef.current += 1;
-      return [
-        ...outgoing,
-        {
-          ...nextLayer,
-          id: `${nextName}-${sequenceRef.current}`,
-          phase: "preparing",
-        },
-      ];
-    });
-  }, [html, name, place, ratio, vignetteSide]);
-
-  useEffect(() => {
-    const preparing = layers.find((layer) => layer.phase === "preparing");
-    if (!preparing) return undefined;
-
-    const frame = requestAnimationFrame(() => {
-      setLayers((current) =>
-        current.map((layer) =>
-          layer.id === preparing.id
-            ? { ...layer, phase: "visible" }
-            : { ...layer, phase: "exiting" },
-        ),
-      );
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [layers]);
-
-  useEffect(() => {
-    if (
-      targetNameRef.current ||
-      !layers.some((layer) => layer.phase === "exiting")
-    ) return undefined;
-    const id = window.setTimeout(() => {
-      setLayers((current) =>
-        current.filter((layer) => layer.phase !== "exiting"),
-      );
-    }, MOBILE_LAYER_EXIT_FALLBACK_MS);
-    return () => window.clearTimeout(id);
-  }, [layers]);
-
-  const handleTransitionEnd = useCallback((event, layerId) => {
-    if (
-      event.target !== event.currentTarget ||
-      event.propertyName !== "opacity"
-    ) return;
-
-    setLayers((current) => {
-      const completed = current.find((layer) => layer.id === layerId);
-      if (!completed) return current;
-      if (completed.phase === "visible") {
-        return current.filter((layer) => layer.phase !== "exiting");
-      }
-      if (completed.phase === "exiting" && !targetNameRef.current) {
-        return current.filter((layer) => layer.id !== layerId);
-      }
-      return current;
-    });
-  }, []);
-
-  return layers.map((layer) => {
-    const isCurrent = layer.name === name && layer.phase !== "exiting";
+function MobilePersistentVignettes({ activeName, complete }) {
+  return Object.entries(VIGNETTE_HTML).map(([name, html]) => {
+    const config = MOBILE_VIGNETTE_CONFIG[name];
+    const isCurrent = name === activeName;
     return (
       <div
-        ref={isCurrent ? bindCurrentNode : undefined}
-        key={layer.id}
-        className={`plan-vignette plan-vignette--mobile plan-vignette--${layer.place} plan-vignette--${layer.vignetteSide}${
+        key={name}
+        className={`plan-vignette plan-vignette--mobile plan-vignette--${config.place} plan-vignette--${config.side}${
           isCurrent && !complete ? " is-building" : ""
-        }`}
-        style={{ "--ratio": layer.ratio }}
-        data-mobile-vignette-phase={layer.phase}
-        data-vignette={layer.name}
-        onTransitionEnd={(event) => handleTransitionEnd(event, layer.id)}
+        }${isCurrent ? " is-active" : ""}`}
+        style={{ "--ratio": planVignetteMeta[name].ratio }}
+        data-mobile-vignette-active={String(isCurrent)}
+        data-vignette={name}
         aria-hidden="true"
       >
         <div
           className="plan-vignette-art"
-          dangerouslySetInnerHTML={layer.html}
+          dangerouslySetInnerHTML={html}
         />
       </div>
     );
   });
 }
 
-function MobileLinkHandoff({ geometry, ready, linkRef }) {
-  const sequenceRef = useRef(0);
-  const targetNameRef = useRef(null);
-  const [layers, setLayers] = useState([]);
-  const name = geometry?.name ?? null;
-
-  useLayoutEffect(() => {
-    if (targetNameRef.current === name) return;
-    targetNameRef.current = name;
-
-    setLayers((current) => {
-      if (!name) {
-        return current
-          .slice(-2)
-          .map((layer) => ({ ...layer, phase: "exiting" }));
-      }
-
-      const existing = current.find((layer) => layer.name === name);
-      if (existing) {
-        const outgoing = current
-          .filter((layer) => layer.name !== name)
-          .slice(-1)
-          .map((layer) => ({ ...layer, phase: "exiting" }));
-        return [
-          ...outgoing,
-          { ...existing, geometry, phase: "visible" },
-        ];
-      }
-
-      const outgoing = current.slice(-1);
-      sequenceRef.current += 1;
-      return [
-        ...outgoing,
-        {
-          id: `link-${name}-${sequenceRef.current}`,
-          name,
-          geometry,
-          phase: "preparing",
-        },
-      ];
-    });
-  }, [geometry, name]);
-
-  useEffect(() => {
-    const preparing = layers.find((layer) => layer.phase === "preparing");
-    if (!preparing) return undefined;
-    const frame = requestAnimationFrame(() => {
-      setLayers((current) =>
-        current.map((layer) =>
-          layer.id === preparing.id
-            ? { ...layer, phase: "visible" }
-            : { ...layer, phase: "exiting" },
-        ),
-      );
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [layers]);
-
-  useEffect(() => {
-    if (
-      targetNameRef.current ||
-      !layers.some((layer) => layer.phase === "exiting")
-    ) return undefined;
-    const id = window.setTimeout(() => {
-      setLayers((current) =>
-        current.filter((layer) => layer.phase !== "exiting"),
-      );
-    }, MOBILE_LAYER_EXIT_FALLBACK_MS);
-    return () => window.clearTimeout(id);
-  }, [layers]);
-
-  const handleTransitionEnd = useCallback((event, layerId) => {
-    if (
-      event.target !== event.currentTarget ||
-      event.propertyName !== "opacity"
-    ) return;
-    setLayers((current) => {
-      const completed = current.find((layer) => layer.id === layerId);
-      if (!completed) return current;
-      if (completed.phase === "visible") {
-        return current.filter((layer) => layer.phase !== "exiting");
-      }
-      if (completed.phase === "exiting" && !targetNameRef.current) {
-        return current.filter((layer) => layer.id !== layerId);
-      }
-      return current;
-    });
-  }, []);
-
-  return layers.map((layer) => {
-    const isCurrent = layer.name === name && layer.phase !== "exiting";
-    const currentGeometry = isCurrent ? geometry : layer.geometry;
-    if (!currentGeometry) return null;
-    return (
-      <svg
-        ref={isCurrent ? linkRef : undefined}
-        key={layer.id}
-        className={`plan-link plan-link--mobile${
-          isCurrent && ready ? " is-ready" : ""
-        }`}
-        data-mobile-link-phase={layer.phase}
-        aria-hidden="true"
-        onTransitionEnd={(event) => handleTransitionEnd(event, layer.id)}
-      >
-        {["halo", "ink"].map((linkLayer) => (
-          <g key={linkLayer} className={`plan-link-${linkLayer}`}>
-            {currentGeometry.lead ? (
-              <line
-                className="plan-link-lead"
-                x1={currentGeometry.x1}
-                y1={currentGeometry.y1}
-                x2={currentGeometry.x2}
-                y2={currentGeometry.y2}
-                pathLength="1"
-              />
-            ) : null}
-            <circle
-              className="plan-link-ring"
-              cx={currentGeometry.ax}
-              cy={currentGeometry.ay}
-              r={LINK_R}
-              pathLength="1"
-            />
-            <path
-              className="plan-link-ticks"
-              d={[
-                `M ${currentGeometry.ax - LINK_R - 8} ${currentGeometry.ay} h 6`,
-                `M ${currentGeometry.ax + LINK_R + 2} ${currentGeometry.ay} h 6`,
-                `M ${currentGeometry.ax} ${currentGeometry.ay - LINK_R - 8} v 6`,
-                `M ${currentGeometry.ax} ${currentGeometry.ay + LINK_R + 2} v 6`,
-              ].join(" ")}
-              pathLength="1"
-            />
-          </g>
-        ))}
-        <circle
-          className="plan-link-dot"
-          cx={currentGeometry.ax}
-          cy={currentGeometry.ay}
-          r="2.8"
-        />
-      </svg>
-    );
-  });
+function MobilePersistentLink({ name, ready, linkRef }) {
+  return (
+    <svg
+      ref={linkRef}
+      className={`plan-link plan-link--mobile${name ? " is-visible" : ""}${
+        ready ? " is-ready" : ""
+      }`}
+      data-vignette={name ?? undefined}
+      aria-hidden="true"
+    >
+      {["halo", "ink"].map((linkLayer) => (
+        <g key={linkLayer} className={`plan-link-${linkLayer}`}>
+          <line
+            className="plan-link-lead"
+            x1="0"
+            y1="0"
+            x2="0"
+            y2="0"
+            pathLength="1"
+          />
+          <circle
+            className="plan-link-ring"
+            cx="0"
+            cy="0"
+            r={LINK_R}
+            pathLength="1"
+          />
+          <path className="plan-link-ticks" d="" pathLength="1" />
+        </g>
+      ))}
+      <circle className="plan-link-dot" cx="0" cy="0" r="2.8" />
+    </svg>
+  );
 }
 
 export function CityPlanScene() {
@@ -473,8 +295,23 @@ export function CityPlanScene() {
   const linkGeometryRef = useRef(null);
   const cameraFrameRef = useRef(null);
   const syncOverlayGeometryRef = useRef(null);
+  const syncMobileOverlayGeometryRef = useRef(null);
   const syncScrollStateRef = useRef(null);
   const mobileNearbyRef = useRef(true);
+  const mobileVignetteNodesRef = useRef({});
+  const mobileVignetteItemsRef = useRef({});
+  const mobileOverlayLayoutRef = useRef(null);
+  const mobilePrewarmedBeatRef = useRef(null);
+  const mobilePreparedGeometryRef = useRef(null);
+  const mobileGenerationRef = useRef(0);
+  const mobileRequestedBeatRef = useRef(0);
+  const mobileCommittedBeatRef = useRef(0);
+  const requestMobileBeatRef = useRef(null);
+  const prewarmMobileBeatRef = useRef(null);
+  const viewportMetricsRef = useRef(null);
+  const lastScrollYRef = useRef(0);
+  const mapBeatStatesRef = useRef(null);
+  const mobilePaintedMapBeatRef = useRef(null);
   const vignetteNodeRef = useRef(null);
   const holdsRef = useRef([]);
   const marksRef = useRef([]);
@@ -490,8 +327,22 @@ export function CityPlanScene() {
       typeof window !== "undefined" &&
       window.innerWidth <= planMobileCameraSettings.maxWidth,
   );
-  const [beat, setBeat] = useState(0);
+  const [scrollBeat, setScrollBeat] = useState(0);
   const [mapBeat, setMapBeat] = useState(0);
+  const [mobileScene, setMobileScene] = useState({
+    requestedBeat: 0,
+    preparedBeat: 0,
+    committedBeat: 0,
+    generation: 0,
+    preparedGeneration: 0,
+    committedGeneration: 0,
+  });
+  const [mobileNearby, setMobileNearby] = useState(true);
+  const [mobileVignettesMounted, setMobileVignettesMounted] = useState(false);
+  const [mobileVignettesReady, setMobileVignettesReady] = useState(false);
+  const [mobileOverlayLayoutVersion, setMobileOverlayLayoutVersion] = useState(0);
+  const [mobileVignetteCompleteGeneration, setMobileVignetteCompleteGeneration] =
+    useState(-1);
   const [vignetteProgress, setVignetteProgress] = useState({
     beat: -1,
     mount: -1,
@@ -500,19 +351,29 @@ export function CityPlanScene() {
   const [vignetteMount, setVignetteMount] = useState(0);
   const [vignetteNode, setVignetteNode] = useState(null);
   const [link, setLink] = useState(null);
+  const beat = mobileCameraActive ? mobileScene.committedBeat : scrollBeat;
+  const requestedBeat = mobileCameraActive
+    ? mobileScene.requestedBeat
+    : scrollBeat;
   const side = planBeats[beat]?.side === "right" ? "right" : "left";
   const vignetteName = planBeats[beat]?.vignette ?? null;
   const place = VIGNETTE_PLACE[vignetteName] ?? "top";
   const vignetteSide = side === "left" ? "right" : "left";
   const vstep =
+    !mobileCameraActive &&
     vignetteProgress.beat === beat &&
     vignetteProgress.mount === vignetteMount
       ? vignetteProgress.step
       : 0;
   const vignetteLive = Boolean(vignetteName) && entered;
   const vignetteComplete =
-    vignetteName && vstep >= (planVignetteMeta[vignetteName]?.steps ?? 1) - 1;
-  const currentLink = link?.name === vignetteName ? link : null;
+    vignetteName &&
+    (mobileCameraActive
+      ? reduceMotion ||
+        mobileVignetteCompleteGeneration === mobileScene.committedGeneration
+      : vstep >= (planVignetteMeta[vignetteName]?.steps ?? 1) - 1);
+  const currentLink =
+    !mobileCameraActive && link?.name === vignetteName ? link : null;
   const synchronizedMapBeat = mobileCameraActive ? beat : mapBeat;
   const activeAnnotations = planAnnotations.filter(
     (note) =>
@@ -520,8 +381,100 @@ export function CityPlanScene() {
       (mobileCameraActive && note.id === "corridor" && synchronizedMapBeat === 5),
   );
 
+  const measureMobileOverlayLayout = useCallback(() => {
+    const band = bandRef.current;
+    const nodes = mobileVignetteNodesRef.current;
+    if (!band || Object.keys(nodes).length !== Object.keys(VIGNETTE_HTML).length) {
+      return { ready: false, changed: false };
+    }
+
+    // All reads stay together; continuous camera frames use only this cache.
+    const bandRect = band.getBoundingClientRect();
+    const boxes = {};
+    for (const name of Object.keys(VIGNETTE_HTML)) {
+      const node = nodes[name];
+      const rect = node?.getBoundingClientRect();
+      if (!rect || !rect.width || !rect.height) {
+        return { ready: false, changed: false };
+      }
+      boxes[name] = {
+        vx: rect.left + rect.width / 2 - bandRect.left,
+        vy: rect.top + rect.height / 2 - bandRect.top,
+        width: rect.width,
+        height: rect.height,
+      };
+    }
+
+    const next = { bandWidth: bandRect.width, boxes };
+    const previous = mobileOverlayLayoutRef.current;
+    const changed =
+      !previous ||
+      previous.bandWidth !== next.bandWidth ||
+      Object.keys(boxes).some((name) =>
+        ["vx", "vy", "width", "height"].some(
+          (key) => previous.boxes[name]?.[key] !== boxes[name][key],
+        ),
+      );
+    mobileOverlayLayoutRef.current = next;
+    return { ready: true, changed };
+  }, []);
+
+  const geometryForMobileVignette = useCallback((name, frame) => {
+    const box = mobileOverlayLayoutRef.current?.boxes[name];
+    const anchor = PLAN_ANCHORS[planVignetteMeta[name]?.anchor];
+    if (!box || !anchor || !frame) return null;
+
+    const ax = frame.bandWidth / 2 + frame.sx + (anchor[0] - frame.cx) * frame.zc;
+    const ay = frame.stageHeight / 2 + frame.sy + (anchor[1] - frame.cy) * frame.zc;
+    const dx = ax - box.vx;
+    const dy = ay - box.vy;
+    const len = Math.hypot(dx, dy) || 1;
+    const ux = dx / len;
+    const uy = dy / len;
+    const edge = Math.min(
+      Math.abs(ux) > 1e-3 ? box.width / 2 / Math.abs(ux) : 1e9,
+      Math.abs(uy) > 1e-3 ? box.height / 2 / Math.abs(uy) : 1e9,
+    );
+    return {
+      name,
+      ax,
+      ay,
+      fx: Math.round(dx),
+      fy: Math.round(dy),
+      x1: box.vx + ux * (edge + 10),
+      y1: box.vy + uy * (edge + 10),
+      x2: ax - ux * (LINK_R + 6),
+      y2: ay - uy * (LINK_R + 6),
+      lead: len > edge + LINK_R + 26,
+    };
+  }, []);
+
+  const syncMobileOverlayGeometry = useCallback(
+    (activeBeat, frameOverride = null) => {
+      const band = bandRef.current;
+      const frame = frameOverride ?? cameraFrameRef.current;
+      if (!band || !frame) return;
+
+      planAnnotationSpecs.forEach((note) => {
+        const x =
+          frame.bandWidth / 2 + frame.sx + (note.point[0] - frame.cx) * frame.zc;
+        const y =
+          frame.stageHeight / 2 + frame.sy + (note.point[1] - frame.cy) * frame.zc;
+        band.style.setProperty(`--annotation-${note.id}-x`, `${x.toFixed(2)}px`);
+        band.style.setProperty(`--annotation-${note.id}-y`, `${y.toFixed(2)}px`);
+      });
+
+      const name = planBeatSpecs[activeBeat]?.vignette;
+      if (!name) return;
+      const geometry = geometryForMobileVignette(name, frame);
+      if (geometry) updateLinkSvg(linkSvgRef.current, geometry);
+    },
+    [geometryForMobileVignette],
+  );
+
   const syncOverlayGeometry = useCallback(
     (commitLink = false, frameOverride = null) => {
+      if (mobileCameraActive) return;
       const band = bandRef.current;
       const box = vignetteNodeRef.current;
       const frame = frameOverride ?? cameraFrameRef.current;
@@ -579,15 +532,17 @@ export function CityPlanScene() {
       if (commitLink || changedVignette) setLink(geometry);
       else updateLinkSvg(linkSvgRef.current, geometry);
     },
-    [vignetteName],
+    [mobileCameraActive, vignetteName],
   );
   useLayoutEffect(() => {
     syncOverlayGeometryRef.current = syncOverlayGeometry;
-  }, [syncOverlayGeometry]);
+    syncMobileOverlayGeometryRef.current = syncMobileOverlayGeometry;
+  }, [syncMobileOverlayGeometry, syncOverlayGeometry]);
 
   useLayoutEffect(() => {
     const planDescription = figRef.current?.querySelector("desc");
     if (planDescription) planDescription.textContent = cityPlanContent.scene.svgDescription;
+    if (mobileCameraActive) return;
     if (!vignetteName) return;
     const vignetteDescription = bandRef.current?.querySelector(
       `[data-vignette="${vignetteName}"] .plan-vignette-art desc`,
@@ -595,7 +550,70 @@ export function CityPlanScene() {
     if (vignetteDescription) {
       vignetteDescription.textContent = vignetteDescriptions[vignetteName] ?? "";
     }
-  }, [cityPlanContent.scene.svgDescription, vignetteDescriptions, vignetteMount, vignetteName]);
+  }, [
+    cityPlanContent.scene.svgDescription,
+    mobileCameraActive,
+    vignetteDescriptions,
+    vignetteMount,
+    vignetteName,
+  ]);
+
+  useLayoutEffect(() => {
+    if (!mobileCameraActive || !mobileVignettesMounted) {
+      mobileVignetteNodesRef.current = {};
+      mobileVignetteItemsRef.current = {};
+      mobileOverlayLayoutRef.current = null;
+      return;
+    }
+
+    const band = bandRef.current;
+    const nodes = {};
+    const items = {};
+    for (const name of Object.keys(VIGNETTE_HTML)) {
+      const node = band?.querySelector(
+        `.plan-vignette--mobile[data-vignette="${name}"]`,
+      );
+      const svg = node?.querySelector(".plan-vignette-art svg");
+      if (!node || !svg) {
+        return;
+      }
+      nodes[name] = node;
+      items[name] = collectVignetteItems(node);
+      resetVignetteItems(items[name]);
+    }
+    mobileVignetteNodesRef.current = nodes;
+    mobileVignetteItemsRef.current = items;
+
+    const layout = measureMobileOverlayLayout();
+    let live = true;
+    queueMicrotask(() => {
+      if (!live) return;
+      setMobileVignettesReady(layout.ready);
+      if (layout.changed) {
+        setMobileOverlayLayoutVersion((version) => version + 1);
+      }
+    });
+    return () => {
+      live = false;
+    };
+  }, [
+    measureMobileOverlayLayout,
+    mobileCameraActive,
+    mobileVignettesMounted,
+  ]);
+
+  useLayoutEffect(() => {
+    if (!mobileCameraActive || !mobileVignettesMounted) return;
+    for (const name of Object.keys(VIGNETTE_HTML)) {
+      const description = mobileVignetteNodesRef.current[name]?.querySelector(
+        ".plan-vignette-art desc",
+      );
+      if (description) {
+        description.textContent = vignetteDescriptions[name] ?? "";
+      }
+    }
+  }, [mobileCameraActive, mobileVignettesMounted, vignetteDescriptions]);
+
   const bindVignetteNode = useCallback((node) => {
     if (!node || vignetteNodeRef.current === node) return undefined;
     vignetteNodeRef.current = node;
@@ -610,6 +628,153 @@ export function CityPlanScene() {
       setVignetteNode(null);
     };
   }, []);
+
+  const prewarmMobileBeat = useCallback(
+    (targetBeat) => {
+      const name = planBeatSpecs[targetBeat]?.vignette;
+      if (!name) return true;
+      if (!mobileVignettesReady) return false;
+
+      const node = mobileVignetteNodesRef.current[name];
+      const items = mobileVignetteItemsRef.current[name];
+      const frame = cameraFrameRef.current;
+      if (
+        !node?.isConnected ||
+        !node.querySelector(".plan-vignette-art svg") ||
+        !items?.length ||
+        !mobileOverlayLayoutRef.current ||
+        !frame
+      ) {
+        return false;
+      }
+
+      if (
+        mobilePrewarmedBeatRef.current !== targetBeat &&
+        mobileCommittedBeatRef.current !== targetBeat
+      ) {
+        resetVignetteItems(items);
+      }
+      const geometry = geometryForMobileVignette(name, frame);
+      if (!geometry) return false;
+      mobilePrewarmedBeatRef.current = targetBeat;
+      mobilePreparedGeometryRef.current = { beat: targetBeat, geometry };
+      return true;
+    },
+    [geometryForMobileVignette, mobileVignettesReady],
+  );
+
+  const requestMobileBeat = useCallback((nextBeat) => {
+    const targetBeat = Math.min(
+      planBeatSpecs.length - 1,
+      Math.max(0, nextBeat),
+    );
+    if (mobileRequestedBeatRef.current === targetBeat) return;
+    const generation = mobileGenerationRef.current + 1;
+    mobileGenerationRef.current = generation;
+    mobileRequestedBeatRef.current = targetBeat;
+    setMobileScene((current) => ({
+      ...current,
+      requestedBeat: targetBeat,
+      generation,
+    }));
+  }, []);
+
+  useLayoutEffect(() => {
+    prewarmMobileBeatRef.current = prewarmMobileBeat;
+    requestMobileBeatRef.current = requestMobileBeat;
+  }, [prewarmMobileBeat, requestMobileBeat]);
+
+  useLayoutEffect(() => {
+    if (!mobileCameraActive) return undefined;
+    const targetBeat = mobileScene.requestedBeat;
+    const generation = mobileScene.generation;
+    if (
+      mobileScene.preparedBeat === targetBeat &&
+      mobileScene.committedBeat === targetBeat
+    ) {
+      return undefined;
+    }
+
+    const name = planBeatSpecs[targetBeat]?.vignette;
+    const wasPrewarmed =
+      !name || mobilePrewarmedBeatRef.current === targetBeat;
+    if (name && !prewarmMobileBeat(targetBeat)) return undefined;
+
+    let firstFrame = null;
+    let secondFrame = null;
+    const commit = () => {
+      if (
+        mobileGenerationRef.current !== generation ||
+        mobileRequestedBeatRef.current !== targetBeat
+      ) {
+        return;
+      }
+
+      let geometry = null;
+      if (name) {
+        geometry = geometryForMobileVignette(name, cameraFrameRef.current);
+        if (!geometry) return;
+      }
+      mobilePreparedGeometryRef.current = {
+        beat: targetBeat,
+        generation,
+        geometry,
+      };
+      setMobileScene((current) => {
+        if (
+          current.generation !== generation ||
+          current.requestedBeat !== targetBeat
+        ) {
+          return current;
+        }
+        return {
+          ...current,
+          preparedBeat: targetBeat,
+          committedBeat: targetBeat,
+          preparedGeneration: generation,
+          committedGeneration: generation,
+        };
+      });
+    };
+
+    if (wasPrewarmed || !name || reduceMotion) {
+      commit();
+    } else {
+      // DOM/layout readiness is already established above. These two frames only
+      // separate the hidden preparation paint from the atomic semantic commit.
+      firstFrame = requestAnimationFrame(() => {
+        secondFrame = requestAnimationFrame(commit);
+      });
+    }
+
+    return () => {
+      if (firstFrame) cancelAnimationFrame(firstFrame);
+      if (secondFrame) cancelAnimationFrame(secondFrame);
+    };
+  }, [
+    geometryForMobileVignette,
+    mobileCameraActive,
+    mobileOverlayLayoutVersion,
+    mobileScene.committedBeat,
+    mobileScene.generation,
+    mobileScene.preparedBeat,
+    mobileScene.requestedBeat,
+    prewarmMobileBeat,
+    reduceMotion,
+  ]);
+
+  useLayoutEffect(() => {
+    if (!mobileCameraActive) return;
+    mobileCommittedBeatRef.current = mobileScene.committedBeat;
+    syncMobileOverlayGeometry(
+      mobileScene.committedBeat,
+      cameraFrameRef.current,
+    );
+  }, [
+    mobileCameraActive,
+    mobileScene.committedBeat,
+    syncMobileOverlayGeometry,
+  ]);
 
   useEffect(() => {
     if (!entered) return undefined;
@@ -710,6 +875,8 @@ export function CityPlanScene() {
         const nextNearby = entry.isIntersecting;
         if (nextNearby === mobileNearbyRef.current) return;
         mobileNearbyRef.current = nextNearby;
+        setMobileNearby(nextNearby);
+        if (nextNearby) setMobileVignettesMounted(true);
         root.dataset.mobileNearby = String(nextNearby);
         if (!nextNearby) return;
         if (syncFrame) cancelAnimationFrame(syncFrame);
@@ -722,13 +889,34 @@ export function CityPlanScene() {
       { rootMargin: "1500px 0px 1500px 0px", threshold: 0 },
     );
     observer.observe(root);
-    if (mobileNearbyRef.current) syncScrollStateRef.current?.();
+    syncFrame = requestAnimationFrame(() => {
+      syncFrame = null;
+      setMobileNearby(mobileNearbyRef.current);
+      if (mobileNearbyRef.current) {
+        setMobileVignettesMounted(true);
+        syncScrollStateRef.current?.();
+      }
+    });
     return () => {
       observer.disconnect();
       if (syncFrame) cancelAnimationFrame(syncFrame);
       delete root.dataset.mobileNearby;
     };
   }, [mobileCameraActive]);
+
+  const paintMobileCopy = useCallback((activeBeat) => {
+    rootRef.current?.style.setProperty("--copy-swap", "0");
+    copyItemsRef.current.forEach((el) => {
+      const active = Number(el.dataset.copyBeat) === activeBeat;
+      el.style.setProperty("--copy-opacity", active ? "1" : "0");
+      el.style.setProperty("--copy-blur", "0");
+    });
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!mobileCameraActive) return;
+    paintMobileCopy(mobileScene.committedBeat);
+  }, [mobileCameraActive, mobileScene.committedBeat, paintMobileCopy]);
 
   useEffect(() => {
     let frame = null;
@@ -749,11 +937,30 @@ export function CityPlanScene() {
       copyItemsRef.current = Array.from(
         bandRef.current?.querySelectorAll("[data-copy-beat]") ?? [],
       );
+      const bandWidth =
+        bandRef.current?.clientWidth || viewRef.current?.clientWidth || 1;
+      const stageHeight = stageRef.current?.clientHeight || vh;
+      viewportMetricsRef.current = {
+        bandWidth,
+        stageHeight,
+        viewportWidth: window.innerWidth || 1280,
+        viewportHeight: vh,
+      };
+      if (window.innerWidth <= planMobileCameraSettings.maxWidth) {
+        const overlayLayout = measureMobileOverlayLayout();
+        if (overlayLayout.changed) {
+          setMobileOverlayLayoutVersion((version) => version + 1);
+        }
+      }
     };
 
     const paintCopy = (y, activeBeat, mobileViewport) => {
       const items = copyItemsRef.current;
       if (!items.length) return;
+      if (mobileViewport) {
+        paintMobileCopy(activeBeat);
+        return;
+      }
 
       let from = activeBeat;
       let to = activeBeat;
@@ -855,7 +1062,8 @@ export function CityPlanScene() {
       const band = bandRef.current;
       const cam = camRef.current;
       if (stage && band && cam) {
-        const viewportWidth = window.innerWidth || 1280;
+        const viewport = viewportMetricsRef.current;
+        const viewportWidth = viewport?.viewportWidth ?? window.innerWidth ?? 1280;
         const beatStart = next === 0 ? marks.start : marks[next - 1];
         const beatEnd = marks[next] ?? marks.end;
         const localProgress = clamp01((y - beatStart) / Math.max(1, beatEnd - beatStart));
@@ -863,8 +1071,8 @@ export function CityPlanScene() {
           viewportWidth <= planMobileCameraSettings.maxWidth
             ? cameraForBeat(next, localProgress, viewportWidth, reduceMotion)
             : { at: planView.at, units: planView.units, screen: [0.5, 0.5] };
-        const bandWidth = band.clientWidth || viewRef.current?.clientWidth || 1;
-        const stageHeight = stage.clientHeight || vh;
+        const bandWidth = viewport?.bandWidth ?? 1;
+        const stageHeight = viewport?.stageHeight ?? vh;
         const zc = bandWidth / camera.units;
         const sx = (camera.screen[0] - 0.5) * bandWidth;
         const sy = (camera.screen[1] - 0.5) * stageHeight;
@@ -878,7 +1086,14 @@ export function CityPlanScene() {
           sy,
         };
         cameraFrameRef.current = nextFrame;
-        syncOverlayGeometryRef.current?.(false, nextFrame);
+        if (mobileViewport) {
+          syncMobileOverlayGeometryRef.current?.(
+            mobileCommittedBeatRef.current,
+            nextFrame,
+          );
+        } else {
+          syncOverlayGeometryRef.current?.(false, nextFrame);
+        }
         cam.style.setProperty("--cx", camera.at[0].toFixed(2));
         cam.style.setProperty("--cy", camera.at[1].toFixed(2));
         cam.style.setProperty("--zc", zc.toFixed(5));
@@ -888,15 +1103,38 @@ export function CityPlanScene() {
           "--plan-camera-step-progress",
           localProgress.toFixed(4),
         );
+
+        if (mobileViewport) {
+          const direction = y >= lastScrollYRef.current ? 1 : -1;
+          const prewarmBeat =
+            direction > 0 &&
+            localProgress >= MOBILE_PREWARM_FORWARD &&
+            next < planBeatSpecs.length - 1
+              ? next + 1
+              : direction < 0 &&
+                  localProgress <= MOBILE_PREWARM_REVERSE &&
+                  next > 0
+                ? next - 1
+                : null;
+          if (prewarmBeat != null && planBeatSpecs[prewarmBeat]?.vignette) {
+            prewarmMobileBeatRef.current?.(prewarmBeat);
+          }
+          lastScrollYRef.current = y;
+        }
       }
       rootRef.current?.style.setProperty("--plan-progress", progress.toFixed(4));
       rootRef.current?.style.setProperty("--plan-entry", entry.toFixed(4));
       rootRef.current?.style.setProperty("--plan-exit", exit.toFixed(4));
-      paintCopy(y, next, mobileViewport);
+      paintCopy(
+        y,
+        mobileViewport ? mobileCommittedBeatRef.current : next,
+        mobileViewport,
+      );
       if (mobileViewport) {
-        setMapBeat((current) => (current === next ? current : next));
+        requestMobileBeatRef.current?.(next);
+      } else {
+        setScrollBeat((current) => (current === next ? current : next));
       }
-      setBeat((current) => (current === next ? current : next));
     };
 
     const requestUpdate = () => {
@@ -952,9 +1190,64 @@ export function CityPlanScene() {
       window.removeEventListener("scroll", requestUpdate);
       window.removeEventListener("resize", onResize);
     };
-  }, [reduceMotion]);
+  }, [measureMobileOverlayLayout, paintMobileCopy, reduceMotion]);
+
+  useLayoutEffect(() => {
+    if (
+      !mobileCameraActive ||
+      !mobileNearby ||
+      !entered ||
+      !mobileVignettesReady
+    ) {
+      return undefined;
+    }
+    const committedBeat = mobileScene.committedBeat;
+    const generation = mobileScene.committedGeneration;
+    const name = planBeatSpecs[committedBeat]?.vignette;
+    if (!name) return undefined;
+    const items = mobileVignetteItemsRef.current[name];
+    if (!items?.length) return undefined;
+
+    mobilePrewarmedBeatRef.current = null;
+    paintVignetteStep(items, 0);
+    const lastStep = (planVignetteMeta[name]?.steps ?? 1) - 1;
+    if (reduceMotion) {
+      paintVignetteStep(items, lastStep);
+      return undefined;
+    }
+
+    let step = 0;
+    let intervalId = null;
+    const advance = () => {
+      step += 1;
+      paintVignetteStep(items, step);
+      if (step >= lastStep) {
+        if (intervalId) window.clearInterval(intervalId);
+        setMobileVignetteCompleteGeneration(generation);
+      }
+    };
+    const firstStepId = window.setTimeout(() => {
+      advance();
+      if (step < lastStep) {
+        intervalId = window.setInterval(advance, VIGNETTE_STEP_MS);
+      }
+    }, VIGNETTE_FIRST_STEP_MS);
+    return () => {
+      window.clearTimeout(firstStepId);
+      if (intervalId) window.clearInterval(intervalId);
+    };
+  }, [
+    entered,
+    mobileCameraActive,
+    mobileNearby,
+    mobileScene.committedBeat,
+    mobileScene.committedGeneration,
+    mobileVignettesReady,
+    reduceMotion,
+  ]);
 
   useEffect(() => {
+    if (mobileCameraActive) return undefined;
     const name = planBeatSpecs[beat]?.vignette;
     if (!entered || !name) return undefined;
     const node = vignetteNode;
@@ -982,14 +1275,30 @@ export function CityPlanScene() {
       window.clearTimeout(firstStepId);
       window.clearInterval(intervalId);
     };
-  }, [beat, entered, reduceMotion, vignetteMount, vignetteNode]);
+  }, [
+    beat,
+    entered,
+    mobileCameraActive,
+    reduceMotion,
+    vignetteMount,
+    vignetteNode,
+  ]);
 
   useLayoutEffect(() => {
+    if (mobileCameraActive) return;
     if (!vignetteName || !entered || !vignetteLive) return;
     syncOverlayGeometry(true);
-  }, [entered, syncOverlayGeometry, vignetteLive, vignetteMount, vignetteName]);
+  }, [
+    entered,
+    mobileCameraActive,
+    syncOverlayGeometry,
+    vignetteLive,
+    vignetteMount,
+    vignetteName,
+  ]);
 
   useLayoutEffect(() => {
+    if (mobileCameraActive) return;
     syncOverlayGeometry();
   });
 
@@ -1038,7 +1347,7 @@ export function CityPlanScene() {
     vignetteName,
   ]);
 
-  const paintMapBeat = useCallback((activeBeat) => {
+  const paintMapBeat = useCallback((activeBeat, mobileDelta = false) => {
     const fig = figRef.current;
     if (!fig || !entered) return;
     if (!itemsRef.current) {
@@ -1047,7 +1356,55 @@ export function CityPlanScene() {
         at: Number(el.dataset.at || 0),
         until: el.dataset.until == null ? null : Number(el.dataset.until),
       }));
+      mapBeatStatesRef.current = planBeatSpecs.map((_, stateBeat) => {
+        const on = new Set();
+        const now = new Set();
+        itemsRef.current.forEach(({ at, until }, index) => {
+          const active =
+            stateBeat >= at && (until == null || stateBeat < until);
+          if (active) on.add(index);
+          if (active && at === stateBeat) now.add(index);
+        });
+        return { on, now };
+      });
     }
+
+    if (mobileDelta) {
+      const previousBeat = mobilePaintedMapBeatRef.current;
+      const nextState = mapBeatStatesRef.current[activeBeat];
+      if (!nextState) return;
+      if (previousBeat == null) {
+        itemsRef.current.forEach(({ el }, index) => {
+          el.classList.toggle("is-on", nextState.on.has(index));
+          el.classList.toggle("is-now", nextState.now.has(index));
+        });
+      } else if (previousBeat !== activeBeat) {
+        const previousState = mapBeatStatesRef.current[previousBeat];
+        previousState.on.forEach((index) => {
+          if (!nextState.on.has(index)) {
+            itemsRef.current[index].el.classList.remove("is-on");
+          }
+        });
+        nextState.on.forEach((index) => {
+          if (!previousState.on.has(index)) {
+            itemsRef.current[index].el.classList.add("is-on");
+          }
+        });
+        previousState.now.forEach((index) => {
+          if (!nextState.now.has(index)) {
+            itemsRef.current[index].el.classList.remove("is-now");
+          }
+        });
+        nextState.now.forEach((index) => {
+          if (!previousState.now.has(index)) {
+            itemsRef.current[index].el.classList.add("is-now");
+          }
+        });
+      }
+      mobilePaintedMapBeatRef.current = activeBeat;
+      return;
+    }
+
     itemsRef.current.forEach(({ el, at, until }) => {
       const on = activeBeat >= at && (until == null || activeBeat < until);
       el.classList.toggle("is-on", on);
@@ -1056,8 +1413,12 @@ export function CityPlanScene() {
   }, [entered]);
 
   useLayoutEffect(() => {
+    mobilePaintedMapBeatRef.current = null;
+  }, [mobileCameraActive]);
+
+  useLayoutEffect(() => {
     if (!mobileCameraActive) return;
-    paintMapBeat(beat);
+    paintMapBeat(beat, true);
   }, [beat, mobileCameraActive, paintMapBeat]);
 
   useEffect(() => {
@@ -1066,20 +1427,13 @@ export function CityPlanScene() {
   }, [mapBeat, mobileCameraActive, paintMapBeat]);
 
   useLayoutEffect(() => {
+    if (mobileCameraActive) return;
     const art = bandRef.current?.querySelector(
       `[data-vignette="${vignetteName}"] .plan-vignette-art`,
     );
     if (!art) return;
-    art.querySelectorAll(".pv-i").forEach((el) => {
-      const at = Number(el.dataset.step || 0);
-      const goneAt = Number(el.dataset.goneStep || at + 2);
-      el.classList.toggle("is-on", vstep >= at);
-      el.classList.toggle(
-        "is-gone",
-        el.classList.contains("pv-goes") && vstep >= goneAt,
-      );
-    });
-  }, [vstep, vignetteName]);
+    paintVignetteStep(collectVignetteItems(art), vstep);
+  }, [mobileCameraActive, vstep, vignetteName]);
 
   return (
     <section ref={rootRef} className="plan-scene" aria-label={planSceneLabel}>
@@ -1105,6 +1459,14 @@ export function CityPlanScene() {
         className={`plan-stage plan-stage--${side}`}
         data-beat={synchronizedMapBeat}
         data-story-beat={beat}
+        data-requested-beat={requestedBeat}
+        data-prepared-beat={
+          mobileCameraActive ? mobileScene.preparedBeat : beat
+        }
+        data-committed-beat={beat}
+        data-scene-generation={
+          mobileCameraActive ? mobileScene.committedGeneration : 0
+        }
         aria-hidden="true"
       >
         <div ref={viewRef} className="plan-bleed">
@@ -1230,11 +1592,13 @@ export function CityPlanScene() {
           )}
 
           {mobileCameraActive ? (
-            <MobileLinkHandoff
-              geometry={vignetteName && entered ? currentLink : null}
-              ready={Boolean(vignetteComplete)}
-              linkRef={linkSvgRef}
-            />
+            mobileVignettesMounted ? (
+              <MobilePersistentLink
+                name={vignetteLive ? vignetteName : null}
+                ready={Boolean(vignetteComplete)}
+                linkRef={linkSvgRef}
+              />
+            ) : null
           ) : (
             <AnimatePresence mode="wait" initial={false}>
               {vignetteName && entered && currentLink ? (
@@ -1293,15 +1657,12 @@ export function CityPlanScene() {
           )}
 
           {mobileCameraActive ? (
-            <MobileVignetteHandoff
-              name={vignetteLive ? vignetteName : null}
-              place={place}
-              vignetteSide={vignetteSide}
-              ratio={vignetteName ? planVignetteMeta[vignetteName].ratio : null}
-              html={vignetteName ? VIGNETTE_HTML[vignetteName] : null}
-              complete={Boolean(vignetteComplete)}
-              bindCurrentNode={bindVignetteNode}
-            />
+            mobileVignettesMounted ? (
+              <MobilePersistentVignettes
+                activeName={vignetteLive ? vignetteName : null}
+                complete={Boolean(vignetteComplete)}
+              />
+            ) : null
           ) : (
             <AnimatePresence mode="wait" initial={false}>
               {vignetteLive ? (

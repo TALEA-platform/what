@@ -8413,6 +8413,23 @@
 
   .plan-camera { will-change: transform; }
 
+  .plan-figure .pl-pop {
+    transform: none;
+    transition: opacity 0.52s ease;
+  }
+
+  .plan-figure .pl-pop.is-on { transform: none; }
+
+  .plan-figure .pl-portico-on {
+    filter: none;
+    transition: opacity 0.72s var(--ease-cine);
+  }
+
+  .plan-figure .pl-portico-on.is-now {
+    filter: none;
+    animation: plan-portico-focus-mobile 1.45s var(--ease-cine) both;
+  }
+
   .plan-beat {
     filter: none;
     will-change: opacity;
@@ -8449,29 +8466,35 @@
   .plan-vignette--mobile {
     opacity: 0;
     transition: opacity 300ms var(--ease-cine);
-    will-change: opacity;
   }
 
-  .plan-vignette--mobile[data-mobile-vignette-phase="visible"] {
+  .plan-vignette--mobile.is-active {
     opacity: 1;
-  }
-
-  .plan-vignette--mobile[data-mobile-vignette-phase="exiting"] {
-    opacity: 0;
   }
 
   .plan-link--mobile {
     opacity: 0;
     transition: opacity 300ms var(--ease-cine);
-    will-change: opacity;
   }
 
-  .plan-link--mobile[data-mobile-link-phase="visible"] {
+  .plan-link--mobile.is-visible {
     opacity: 1;
   }
 
-  .plan-link--mobile[data-mobile-link-phase="exiting"] {
-    opacity: 0;
+  .plan-link--mobile .plan-link-lead,
+  .plan-link--mobile .plan-link-ring,
+  .plan-link--mobile .plan-link-ticks,
+  .plan-link--mobile .plan-link-dot {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+
+  .plan-link--mobile .plan-link-dot {
+    opacity: 0.5;
+  }
+
+  .plan-link--mobile.is-ready .plan-link-dot {
+    animation: plan-link-ready 1.8s ease-in-out infinite;
   }
 
   .plan-vignette[data-vignette="costruire"]
@@ -8540,7 +8563,7 @@
     transform: none;
   }
 
-  .plan-stage[data-story-beat="5"] .plan-vignette {
+  .plan-stage .plan-vignette--mobile[data-vignette="portico"] {
     --vig-l: auto;
     --vig-r: clamp(10px, 2vw, 22px);
     width: min(58vw, 300px);
@@ -8576,6 +8599,12 @@
   }
 
   .plan-legend-item { font-size: 0.85rem; }
+}
+
+@keyframes plan-portico-focus-mobile {
+  0% { opacity: 0.42; }
+  52% { opacity: 1; }
+  100% { opacity: 0.96; }
 }
 
 @media (min-width: 600px) and (max-width: 1279px) {

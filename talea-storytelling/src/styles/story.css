@@ -8413,22 +8413,41 @@
 
   .plan-camera { will-change: transform; }
 
-  .plan-figure .pl-pop {
-    transform: none;
-    transition: opacity 0.52s ease;
-  }
-
-  .plan-figure .pl-pop.is-on { transform: none; }
-
+  .plan-figure .pl-i,
+  .plan-figure .pl-pop,
+  .plan-figure .pl-ring,
+  .plan-figure .pl-wash,
+  .plan-figure .pl-site,
+  .plan-figure .pl-node,
   .plan-figure .pl-portico-on {
+    animation: none;
     filter: none;
-    transition: opacity 0.72s var(--ease-cine);
+    transform: none;
+    transition: none;
   }
+
+  .plan-figure .pl-i.is-now { transition-delay: 0ms; }
 
   .plan-figure .pl-portico-on.is-now {
+    animation: none;
     filter: none;
-    animation: plan-portico-focus-mobile 1.45s var(--ease-cine) both;
+    transition: none;
   }
+
+  .plan-figure .pl-sweep:not(.is-on) { opacity: 0; }
+  .plan-figure .pl-sweep.is-on { opacity: 1; }
+
+  .plan-figure .pl-sweep.is-on path:not(.pl-route-dash) {
+    stroke-dashoffset: 0;
+    transition: none;
+  }
+
+  .plan-figure .pl-sweep .pl-route-dash {
+    opacity: 0;
+    transition: none;
+  }
+
+  .plan-figure .pl-sweep.is-on .pl-route-dash { opacity: 1; }
 
   .plan-beat {
     filter: none;
@@ -8441,7 +8460,7 @@
 
   .plan-annotation--mobile {
     opacity: 0;
-    transition: opacity 300ms var(--ease-cine);
+    transition: none;
   }
 
   .plan-annotation--mobile.is-visible {
@@ -8465,7 +8484,7 @@
 
   .plan-vignette--mobile {
     opacity: 0;
-    transition: opacity 300ms var(--ease-cine);
+    transition: none;
   }
 
   .plan-vignette--mobile.is-active {
@@ -8474,7 +8493,7 @@
 
   .plan-link--mobile {
     opacity: 0;
-    transition: opacity 300ms var(--ease-cine);
+    transition: none;
   }
 
   .plan-link--mobile.is-visible {
@@ -8494,29 +8513,40 @@
   }
 
   .plan-link--mobile.is-ready .plan-link-dot {
-    animation: plan-link-ready 1.8s ease-in-out infinite;
+    animation: none;
+    opacity: 0.68;
   }
 
-  .plan-vignette[data-vignette="costruire"]
-    .pv-i[data-step="10"]
-    .pv-l {
-    opacity: 0;
-    transition: opacity 0.52s var(--ease-cine);
-  }
-
-  .plan-vignette[data-vignette="costruire"]
-    .pv-i[data-step="10"].is-on
-    .pv-l {
-    opacity: 0.44;
-  }
-
-  .plan-vignette[data-vignette="costruire"]
-    .pv-i[data-step="10"]
-    .pv-l
-    path {
+  .plan-vignette--mobile .pv-i {
+    animation: none;
     opacity: 1;
-    stroke-dasharray: none;
-    stroke-dashoffset: 0;
+    transition: none;
+  }
+
+  .plan-vignette--mobile .pv-i.pv-goes { opacity: 0; }
+  .plan-vignette--mobile .pv-i.is-gone { transition: none; }
+
+  .plan-vignette--mobile .pv-c {
+    animation: none;
+    clip-path: none;
+    filter: none;
+    opacity: 1;
+    transition: none;
+  }
+
+  .plan-vignette--mobile .pv-l,
+  .plan-vignette--mobile .pv-l path {
+    animation: none;
+    transition: none;
+  }
+
+  .plan-vignette--mobile .pv-l path { stroke-dashoffset: 0; }
+
+  .plan-step-count,
+  .plan-beat,
+  .plan-legend,
+  .plan-legend-item {
+    animation: none;
     transition: none;
   }
 
@@ -8599,12 +8629,129 @@
   }
 
   .plan-legend-item { font-size: 0.85rem; }
+
 }
 
-@keyframes plan-portico-focus-mobile {
-  0% { opacity: 0.42; }
-  52% { opacity: 1; }
-  100% { opacity: 0.96; }
+@keyframes plan-mobile-accent-in {
+  from { opacity: 0.68; }
+  to { opacity: 1; }
+}
+
+@keyframes plan-mobile-model-in {
+  from { opacity: 0.3; }
+  to { opacity: 1; }
+}
+
+@keyframes plan-mobile-detail-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes plan-mobile-detail-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes plan-mobile-road-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (max-width: 1279px) and (prefers-reduced-motion: no-preference) {
+  .plan-vignette--mobile.is-active {
+    animation: plan-mobile-model-in 210ms ease-out both;
+  }
+
+  .plan-figure .pl-ring.is-now,
+  .plan-figure .pl-site.is-now,
+  .plan-figure .pl-l--corridor .pl-sweep.is-now {
+    animation: plan-mobile-accent-in 360ms ease-out both;
+  }
+
+  .plan-stage[data-story-beat="2"]
+    .plan-figure
+    .pl-i[data-until="2"] {
+    animation: plan-mobile-detail-out 150ms ease-out 220ms both;
+  }
+
+  .plan-stage[data-story-beat="2"]
+    .plan-figure
+    :is(.pl-l--newgreen, .pl-l--newshade, .pl-l--newtree, .pl-l--prop)
+    .pl-i.is-now {
+    animation: plan-mobile-detail-in 240ms ease-out 300ms both;
+  }
+
+  .plan-stage[data-story-beat="2"] .plan-annotation--mobile.is-visible {
+    animation: plan-mobile-detail-in 180ms ease-out 380ms both;
+  }
+
+  .plan-stage[data-story-beat="3"][data-mobile-reveal="holding"]
+    .plan-figure
+    .pl-i[data-until="3"] {
+    opacity: 1;
+  }
+
+  .plan-stage[data-story-beat="3"][data-mobile-reveal="holding"]
+    .plan-figure
+    :is(.pl-l--newgreen, .pl-l--newshade, .pl-l--newtree)
+    .pl-i.is-now {
+    opacity: 0;
+  }
+
+  .plan-stage[data-story-beat="3"][data-mobile-reveal="ready"]
+    .plan-figure
+    .pl-i[data-until="3"] {
+    animation: plan-mobile-detail-out 150ms ease-out both;
+  }
+
+  .plan-stage[data-story-beat="3"][data-mobile-reveal="ready"]
+    .plan-figure
+    :is(.pl-l--newgreen, .pl-l--newshade, .pl-l--newtree)
+    .pl-i.is-now {
+    animation: plan-mobile-detail-in 260ms ease-out 60ms both;
+  }
+
+  .plan-stage[data-story-beat="6"][data-mobile-reveal="holding"]
+    .plan-figure
+    .pl-l--route
+    .pl-i.is-now {
+    opacity: 0;
+  }
+
+  .plan-stage[data-story-beat="6"][data-mobile-reveal="ready"]
+    .plan-figure
+    .pl-l--route
+    .pl-i.is-now {
+    animation: plan-mobile-detail-in 280ms ease-out both;
+  }
+
+  .plan-vignette--mobile.is-active[data-vignette="costruire"]
+    .pv-i:is([data-step="7"], [data-step="8"])
+    .pv-c {
+    animation: plan-mobile-accent-in 300ms ease-out 190ms both;
+  }
+
+  .plan-vignette--mobile.is-active[data-vignette="corridoio"]
+    .pv-sweep
+    .pv-c {
+    animation: plan-mobile-road-in 380ms ease-out 460ms both;
+  }
+
+  .plan-vignette--mobile.is-active[data-vignette="portico"]
+    .pv-i[data-step="7"] {
+    animation: plan-mobile-detail-in 300ms ease-out 360ms both;
+  }
+
+  .plan-legend-item {
+    transition:
+      opacity 180ms ease-out,
+      color 180ms ease-out;
+  }
+
+  .plan-annotation--mobile,
+  .plan-link--mobile {
+    transition: opacity 180ms ease-out;
+  }
 }
 
 @media (min-width: 600px) and (max-width: 1279px) {

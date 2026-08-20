@@ -47,6 +47,7 @@ const VIGNETTE_EXIT_MS = 720;
 const LINK_R = 30;
 const MOBILE_PREWARM_FORWARD = 0.58;
 const MOBILE_PREWARM_REVERSE = 0.42;
+const MOBILE_CAMERA_THEN_REVEAL_BEATS = new Set([3, 6]);
 
 const VIGNETTE_PLACE = {
   costruire: "top",
@@ -179,11 +180,11 @@ function paintVignetteStep(items, step) {
   });
 }
 
-function resetVignetteItems(items) {
-  paintVignetteStep(items, 0);
+function completeVignetteItems(items, name) {
+  paintVignetteStep(items, (planVignetteMeta[name]?.steps ?? 1) - 1);
 }
 
-function MobilePersistentVignettes({ activeName, complete }) {
+function MobilePersistentVignettes({ activeName }) {
   return Object.entries(VIGNETTE_HTML).map(([name, html]) => {
     const config = MOBILE_VIGNETTE_CONFIG[name];
     const isCurrent = name === activeName;
@@ -191,8 +192,8 @@ function MobilePersistentVignettes({ activeName, complete }) {
       <div
         key={name}
         className={`plan-vignette plan-vignette--mobile plan-vignette--${config.place} plan-vignette--${config.side}${
-          isCurrent && !complete ? " is-building" : ""
-        }${isCurrent ? " is-active" : ""}`}
+          isCurrent ? " is-active" : ""
+        }`}
         style={{ "--ratio": planVignetteMeta[name].ratio }}
         data-mobile-vignette-active={String(isCurrent)}
         data-vignette={name}
@@ -337,12 +338,9 @@ export function CityPlanScene() {
     preparedGeneration: 0,
     committedGeneration: 0,
   });
-  const [mobileNearby, setMobileNearby] = useState(true);
   const [mobileVignettesMounted, setMobileVignettesMounted] = useState(false);
   const [mobileVignettesReady, setMobileVignettesReady] = useState(false);
   const [mobileOverlayLayoutVersion, setMobileOverlayLayoutVersion] = useState(0);
-  const [mobileVignetteCompleteGeneration, setMobileVignetteCompleteGeneration] =
-    useState(-1);
   const [vignetteProgress, setVignetteProgress] = useState({
     beat: -1,
     mount: -1,
@@ -369,8 +367,7 @@ export function CityPlanScene() {
   const vignetteComplete =
     vignetteName &&
     (mobileCameraActive
-      ? reduceMotion ||
-        mobileVignetteCompleteGeneration === mobileScene.committedGeneration
+      ? true
       : vstep >= (planVignetteMeta[vignetteName]?.steps ?? 1) - 1);
   const currentLink =
     !mobileCameraActive && link?.name === vignetteName ? link : null;
@@ -579,7 +576,7 @@ export function CityPlanScene() {
       }
       nodes[name] = node;
       items[name] = collectVignetteItems(node);
-      resetVignetteItems(items[name]);
+      completeVignetteItems(items[name], name);
     }
     mobileVignetteNodesRef.current = nodes;
     mobileVignetteItemsRef.current = items;
@@ -652,7 +649,7 @@ export function CityPlanScene() {
         mobilePrewarmedBeatRef.current !== targetBeat &&
         mobileCommittedBeatRef.current !== targetBeat
       ) {
-        resetVignetteItems(items);
+        completeVignetteItems(items, name);
       }
       const geometry = geometryForMobileVignette(name, frame);
       if (!geometry) return false;
@@ -875,7 +872,6 @@ export function CityPlanScene() {
         const nextNearby = entry.isIntersecting;
         if (nextNearby === mobileNearbyRef.current) return;
         mobileNearbyRef.current = nextNearby;
-        setMobileNearby(nextNearby);
         if (nextNearby) setMobileVignettesMounted(true);
         root.dataset.mobileNearby = String(nextNearby);
         if (!nextNearby) return;
@@ -891,7 +887,6 @@ export function CityPlanScene() {
     observer.observe(root);
     syncFrame = requestAnimationFrame(() => {
       syncFrame = null;
-      setMobileNearby(mobileNearbyRef.current);
       if (mobileNearbyRef.current) {
         setMobileVignettesMounted(true);
         syncScrollStateRef.current?.();
@@ -1067,6 +1062,16 @@ export function CityPlanScene() {
         const beatStart = next === 0 ? marks.start : marks[next - 1];
         const beatEnd = marks[next] ?? marks.end;
         const localProgress = clamp01((y - beatStart) / Math.max(1, beatEnd - beatStart));
+        if (mobileViewport) {
+          const revealAfterCamera = MOBILE_CAMERA_THEN_REVEAL_BEATS.has(next);
+          const revealAt =
+            planMobileCamera[next]?.entryFraction ??
+            planMobileCameraSettings.entryFraction;
+          stage.dataset.mobileReveal =
+            reduceMotion || !revealAfterCamera || localProgress >= revealAt
+              ? "ready"
+              : "holding";
+        }
         const camera =
           viewportWidth <= planMobileCameraSettings.maxWidth
             ? cameraForBeat(next, localProgress, viewportWidth, reduceMotion)
@@ -1191,60 +1196,6 @@ export function CityPlanScene() {
       window.removeEventListener("resize", onResize);
     };
   }, [measureMobileOverlayLayout, paintMobileCopy, reduceMotion]);
-
-  useLayoutEffect(() => {
-    if (
-      !mobileCameraActive ||
-      !mobileNearby ||
-      !entered ||
-      !mobileVignettesReady
-    ) {
-      return undefined;
-    }
-    const committedBeat = mobileScene.committedBeat;
-    const generation = mobileScene.committedGeneration;
-    const name = planBeatSpecs[committedBeat]?.vignette;
-    if (!name) return undefined;
-    const items = mobileVignetteItemsRef.current[name];
-    if (!items?.length) return undefined;
-
-    mobilePrewarmedBeatRef.current = null;
-    paintVignetteStep(items, 0);
-    const lastStep = (planVignetteMeta[name]?.steps ?? 1) - 1;
-    if (reduceMotion) {
-      paintVignetteStep(items, lastStep);
-      return undefined;
-    }
-
-    let step = 0;
-    let intervalId = null;
-    const advance = () => {
-      step += 1;
-      paintVignetteStep(items, step);
-      if (step >= lastStep) {
-        if (intervalId) window.clearInterval(intervalId);
-        setMobileVignetteCompleteGeneration(generation);
-      }
-    };
-    const firstStepId = window.setTimeout(() => {
-      advance();
-      if (step < lastStep) {
-        intervalId = window.setInterval(advance, VIGNETTE_STEP_MS);
-      }
-    }, VIGNETTE_FIRST_STEP_MS);
-    return () => {
-      window.clearTimeout(firstStepId);
-      if (intervalId) window.clearInterval(intervalId);
-    };
-  }, [
-    entered,
-    mobileCameraActive,
-    mobileNearby,
-    mobileScene.committedBeat,
-    mobileScene.committedGeneration,
-    mobileVignettesReady,
-    reduceMotion,
-  ]);
 
   useEffect(() => {
     if (mobileCameraActive) return undefined;
@@ -1660,7 +1611,6 @@ export function CityPlanScene() {
             mobileVignettesMounted ? (
               <MobilePersistentVignettes
                 activeName={vignetteLive ? vignetteName : null}
-                complete={Boolean(vignetteComplete)}
               />
             ) : null
           ) : (

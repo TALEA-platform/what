@@ -19,8 +19,20 @@ export const planMobileCameraSettings = {
 export const planMobileCamera = [
   {
     id: "quartiere",
-    phone: { at: [650, 1010], units: 1120, screen: [0.53, 0.34] },
-    tablet: { at: [860, 860], units: 1780, screen: [0.5, 0.38] },
+    phone: {
+      path: [
+        { t: 0, at: [640, 1022], units: 1080, screen: [0.53, 0.34] },
+        { t: 0.78, at: [650, 1010], units: 1120, screen: [0.53, 0.34] },
+        { t: 1, at: [650, 1010], units: 1120, screen: [0.53, 0.34] },
+      ],
+    },
+    tablet: {
+      path: [
+        { t: 0, at: [842, 872], units: 1715, screen: [0.5, 0.38] },
+        { t: 0.78, at: [860, 860], units: 1780, screen: [0.5, 0.38] },
+        { t: 1, at: [860, 860], units: 1780, screen: [0.5, 0.38] },
+      ],
+    },
   },
   {
     id: "buco",

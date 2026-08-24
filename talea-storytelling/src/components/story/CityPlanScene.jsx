@@ -47,7 +47,7 @@ const MAP_HANDOFF_MS = 320;
 const VIGNETTE_EXIT_MS = 720;
 
 const LINK_R = 30;
-const MOBILE_CAMERA_THEN_REVEAL_BEATS = new Set([3, 6]);
+const MOBILE_CAMERA_THEN_REVEAL_BEATS = new Set([6]);
 
 const MOBILE_ASSET_ROOT = assetUrl("/assets/cityplan-mobile");
 const mobileRasterStyle = ({ left, top, width, height }) => ({
@@ -206,6 +206,37 @@ const smoothstep = (value) => {
   const t = clamp01(value);
   return t * t * (3 - 2 * t);
 };
+
+const scrollWindow = (progress, from, to) =>
+  smoothstep((progress - from) / Math.max(0.0001, to - from));
+
+function mobileLayerProgressForBeat(index, localProgress, reduceMotion) {
+  const progress = reduceMotion ? 1 : localProgress;
+  return {
+    gap:
+      index < 1 ? 0
+      : index === 1 ? scrollWindow(progress, 0.1, 0.58)
+      : index === 2 ? 1 - scrollWindow(progress, 0.24, 0.58)
+      : 0,
+    reliefSites:
+      index < 1 ? 0
+      : index === 1 ? scrollWindow(progress, 0.18, 0.7)
+      : index === 2 ? 1
+      : 0,
+    parking:
+      index < 2 ? 1
+      : index === 2 ? 1 - scrollWindow(progress, 0.24, 0.58)
+      : 0,
+    firstRefuge:
+      index < 2 ? 0
+      : index === 2 ? scrollWindow(progress, 0.4, 0.72)
+      : 1,
+    extraRefuges:
+      index < 3 ? 0
+      : index === 3 ? scrollWindow(progress, 0.36, 0.72)
+      : 1,
+  };
+}
 
 function mixCamera(from, to, amount) {
   return {
@@ -1346,6 +1377,31 @@ export function CityPlanScene() {
         const viewportWidth = viewport?.viewportWidth ?? window.innerWidth ?? 1280;
         const localProgress = physicalBeatProgress(y, marks, next);
         if (mobileViewport) {
+          const layerProgress = mobileLayerProgressForBeat(
+            next,
+            localProgress,
+            reduceMotion,
+          );
+          rootRef.current?.style.setProperty(
+            "--plan-mobile-gap-opacity",
+            layerProgress.gap.toFixed(4),
+          );
+          rootRef.current?.style.setProperty(
+            "--plan-mobile-relief-sites-opacity",
+            layerProgress.reliefSites.toFixed(4),
+          );
+          rootRef.current?.style.setProperty(
+            "--plan-mobile-parking-opacity",
+            layerProgress.parking.toFixed(4),
+          );
+          rootRef.current?.style.setProperty(
+            "--plan-mobile-first-refuge-opacity",
+            layerProgress.firstRefuge.toFixed(4),
+          );
+          rootRef.current?.style.setProperty(
+            "--plan-mobile-extra-refuges-opacity",
+            layerProgress.extraRefuges.toFixed(4),
+          );
           const revealAfterCamera = MOBILE_CAMERA_THEN_REVEAL_BEATS.has(next);
           const revealAt =
             planMobileCamera[next]?.entryFraction ??

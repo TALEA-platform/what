@@ -2502,19 +2502,19 @@
   }
 
   .hotspot-mobile-beat--intro {
-    height: clamp(540px, 70dvh, 760px);
+    height: clamp(510px, 66dvh, 710px);
   }
 
   .hotspot-mobile-beat--handoff {
-    height: clamp(560px, 76dvh, 820px);
+    height: clamp(520px, 70dvh, 750px);
   }
 
   .hotspot-mobile-beat--slider {
-    height: clamp(360px, 48dvh, 520px);
+    height: clamp(330px, 44dvh, 470px);
   }
 
   .hotspot-mobile-track-tail {
-    height: clamp(140px, 20dvh, 220px);
+    height: clamp(125px, 18dvh, 195px);
   }
 
   .hotspot-mobile-scene-progress {

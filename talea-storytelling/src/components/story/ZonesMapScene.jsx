@@ -22,8 +22,8 @@ const OPEN_SPAN = 0.34;
 const OPEN_FLOOR_MS = 1500;
 const EXIT_FROM = 1.0;
 const EXIT_TO = 0.38;
-const MOBILE_EXIT_FROM = 1.12;
-const MOBILE_EXIT_TO = 0.82;
+const MOBILE_EXIT_FROM = 1.04;
+const MOBILE_EXIT_TO = 0.74;
 const FLIGHT_DURATION = 2800;
 const RETURN_DURATION = 2200;
 const EASE_FLIGHT = (t) =>

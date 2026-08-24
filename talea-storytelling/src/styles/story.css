@@ -2362,13 +2362,13 @@
   .causes-panel--compare.causes-panel--last {
     display: block;
     width: 100%;
-    min-height: clamp(620px, 86dvh, 900px);
+    min-height: clamp(570px, 78dvh, 820px);
     margin: 0;
     padding: 0;
   }
 
   .causes-panel--compare.causes-panel--last {
-    min-height: clamp(740px, 104dvh, 1040px);
+    min-height: clamp(690px, 96dvh, 960px);
   }
 
   .causes-panels .causes-panel-body {
@@ -3732,7 +3732,7 @@
   }
 
   .sf-mobile-track-tail {
-    height: clamp(140px, 20dvh, 220px);
+    height: clamp(120px, 16.5dvh, 190px);
   }
 
   .sf-mobile-story {
@@ -8693,6 +8693,42 @@
     will-change: auto;
   }
 
+  .plan-mobile-map-layer[data-mobile-map-layer="parking-state"],
+  .plan-mobile-map-layer[data-mobile-map-layer="gap-emphasis"],
+  .plan-mobile-map-layer[data-mobile-map-layer="relief-sites"],
+  .plan-mobile-map-layer[data-mobile-map-layer="first-refuge-accent"],
+  .plan-mobile-map-layer[data-mobile-map-layer="first-refuge"],
+  .plan-mobile-map-layer[data-mobile-map-layer="extra-refuges-accent"],
+  .plan-mobile-map-layer[data-mobile-map-layer="extra-refuges"] {
+    transition: none;
+  }
+
+  .plan-mobile-map-layer.is-active[data-mobile-map-layer="parking-state"],
+  .plan-stage[data-story-beat="2"]
+    .plan-mobile-map-layer[data-mobile-map-layer="parking-state"] {
+    opacity: var(--plan-mobile-parking-opacity, 1);
+  }
+
+  .plan-mobile-map-layer.is-active[data-mobile-map-layer="gap-emphasis"],
+  .plan-stage[data-story-beat="2"]
+    .plan-mobile-map-layer[data-mobile-map-layer="gap-emphasis"] {
+    opacity: var(--plan-mobile-gap-opacity, 1);
+  }
+
+  .plan-mobile-map-layer.is-active[data-mobile-map-layer="relief-sites"] {
+    opacity: var(--plan-mobile-relief-sites-opacity, 1);
+  }
+
+  .plan-mobile-map-layer.is-active[data-mobile-map-layer="first-refuge-accent"],
+  .plan-mobile-map-layer.is-active[data-mobile-map-layer="first-refuge"] {
+    opacity: var(--plan-mobile-first-refuge-opacity, 1);
+  }
+
+  .plan-mobile-map-layer.is-active[data-mobile-map-layer="extra-refuges-accent"],
+  .plan-mobile-map-layer.is-active[data-mobile-map-layer="extra-refuges"] {
+    opacity: var(--plan-mobile-extra-refuges-opacity, 1);
+  }
+
   .plan-vignette--mobile .pv-i {
     animation: none;
     opacity: 1;
@@ -8937,36 +8973,8 @@
     animation: plan-mobile-accent-in 360ms ease-out both;
   }
 
-  .plan-stage[data-story-beat="2"]
-    .plan-mobile-map-state[data-mobile-map-layer="parking-state"],
-  .plan-stage[data-story-beat="2"]
-    .plan-mobile-map-state[data-mobile-map-layer="gap-emphasis"] {
-    animation: plan-mobile-detail-out 300ms ease-out 930ms both;
-  }
-
-  .plan-stage[data-story-beat="2"]
-    .plan-mobile-map-state[data-mobile-map-layer="first-refuge-accent"],
-  .plan-stage[data-story-beat="2"]
-    .plan-mobile-map-state[data-mobile-map-layer="first-refuge"] {
-    animation: plan-mobile-detail-in 300ms ease-out 930ms both;
-  }
-
   .plan-stage[data-story-beat="2"] .plan-annotation--mobile.is-visible {
     animation: plan-mobile-detail-in 240ms ease-out 1110ms both;
-  }
-
-  .plan-stage[data-story-beat="3"][data-mobile-reveal="holding"]
-    .plan-mobile-map-state[data-mobile-map-layer="extra-refuges-accent"],
-  .plan-stage[data-story-beat="3"][data-mobile-reveal="holding"]
-    .plan-mobile-map-state[data-mobile-map-layer="extra-refuges"] {
-    opacity: 0;
-  }
-
-  .plan-stage[data-story-beat="3"][data-mobile-reveal="ready"]
-    .plan-mobile-map-state[data-mobile-map-layer="extra-refuges-accent"],
-  .plan-stage[data-story-beat="3"][data-mobile-reveal="ready"]
-    .plan-mobile-map-state[data-mobile-map-layer="extra-refuges"] {
-    animation: plan-mobile-detail-in 260ms ease-out both;
   }
 
   .plan-stage[data-story-beat="6"][data-mobile-reveal="holding"]
@@ -11217,15 +11225,15 @@
   }
 
   .zones-step {
-    height: clamp(360px, 62svh, 540px);
+    height: clamp(330px, 56svh, 500px);
   }
 
   .zones-step--historic-center {
-    height: clamp(420px, 72svh, 660px);
+    height: clamp(390px, 66svh, 610px);
   }
 
   .zones-tail {
-    height: clamp(180px, 34svh, 300px);
+    height: clamp(200px, 38svh, 340px);
   }
 
   .zones-caption--gone {
@@ -11251,7 +11259,7 @@
 
 @media (min-width: 700px) and (max-width: 1279px) and (min-height: 720px) {
   .zones-step--historic-center {
-    height: clamp(720px, 74svh, 960px);
+    height: clamp(660px, 68svh, 880px);
   }
 }
 

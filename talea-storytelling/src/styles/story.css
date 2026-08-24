@@ -317,10 +317,9 @@
     gap: 20px;
     padding: calc(var(--header-height) + 30px) 24px 56px;
     text-align: center;
-    opacity: 1;
-    transform: none;
-    clip-path: inset(0 0 var(--hero-copy-clip, 0%) 0);
-    will-change: clip-path;
+    opacity: var(--mobile-hero-copy-opacity, 1);
+    transform: translateY(calc(0px - var(--mobile-copy-offset, 0px)));
+    will-change: opacity, transform;
   }
 
   .hero-content-inner {
@@ -367,11 +366,10 @@
 
   .hero-bridge-preview {
     padding: calc(var(--header-height) + 34px) 24px 48px;
-    opacity: 1;
-    transform: none;
+    opacity: var(--mobile-bridge-copy-opacity, 0);
+    transform: translateY(var(--mobile-copy-offset, 0px));
     filter: none;
-    clip-path: inset(var(--bridge-copy-clip, 100%) 0 0 0);
-    will-change: clip-path;
+    will-change: opacity, transform;
   }
 
   .hero-bridge-preview::before {

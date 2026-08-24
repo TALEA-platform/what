@@ -55,7 +55,6 @@ export function RifugioExplainer({ onGlossary }) {
   const [nearby, setNearby] = useState(false);
   const [settled, setSettled] = useState(false);
   const [figureInView, setFigureInView] = useState(false);
-  const [pageCueVisible, setPageCueVisible] = useState(false);
   const [finalCueUnlocked, setFinalCueUnlocked] = useState(false);
 
   const explainerRef = useRef(null);
@@ -66,9 +65,6 @@ export function RifugioExplainer({ onGlossary }) {
   const lastNudgeAtRef = useRef(0);
   const activeIndexRef = useRef(0);
   const drawnKeysRef = useRef(new Set());
-  const pageCueShownRef = useRef(false);
-  const pageCueStartYRef = useRef(null);
-  const pageCueVisibleRef = useRef(false);
   const manualModeRef = useRef(false);
 
   const {
@@ -227,25 +223,6 @@ export function RifugioExplainer({ onGlossary }) {
       const nextEntered = inScene && sectionRect.top <= vh * entranceLine;
       const nextEngaged =
         inScene && Boolean(introHoldRect) && introHoldRect.top <= readingLine;
-
-      if (mobileLayout && nextEngaged && !pageCueShownRef.current) {
-        if (pageCueStartYRef.current == null) {
-          pageCueStartYRef.current = window.scrollY;
-          pageCueVisibleRef.current = true;
-          setPageCueVisible(true);
-        } else if (Math.abs(window.scrollY - pageCueStartYRef.current) >= 56) {
-          pageCueShownRef.current = true;
-          pageCueVisibleRef.current = false;
-          setPageCueVisible(false);
-        }
-      } else if (
-        pageCueVisibleRef.current &&
-        (!mobileLayout || !nextEngaged)
-      ) {
-        pageCueVisibleRef.current = false;
-        setPageCueVisible(false);
-        if (pageCueStartYRef.current != null) pageCueShownRef.current = true;
-      }
 
       const leftBehind = Boolean(sectionRect) && sectionRect.bottom < vh * 0.3;
       if (leftBehind && !completeRef.current) forceComplete();
@@ -414,14 +391,6 @@ export function RifugioExplainer({ onGlossary }) {
               sequencePlaying ? " relief-explainer-text--playing" : ""
             }`}
           >
-            {pageCueVisible ? (
-              <ScrollCue
-                label={uiContent.localStory.keepScrollingPage}
-                variant="light"
-                className="relief-page-scroll-cue"
-                decorative={false}
-              />
-            ) : null}
             <div className="relief-seq-body" data-motion="story">
               {rifugioSteps.map((s, i) => {
                 const state =

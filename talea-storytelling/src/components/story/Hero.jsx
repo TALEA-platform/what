@@ -9,16 +9,14 @@ const heroPoster = assetUrl("/data/hero/bologna-poster.jpg");
 
 const SCALE_STOPS = [[0, 1], [0.4, 1.14], [0.75, 1.34], [1, 1.58]];
 const TEXT_OPACITY_STOPS = [[0, 1], [0.24, 0.65], [0.4, 0.12], [0.48, 0]];
+const MOBILE_TEXT_OPACITY_STOPS = [[0, 1], [0.22, 0.7], [0.32, 0], [1, 0]];
 const TEXT_Y_STOPS = [[0, 0], [0.26, -20], [0.48, -48], [1, -72]];
-const MOBILE_TEXT_Y_STOPS = [[0, 0], [0.26, -4], [0.4, -10], [0.48, -16], [1, -20]];
 const TEXT_SCALE_STOPS = [[0, 1], [0.24, 1.08], [0.4, 1.24], [0.48, 1.44]];
-const MOBILE_TEXT_SCALE_STOPS = [[0, 1], [1, 1]];
 const OVERLAY_STOPS = [[0, 0.1], [0.3, 0.24], [0.48, 0.38], [0.9, 0.38], [1, 0.12]];
 const BRIDGE_OPACITY_STOPS = [[0, 0], [0.26, 0], [0.38, 0.5], [0.48, 1], [0.9, 1], [1, 0]];
+const MOBILE_BRIDGE_OPACITY_STOPS = [[0, 0], [0.4, 0], [0.48, 1], [0.9, 1], [1, 0]];
 const BRIDGE_Y_STOPS = [[0, 30], [0.38, 14], [0.48, 0], [0.9, 0], [1, -22]];
-const MOBILE_BRIDGE_Y_STOPS = [[0, 16], [0.38, 8], [0.48, 0], [0.9, 0], [1, -12]];
 const BRIDGE_SCALE_STOPS = [[0, 1.1], [0.38, 1.04], [0.48, 1], [0.9, 1], [1, 1.16]];
-const MOBILE_BRIDGE_SCALE_STOPS = [[0, 1], [1, 1]];
 const BRIDGE_BLUR_STOPS = [[0, 6], [0.38, 2], [0.48, 0], [0.9, 0], [1, 10]];
 const HERO_FADE_STOPS = [[0, 1], [0.87, 1], [1, 0]];
 const MOBILE_HERO_FADE_STOPS = [[0, 1], [0.75, 1], [1, 0]];
@@ -152,53 +150,82 @@ export function Hero() {
 
     let frame = null;
     let bridgeLit = false;
+    let viewportHeight = 1;
+    let wrapperStartY = 0;
+    let wrapperHeight = 1;
+    let scrollable = 1;
+
+    const measure = () => {
+      viewportHeight = window.innerHeight || 1;
+      const wrapperRect = wrapper.getBoundingClientRect();
+      wrapperStartY = window.scrollY + wrapperRect.top;
+      wrapperHeight = wrapper.offsetHeight;
+      scrollable = Math.max(1, wrapperHeight - viewportHeight);
+      heroEndScrollRef.current = wrapperStartY + scrollable;
+    };
+
+    if (mobileMode) {
+      // These values never animate on mobile. Set them once instead of
+      // rewriting the same CSS properties on every scroll frame.
+      sticky.style.setProperty("--hero-scale", "1");
+      sticky.style.setProperty("--hero-text-y", "0px");
+      sticky.style.setProperty("--hero-text-scale", "1");
+      sticky.style.setProperty("--bridge-y", "0px");
+      sticky.style.setProperty("--bridge-scale", "1");
+      sticky.style.setProperty("--bridge-blur", "0px");
+      sticky.style.setProperty("--hero-exit-blur", "0px");
+    }
 
     const update = () => {
       frame = null;
-      const vh = window.innerHeight || 1;
-      const scrollable = Math.max(1, wrapper.offsetHeight - vh);
-      const wrapperRect = wrapper.getBoundingClientRect();
-      const progress = clamp01(-wrapperRect.top / scrollable);
-      heroEndScrollRef.current = window.scrollY + wrapperRect.top + scrollable;
+      const progress = clamp01((window.scrollY - wrapperStartY) / scrollable);
       mobileHeroPastRef.current = mobileMode && progress >= 0.9995;
 
-      const scale = mobileMode ? 1 : interp(progress, SCALE_STOPS);
-      const textY = reduceMotion
-        ? 0
-        : interp(progress, mobileMode ? MOBILE_TEXT_Y_STOPS : TEXT_Y_STOPS);
-      const textScale = reduceMotion
-        ? 1
-        : interp(progress, mobileMode ? MOBILE_TEXT_SCALE_STOPS : TEXT_SCALE_STOPS);
-      const bridgeY = reduceMotion
-        ? 0
-        : interp(progress, mobileMode ? MOBILE_BRIDGE_Y_STOPS : BRIDGE_Y_STOPS);
-      const bridgeScale = reduceMotion
-        ? 1
-        : interp(progress, mobileMode ? MOBILE_BRIDGE_SCALE_STOPS : BRIDGE_SCALE_STOPS);
-      const bridgeBlur = reduceMotion || mobileMode
-        ? 0
-        : interp(progress, BRIDGE_BLUR_STOPS);
+      if (!mobileMode) {
+        const textY = reduceMotion ? 0 : interp(progress, TEXT_Y_STOPS);
+        const textScale = reduceMotion ? 1 : interp(progress, TEXT_SCALE_STOPS);
+        const bridgeY = reduceMotion ? 0 : interp(progress, BRIDGE_Y_STOPS);
+        const bridgeScale = reduceMotion ? 1 : interp(progress, BRIDGE_SCALE_STOPS);
+        const bridgeBlur = reduceMotion ? 0 : interp(progress, BRIDGE_BLUR_STOPS);
 
-      sticky.style.setProperty("--hero-scale", scale.toFixed(4));
-      sticky.style.setProperty("--hero-text-opacity", interp(progress, TEXT_OPACITY_STOPS).toFixed(3));
-      sticky.style.setProperty("--hero-text-y", `${textY.toFixed(1)}px`);
-      sticky.style.setProperty("--hero-text-scale", textScale.toFixed(4));
+        sticky.style.setProperty("--hero-scale", interp(progress, SCALE_STOPS).toFixed(4));
+        sticky.style.setProperty("--hero-text-y", `${textY.toFixed(1)}px`);
+        sticky.style.setProperty("--hero-text-scale", textScale.toFixed(4));
+        sticky.style.setProperty("--bridge-y", `${bridgeY.toFixed(1)}px`);
+        sticky.style.setProperty("--bridge-scale", bridgeScale.toFixed(4));
+        sticky.style.setProperty("--bridge-blur", `${bridgeBlur.toFixed(2)}px`);
+      }
+
+      sticky.style.setProperty(
+        "--hero-text-opacity",
+        interp(
+          progress,
+          mobileMode ? MOBILE_TEXT_OPACITY_STOPS : TEXT_OPACITY_STOPS,
+        ).toFixed(3),
+      );
       sticky.style.setProperty("--hero-overlay-opacity", interp(progress, OVERLAY_STOPS).toFixed(3));
-      sticky.style.setProperty("--bridge-opacity", interp(progress, BRIDGE_OPACITY_STOPS).toFixed(3));
-      sticky.style.setProperty("--bridge-y", `${bridgeY.toFixed(1)}px`);
-      sticky.style.setProperty("--bridge-scale", bridgeScale.toFixed(4));
-      sticky.style.setProperty("--bridge-blur", `${bridgeBlur.toFixed(2)}px`);
+      sticky.style.setProperty(
+        "--bridge-opacity",
+        interp(
+          progress,
+          mobileMode ? MOBILE_BRIDGE_OPACITY_STOPS : BRIDGE_OPACITY_STOPS,
+        ).toFixed(3),
+      );
       const heroFade = interp(
         progress,
         mobileMode ? MOBILE_HERO_FADE_STOPS : HERO_FADE_STOPS,
       );
       sticky.style.setProperty("--hero-fade", heroFade.toFixed(3));
-      const exitBlur = reduceMotion || mobileMode ? 0 : (1 - heroFade) * 16;
-      sticky.style.setProperty("--hero-exit-blur", `${exitBlur.toFixed(1)}px`);
+      if (!mobileMode) {
+        const exitBlur = reduceMotion ? 0 : (1 - heroFade) * 16;
+        sticky.style.setProperty("--hero-exit-blur", `${exitBlur.toFixed(1)}px`);
+      }
 
       if (mobileMode) {
         const video = videoRef.current;
-        const inViewport = wrapperRect.bottom > 0 && wrapperRect.top < vh;
+        const inViewport =
+          window.scrollY + viewportHeight > wrapperStartY &&
+          window.scrollY < wrapperStartY + wrapperHeight;
         const heroPast = progress >= 0.9995;
         if ((!inViewport || heroPast) && video && !video.paused) {
           video.pause();
@@ -236,15 +263,20 @@ export function Hero() {
     const syncNow = () => {
       if (!frame) frame = requestAnimationFrame(update);
     };
+    const requestResize = () => {
+      measure();
+      requestUpdate();
+    };
     syncHeroScrollRef.current = syncNow;
+    measure();
     if (!mobileMode || mobileHeroNearbyRef.current) update();
     window.addEventListener("scroll", requestUpdate, { passive: true });
-    window.addEventListener("resize", requestUpdate);
+    window.addEventListener("resize", requestResize);
     return () => {
       if (syncHeroScrollRef.current === syncNow) syncHeroScrollRef.current = null;
       if (frame) cancelAnimationFrame(frame);
       window.removeEventListener("scroll", requestUpdate);
-      window.removeEventListener("resize", requestUpdate);
+      window.removeEventListener("resize", requestResize);
     };
   }, [mobileMode, reduceMotion]);
 

@@ -1055,7 +1055,6 @@ export function PhysicalDriversSection() {
   const [sliderValue, setSliderValue] = useState(50);
   const [compareDemoPlayed, setCompareDemoPlayed] = useState(false);
   const [sceneEntered, setSceneEntered] = useState(false);
-  const [scrollCueVisible, setScrollCueVisible] = useState(false);
   const [landedTopics, setLandedTopics] = useState(() => {
     const landed = prefersReducedMotion();
     return { green: landed, materials: landed };
@@ -1083,9 +1082,6 @@ export function PhysicalDriversSection() {
   const compareCropRef = useRef(null);
   const localProgressRef = useRef(null);
   const enteredRef = useRef(false);
-  const scrollCueShownRef = useRef(false);
-  const scrollCueVisibleRef = useRef(false);
-  const scrollCueStartYRef = useRef(0);
   const topicSourceRefs = useRef({});
   const topicTargetRefs = useRef({});
   const topicFlyerRefs = useRef({});
@@ -1431,23 +1427,6 @@ export function PhysicalDriversSection() {
           enteredRef.current = true;
           setSceneEntered(true);
         }
-        if (
-          !scrollCueShownRef.current &&
-          sceneRect &&
-          sceneRect.top < vh * 0.58 &&
-          sceneRect.bottom > 0
-        ) {
-          scrollCueShownRef.current = true;
-          scrollCueVisibleRef.current = true;
-          scrollCueStartYRef.current = window.scrollY;
-          setScrollCueVisible(true);
-        } else if (
-          scrollCueVisibleRef.current &&
-          Math.abs(window.scrollY - scrollCueStartYRef.current) >= 44
-        ) {
-          scrollCueVisibleRef.current = false;
-          setScrollCueVisible(false);
-        }
         return;
       }
 
@@ -1614,9 +1593,6 @@ export function PhysicalDriversSection() {
   const localStepLabel = uiContent.localStory.stepLabelTemplate
     .replace("{current}", String(localStepIndex + 1))
     .replace("{total}", String(stages.length));
-  const causeScrollCue =
-    uiContent.localStory.scrollCause ?? uiContent.localStory.scrollPage;
-
   return (
     <section
       id="causes"
@@ -1756,11 +1732,6 @@ export function PhysicalDriversSection() {
                   ))}
                 </span>
               </div>
-            ) : null}
-            {mobileLayout && scrollCueVisible ? (
-              <span className="causes-scroll-cue">
-                <span aria-hidden="true">↓</span> {causeScrollCue}
-              </span>
             ) : null}
           </div>
 

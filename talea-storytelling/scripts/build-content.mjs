@@ -2019,6 +2019,10 @@ function validateUi(document, location) {
   const glossary = requireObject(document.glossary, `${location}.glossary`);
   const map = requireObject(document.map, `${location}.map`);
   const localStory = requireObject(document.localStory, `${location}.localStory`);
+  const mobileExperience = requireObject(
+    document.mobileExperience,
+    `${location}.mobileExperience`,
+  );
   const cooperativeGestures = requireObject(
     map.cooperativeGestures,
     `${location}.map.cooperativeGestures`,
@@ -2171,6 +2175,24 @@ function validateUi(document, location) {
           ),
           "{total}",
           `${location}.localStory.stepLabelTemplate`,
+        ),
+      },
+      mobileExperience: {
+        title: requireString(
+          mobileExperience.title,
+          `${location}.mobileExperience.title`,
+        ),
+        body: requireString(
+          mobileExperience.body,
+          `${location}.mobileExperience.body`,
+        ),
+        continue: requireString(
+          mobileExperience.continue,
+          `${location}.mobileExperience.continue`,
+        ),
+        closeLabel: requireString(
+          mobileExperience.closeLabel,
+          `${location}.mobileExperience.closeLabel`,
         ),
       },
       actions: {

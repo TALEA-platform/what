@@ -369,6 +369,19 @@
   }
 }
 
+@media (max-width: 1279px) {
+  .hotspot-scene .annotation-label--priority .annotation-name {
+    font-size: 0.8125rem;
+    line-height: 1.2;
+  }
+
+  .hotspot-scene .annotation-label--priority .annotation-tag {
+    font-size: 0.65625rem;
+    font-weight: 650;
+    line-height: 1.2;
+  }
+}
+
 @media (min-width: 600px) and (max-width: 1279px) {
   .hotspot-intro-lead,
   .sf-pivot,

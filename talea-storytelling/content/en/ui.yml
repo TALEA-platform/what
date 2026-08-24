@@ -73,6 +73,12 @@ localStory:
   modelGesture: "Drag the model to rotate · use two fingers to zoom"
   stepLabelTemplate: "Step {current} of {total}"
 
+mobileExperience:
+  title: "For a more immersive experience"
+  body: "To get the most from the maps, animations and interactive details, we recommend opening this story on a computer."
+  continue: "Continue"
+  closeLabel: "Close this notice"
+
 actions:
   id: global-actions
   close: "Close"

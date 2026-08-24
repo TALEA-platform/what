@@ -19,6 +19,7 @@ import { ZonesMapScene } from "./components/story/ZonesMapScene";
 import { ClosingSection } from "./components/story/ClosingSection";
 import { GlossaryDrawer, GlossaryTrailProvider } from "./components/ui/GlossaryDrawer";
 import { MethodDrawer } from "./components/ui/MethodDrawer";
+import { MobileExperienceNotice } from "./components/ui/MobileExperienceNotice";
 
 function App() {
   const [glossaryId, setGlossaryId] = useState(null);
@@ -48,6 +49,7 @@ function App() {
         onProgressOpenChange={setMobileProgressOpen}
         onVisibilityChange={setShellHidden}
       />
+      <MobileExperienceNotice />
       <main className="page-main">
         <Hero />
         <SummerTrendSection />

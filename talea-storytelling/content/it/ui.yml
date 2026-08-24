@@ -73,6 +73,12 @@ localStory:
   modelGesture: "Trascina il modello per ruotarlo · usa due dita per lo zoom"
   stepLabelTemplate: "Passaggio {current} di {total}"
 
+mobileExperience:
+  title: "Per un’esperienza più immersiva"
+  body: "Per apprezzare al meglio mappe, animazioni e dettagli interattivi, ti consigliamo di aprire questo racconto da computer."
+  continue: "Continua"
+  closeLabel: "Chiudi questo avviso"
+
 actions:
   id: global-actions
   close: "Chiudi"

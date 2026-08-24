@@ -331,8 +331,8 @@
     align-items: center;
     gap: 20px;
     opacity: var(--hero-text-opacity, 1);
-    transform: translate3d(0, var(--hero-text-y, 0px), 0);
-    will-change: opacity, transform;
+    transform: none;
+    will-change: opacity;
   }
 
   .hero-title {
@@ -465,8 +465,8 @@
 @media (max-width: 1279px) {
   .hero-bridge-inner {
     opacity: var(--bridge-opacity, 0);
-    transform: translate3d(0, var(--bridge-y, 16px), 0);
-    will-change: opacity, transform;
+    transform: none;
+    will-change: opacity;
   }
 
   .hero-sticky[data-hero-past="true"] .hero-content-inner,

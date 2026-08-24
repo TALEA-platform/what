@@ -527,9 +527,6 @@ export function CityPlanScene() {
   const previousBeatRef = useRef(0);
   const completedVignetteBeatsRef = useRef(new Set());
   const enteredVignetteMountRef = useRef(-1);
-  const planScrollCueShownRef = useRef(false);
-  const planScrollCueVisibleRef = useRef(false);
-  const planScrollCueStartYRef = useRef(null);
 
   const [entered, setEntered] = useState(false);
   const [mobileCameraActive, setMobileCameraActive] = useState(
@@ -561,7 +558,6 @@ export function CityPlanScene() {
   const [vignetteMount, setVignetteMount] = useState(0);
   const [vignetteNode, setVignetteNode] = useState(null);
   const [link, setLink] = useState(null);
-  const [planScrollCueVisible, setPlanScrollCueVisible] = useState(false);
   const beat = mobileCameraActive ? mobileScene.committedBeat : scrollBeat;
   const requestedBeat = mobileCameraActive
     ? mobileScene.requestedBeat
@@ -1345,31 +1341,10 @@ export function CityPlanScene() {
       const stage = stageRef.current;
       const band = bandRef.current;
       const cam = camRef.current;
-      if (
-        mobileViewport &&
-        !planScrollCueShownRef.current &&
-        y >= marks.start &&
-        y < marks.end
-      ) {
-        planScrollCueShownRef.current = true;
-        planScrollCueVisibleRef.current = true;
-        planScrollCueStartYRef.current = y;
-        setPlanScrollCueVisible(true);
-      }
       if (stage && band && cam) {
         const viewport = viewportMetricsRef.current;
         const viewportWidth = viewport?.viewportWidth ?? window.innerWidth ?? 1280;
         const localProgress = physicalBeatProgress(y, marks, next);
-        if (
-          mobileViewport &&
-          planScrollCueVisibleRef.current &&
-          planScrollCueStartYRef.current != null &&
-          y - planScrollCueStartYRef.current >= 48 &&
-          localProgress > 0
-        ) {
-          planScrollCueVisibleRef.current = false;
-          setPlanScrollCueVisible(false);
-        }
         if (mobileViewport) {
           const revealAfterCamera = MOBILE_CAMERA_THEN_REVEAL_BEATS.has(next);
           const revealAt =
@@ -2037,15 +2012,6 @@ export function CityPlanScene() {
                     </span>
                   )}
                 </span>
-
-                {mobileCameraActive && currentSide && planScrollCueVisible ? (
-                  <span className="plan-scroll-cue">
-                    <span className="plan-scroll-cue-arrow" aria-hidden="true">
-                      ↓
-                    </span>{" "}
-                    {uiContent.localStory?.scrollPlan}
-                  </span>
-                ) : null}
 
                 <div className="plan-copy-body">
                   {planBeats.map((step, i) => {

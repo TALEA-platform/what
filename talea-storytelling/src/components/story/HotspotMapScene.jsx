@@ -1060,6 +1060,9 @@ export function HotspotMapScene() {
             role="status"
             aria-live="polite"
           >
+            <span className="hotspot-mobile-scroll-indicator" aria-hidden="true">
+              <span />
+            </span>
             <span>{uiContent.localStory.hotspotToComparison}</span>
           </div>
         </div>
@@ -1075,6 +1078,9 @@ export function HotspotMapScene() {
             role="status"
             aria-live="polite"
           >
+            <span className="hotspot-mobile-scroll-indicator" aria-hidden="true">
+              <span />
+            </span>
             <span>{uiContent.localStory.hotspotToExit}</span>
           </div>
         </div>

@@ -3,6 +3,16 @@ import { useContent } from "../../content";
 import { buildHotspotAnnotations } from "../../data/hotspotAnnotations";
 
 const HOVER_RADIUS = 72;
+const MOBILE_PRIORITY_ZONE_IDS = [
+  "centro-storico",
+  "stazione-centrale",
+  "fiera",
+];
+const MOBILE_PRIORITY_OFFSETS = [
+  { x: -72, y: 70 },
+  { x: 70, y: 38 },
+  { x: 54, y: -68 },
+];
 
 export function AnnotationLayer({
   map,
@@ -28,8 +38,14 @@ export function AnnotationLayer({
     [hotspotAnnotations],
   );
   const priorityZones = useMemo(
-    () => (mobile ? narrativeZones.slice(0, 3) : narrativeZones),
-    [mobile, narrativeZones],
+    () =>
+      mobile
+        ? MOBILE_PRIORITY_ZONE_IDS.map((id) => {
+            const idx = hotspotAnnotations.findIndex((zone) => zone.id === id);
+            return idx >= 0 ? { ...hotspotAnnotations[idx], idx } : null;
+          }).filter(Boolean)
+        : narrativeZones,
+    [hotspotAnnotations, mobile, narrativeZones],
   );
 
   useEffect(() => {
@@ -109,24 +125,35 @@ export function AnnotationLayer({
   const canvasWidth = canvas?.clientWidth ?? 0;
   const canvasHeight = canvas?.clientHeight ?? 0;
   const narrowMobile = mobile && canvasWidth < 600;
-  const mobileSideAnchor = Math.min(
-    narrowMobile ? 112 : 184,
-    Math.max(narrowMobile ? 82 : 132, canvasWidth * 0.25),
-  );
-  const mobilePriorityAnchors = [
-    { x: mobileSideAnchor, y: canvasHeight * 0.21 },
-    { x: canvasWidth - mobileSideAnchor, y: canvasHeight * 0.39 },
-    { x: mobileSideAnchor, y: canvasHeight * 0.57 },
-  ];
   const priorityDisplayZones = priorityZones
     .map((zone, index) => {
       const position = positions[zone.idx];
       if (!position) return null;
+      const mobileOffset = MOBILE_PRIORITY_OFFSETS[index];
+      const mobileAnchorInset = narrowMobile ? 90 : 136;
       return {
         zone,
         position:
-          mobile && mobilePriorityAnchors[index]
-            ? { dot: position.dot, anchor: mobilePriorityAnchors[index] }
+          mobile && mobileOffset
+            ? {
+                dot: position.dot,
+                anchor: {
+                  x: Math.min(
+                    canvasWidth - mobileAnchorInset,
+                    Math.max(
+                      mobileAnchorInset,
+                      position.dot.x + mobileOffset.x,
+                    ),
+                  ),
+                  y: Math.min(
+                    canvasHeight - (narrowMobile ? 245 : 210),
+                    Math.max(
+                      narrowMobile ? 130 : 115,
+                      position.dot.y + mobileOffset.y,
+                    ),
+                  ),
+                },
+              }
             : position,
       };
     })
@@ -190,7 +217,7 @@ export function AnnotationLayer({
                 {zone.tag}
               </span>
             )}
-            {zone.context && (
+            {!mobile && zone.context && (
               <p className="annotation-context annotation-hovercard-fact">
                 {zone.context}
               </p>

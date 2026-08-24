@@ -22,7 +22,7 @@ const OPEN_SPAN = 0.34;
 const OPEN_FLOOR_MS = 1500;
 const EXIT_FROM = 1.0;
 const EXIT_TO = 0.38;
-const MOBILE_EXIT_FROM = 1.42;
+const MOBILE_EXIT_FROM = 1.12;
 const MOBILE_EXIT_TO = 0.82;
 const FLIGHT_DURATION = 2800;
 const RETURN_DURATION = 2200;
@@ -173,6 +173,7 @@ export function ZonesMapScene() {
   const focusMaskRef = useRef(null);
   const mapRef = useRef(null);
   const stepsRef = useRef([]);
+  const progressRef = useRef(null);
   const flownRef = useRef(false);
   const openedRef = useRef(false);
   const activeZoneRef = useRef(null);
@@ -486,27 +487,58 @@ export function ZonesMapScene() {
       frame = null;
       const vh = window.innerHeight || 768;
       const readingLine = vh * 0.55;
+      const mobileLayout = window.matchMedia(MOBILE_LAYOUT_QUERY).matches;
       const steps = stepsRef.current.filter(Boolean);
+      const stepMetrics = steps.map((element) => {
+        const rect = element.getBoundingClientRect();
+        return {
+          element,
+          rect,
+          center: rect.top + rect.height * 0.5,
+        };
+      });
 
       let next = 0;
       let min = Infinity;
-      steps.forEach((el, idx) => {
-        const rect = el.getBoundingClientRect();
-        const center = rect.top + rect.height * 0.5;
+      stepMetrics.forEach(({ rect, center }, idx) => {
         if (rect.bottom > 0 && rect.top < vh && Math.abs(center - readingLine) < min) {
           min = Math.abs(center - readingLine);
           next = idx;
         }
       });
-      const last = steps.at(-1)?.getBoundingClientRect();
+      const last = stepMetrics.at(-1)?.rect;
       if (min === Infinity && last && last.bottom < readingLine) next = STAGE_COUNT - 1;
       setStage(next);
+
+      const activeMetric = stepMetrics[next];
+      if (mobileLayout && activeMetric && progressRef.current) {
+        const previousMetric = stepMetrics[next - 1];
+        const nextMetric = stepMetrics[next + 1];
+        const tailHeight =
+          steps.at(-1)?.nextElementSibling?.getBoundingClientRect().height ?? 0;
+        const beatStart = previousMetric
+          ? (previousMetric.center + activeMetric.center) * 0.5
+          : activeMetric.rect.top;
+        const beatEnd = nextMetric
+          ? (activeMetric.center + nextMetric.center) * 0.5
+          : activeMetric.rect.bottom + tailHeight;
+        const withinBeat = clamp01(
+          (readingLine - beatStart) / Math.max(1, beatEnd - beatStart),
+        );
+
+        stepMetrics.forEach((_, index) => {
+          const fill = index < next ? 1 : index === next ? withinBeat : 0;
+          progressRef.current?.style.setProperty(
+            `--zones-progress-${index}`,
+            fill.toFixed(4),
+          );
+        });
+      }
 
       const section = sectionRef.current;
       const rect = section?.getBoundingClientRect();
       if (!rect) return;
       const inScene = rect.top < vh && rect.bottom > 0;
-      const mobileLayout = window.matchMedia(MOBILE_LAYOUT_QUERY).matches;
       const exitFrom = mobileLayout ? MOBILE_EXIT_FROM : EXIT_FROM;
       const exitTo = mobileLayout ? MOBILE_EXIT_TO : EXIT_TO;
 
@@ -598,9 +630,15 @@ export function ZonesMapScene() {
               <p className="zones-caption-text"><ZonesText segments={zonesContent.intro.body} /></p>
             </>
           )}
-          <div className="zones-progress" aria-hidden="true">
+          <div ref={progressRef} className="zones-progress" aria-hidden="true">
             {Array.from({ length: STAGE_COUNT }).map((_, i) => (
-              <span key={i} className={`zones-dot${i === stage ? " zones-dot--on" : ""}`} />
+              <span
+                key={i}
+                className={`zones-progress-segment${i === stage ? " zones-progress-segment--on" : ""}`}
+                style={{
+                  "--zones-progress-fill": `var(--zones-progress-${i}, ${i < stage ? 1 : 0})`,
+                }}
+              />
             ))}
           </div>
           {failed && (

@@ -2510,11 +2510,58 @@
   }
 
   .hotspot-mobile-beat--slider {
-    height: clamp(520px, 72dvh, 780px);
+    height: clamp(360px, 48dvh, 520px);
   }
 
   .hotspot-mobile-track-tail {
-    height: clamp(300px, 44dvh, 480px);
+    height: clamp(140px, 20dvh, 220px);
+  }
+
+  .hotspot-mobile-scene-progress {
+    position: absolute;
+    top: 50%;
+    right: max(10px, env(safe-area-inset-right));
+    z-index: 7;
+    display: grid;
+    width: 4px;
+    gap: 5px;
+    opacity: 0.9;
+    transform: translateY(-50%);
+    pointer-events: none;
+  }
+
+  .hotspot-mobile-scene-progress-segment {
+    position: relative;
+    width: 4px;
+    height: 34px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(246, 244, 238, 0.68);
+    box-shadow:
+      0 0 0 1px rgba(27, 58, 41, 0.12),
+      0 2px 8px rgba(27, 58, 41, 0.14);
+  }
+
+  .hotspot-mobile-scene-progress-segment::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: var(--talea-dark-green);
+    transform: scaleY(var(--hotspot-mobile-phase-progress, 0));
+    transform-origin: top center;
+  }
+
+  .hotspot-mobile-scene-progress-segment:nth-child(1) {
+    --hotspot-mobile-phase-progress: var(--hotspot-mobile-phase-0, 0);
+  }
+
+  .hotspot-mobile-scene-progress-segment:nth-child(2) {
+    --hotspot-mobile-phase-progress: var(--hotspot-mobile-phase-1, 0);
+  }
+
+  .hotspot-mobile-scene-progress-segment:nth-child(3) {
+    --hotspot-mobile-phase-progress: var(--hotspot-mobile-phase-2, 0);
   }
 
   .hotspot-mobile-story {

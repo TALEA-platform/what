@@ -123,6 +123,30 @@ export function RifugioExplainer({ onGlossary }) {
   }, [engaged, rifugioScrollGraceMs]);
 
   useEffect(() => {
+    const hold = holdRef.current;
+    if (!hold || !finalCueVisible) return;
+    if (!window.matchMedia("(max-width: 1279px)").matches) return;
+
+    const sectionRect = explainerRef.current?.getBoundingClientRect();
+    const introHeight = introHoldRef.current?.getBoundingClientRect().height ?? 0;
+    if (!sectionRect || introHeight <= 0) return;
+
+    const viewportHeight = window.innerHeight || 768;
+    const currentHeight = hold.getBoundingClientRect().height;
+    const travelledInSection = Math.max(0, -sectionRect.top);
+    const thumbExitDistance = viewportHeight * 0.58;
+    const targetHeight = Math.min(
+      currentHeight,
+      Math.max(
+        thumbExitDistance,
+        travelledInSection + thumbExitDistance - introHeight,
+      ),
+    );
+
+    hold.style.minHeight = `${Math.round(targetHeight)}px`;
+  }, [finalCueVisible]);
+
+  useEffect(() => {
     figureRef.current
       ?.querySelector("svg")
       ?.setAttribute("aria-label", reliefExplainer.figure.svgAriaLabel);

@@ -319,7 +319,8 @@
     text-align: center;
     opacity: 1;
     transform: none;
-    will-change: auto;
+    clip-path: inset(0 0 var(--hero-copy-clip, 0%) 0);
+    will-change: clip-path;
   }
 
   .hero-content-inner {
@@ -369,7 +370,8 @@
     opacity: 1;
     transform: none;
     filter: none;
-    will-change: auto;
+    clip-path: inset(var(--bridge-copy-clip, 100%) 0 0 0);
+    will-change: clip-path;
   }
 
   .hero-bridge-preview::before {
@@ -464,9 +466,9 @@
 
 @media (max-width: 1279px) {
   .hero-bridge-inner {
-    opacity: var(--bridge-opacity, 0);
+    opacity: 1;
     transform: none;
-    will-change: opacity;
+    will-change: auto;
   }
 
   .hero-sticky[data-hero-past="true"] .hero-content-inner,
@@ -2348,7 +2350,7 @@
   }
 
   .causes-panel--compare.causes-panel--last {
-    min-height: clamp(850px, 125dvh, 1420px);
+    min-height: clamp(740px, 104dvh, 1040px);
   }
 
   .causes-panels .causes-panel-body {
@@ -3708,7 +3710,7 @@
   }
 
   .sf-mobile-track-tail {
-    height: clamp(300px, 42dvh, 460px);
+    height: clamp(140px, 20dvh, 220px);
   }
 
   .sf-mobile-story {
@@ -10064,8 +10066,8 @@
 
   .relief-map-section--rifugi .relief-map-explore-buffer {
     display: block;
-    /* Preserve exploration time without trapping a passive reader in the sticky map. */
-    min-height: 125svh;
+    /* One deliberate thumb swipe after exploration is enough to leave the map. */
+    min-height: clamp(420px, 62svh, 620px);
   }
 
   body:has(.scroll-stem--mobile-open:not(.scroll-stem--mobile-hidden))
@@ -11056,7 +11058,7 @@
   margin: 2px 0 6px;
 }
 
-.zones-dot {
+.zones-progress-segment {
   width: 8px;
   height: 8px;
   border-radius: 50%;
@@ -11064,7 +11066,7 @@
   transition: background 0.3s var(--ease), transform 0.3s var(--ease);
 }
 
-.zones-dot--on {
+.zones-progress-segment--on {
   background: var(--talea-green);
   transform: scale(1.18);
 }
@@ -11111,7 +11113,7 @@
   .zones-focus-mask,
   .zones-caption,
   .zones-key,
-  .zones-dot {
+  .zones-progress-segment {
     transition: none;
   }
 }
@@ -11156,7 +11158,41 @@
   }
 
   .zones-progress {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: min(220px, 72%);
+    height: 4px;
+    gap: 4px;
     margin: 0;
+  }
+
+  .zones-progress-segment,
+  .zones-progress-segment--on {
+    position: relative;
+    width: auto;
+    height: auto;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(0, 77, 25, 0.18);
+    transform: none;
+  }
+
+  .zones-progress-segment::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: var(--talea-dark-green);
+    transform: scaleX(var(--zones-progress-fill, 0));
+    transform-origin: left center;
+  }
+
+  .zones-step {
+    height: clamp(360px, 62svh, 540px);
+  }
+
+  .zones-tail {
+    height: clamp(180px, 34svh, 300px);
   }
 
   .zones-caption--gone {

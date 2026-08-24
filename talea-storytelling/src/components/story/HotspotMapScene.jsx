@@ -143,6 +143,7 @@ export function HotspotMapScene() {
   const exitRef = useRef(null);
   const sliderRef = useRef(null);
   const mobileTrackRef = useRef(null);
+  const mobileSceneProgressRef = useRef(null);
   const mobileTransitionTimerRef = useRef(null);
   const mapBoxRef = useRef(null);
   const engagedRef = useRef(false);
@@ -404,20 +405,43 @@ export function HotspotMapScene() {
         const phaseNodes = mobileTrackRef.current?.querySelectorAll(
           ".hotspot-mobile-beat[data-mobile-phase]",
         );
+        const phaseMetrics = Array.from(phaseNodes ?? [], (node) => ({
+          node,
+          rect: node.getBoundingClientRect(),
+        }));
         let scrollPhase = MOBILE_INTRO_PHASE;
-        phaseNodes?.forEach((node) => {
-          if (node.getBoundingClientRect().top <= phaseLine) {
+        phaseMetrics.forEach(({ node, rect }) => {
+          if (rect.top <= phaseLine) {
             scrollPhase = Number(node.dataset.mobilePhase);
           }
         });
 
-        const introRect = phaseNodes?.[MOBILE_INTRO_PHASE]?.getBoundingClientRect();
+        const introRect = phaseMetrics[MOBILE_INTRO_PHASE]?.rect;
         const introProgress = introRect
           ? Math.min(
               1,
               Math.max(0, (phaseLine - introRect.top) / Math.max(1, introRect.height)),
             )
           : 0;
+        const trackTailHeight =
+          mobileTrackRef.current
+            ?.querySelector(".hotspot-mobile-track-tail")
+            ?.getBoundingClientRect().height ?? 0;
+        const mobilePhaseProgress = phaseMetrics.map(({ rect }, index) => {
+          const phaseHeight =
+            rect.height +
+            (index === MOBILE_SLIDER_PHASE ? trackTailHeight : 0);
+          return Math.min(
+            1,
+            Math.max(0, (phaseLine - rect.top) / Math.max(1, phaseHeight)),
+          );
+        });
+        mobilePhaseProgress.forEach((progress, index) => {
+          mobileSceneProgressRef.current?.style.setProperty(
+            `--hotspot-mobile-phase-${index}`,
+            progress.toFixed(4),
+          );
+        });
         const scrollRate =
           Math.round((1 + introProgress * (SCROLL_PLAYBACK_MAX - 1)) * 4) / 4;
         const scrollAccelerationReady =
@@ -1161,6 +1185,21 @@ export function HotspotMapScene() {
         <div className={`hotspot-map-veil${veilLifted ? " hotspot-map-veil--hidden" : ""}`} aria-hidden="true" />
 
         <div className="hotspot-map-veil-close" aria-hidden="true" />
+
+        {mobileLayout && mapEngaged && mapRevealed && (
+          <div
+            ref={mobileSceneProgressRef}
+            className="hotspot-mobile-scene-progress"
+            aria-hidden="true"
+          >
+            {Array.from({ length: MOBILE_PHASE_COUNT }, (_, index) => (
+              <span
+                key={index}
+                className="hotspot-mobile-scene-progress-segment"
+              />
+            ))}
+          </div>
+        )}
 
         {mobileLayout &&
           mobileGestureHintVisible &&

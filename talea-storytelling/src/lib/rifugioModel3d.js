@@ -2494,8 +2494,9 @@ export function createRifugioModel(shell, options = {}) {
     finishMobileInteractionSoon();
   });
 
-  // `passive: false` is required for Ctrl+wheel to zoom the model instead of the page.
+  // Keep modifier-assisted wheel zoom exclusive to the mobile layout.
   on(shell, "wheel", (event) => {
+    if (!mobileMode) return;
     if (!event.ctrlKey && !event.metaKey) return;
     event.preventDefault();
     beginMobileInteraction();

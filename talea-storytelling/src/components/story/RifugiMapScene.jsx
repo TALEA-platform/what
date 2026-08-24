@@ -771,6 +771,12 @@ export function RifugiMapScene() {
             mobileMap ? mobileOverviewPadding() : 46,
           );
           frameOverview(map, 0, { resetPadding: mobileMap });
+          if (mobileMap) {
+            const initialZoom = map.getZoom();
+            const initialBounds = map.getBounds().toArray();
+            map.setMinZoom(initialZoom);
+            map.setMaxBounds(initialBounds);
+          }
           readyRef.current = true;
           startNetworkReveal();
 

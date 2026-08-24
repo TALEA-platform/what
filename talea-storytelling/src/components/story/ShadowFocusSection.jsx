@@ -359,6 +359,7 @@ function SceneDarkMap({ cameraKey, engaged, playbackRate, mobileLayout, locale }
   const playbackRateRef = useRef(playbackRate);
   const mobileCameraTouchedRef = useRef(false);
   const mobileCameraKeyRef = useRef(null);
+  const mobileCameraLimitsRef = useRef(null);
   useEffect(() => {
     playbackRateRef.current = playbackRate;
   }, [playbackRate]);
@@ -484,6 +485,37 @@ function SceneDarkMap({ cameraKey, engaged, playbackRate, mobileLayout, locale }
       map.setPaintProperty("scene-shadow-green-fill", "fill-opacity", engaged ? 0.82 : 0);
     }
   }, [map, engaged, playbackRate]);
+
+  useEffect(() => {
+    if (!map) return;
+
+    if (mobileLayout) {
+      if (mobileCameraLimitsRef.current?.map === map) return;
+      const originalMinZoom = map.getMinZoom();
+      const originalMaxBounds = map.getMaxBounds()?.toArray?.() ?? null;
+
+      map.fitBounds(MOBILE_BOLOGNA_BOUNDS, {
+        padding: getShadowMobileCameraPadding(),
+        duration: 0,
+      });
+      const initialZoom = map.getZoom();
+      const initialBounds = map.getBounds().toArray();
+      map.setMinZoom(initialZoom);
+      map.setMaxBounds(initialBounds);
+      mobileCameraLimitsRef.current = {
+        map,
+        originalMinZoom,
+        originalMaxBounds,
+      };
+      return;
+    }
+
+    const mobileLimits = mobileCameraLimitsRef.current;
+    if (mobileLimits?.map !== map) return;
+    map.setMaxBounds(mobileLimits.originalMaxBounds);
+    map.setMinZoom(mobileLimits.originalMinZoom);
+    mobileCameraLimitsRef.current = null;
+  }, [map, mobileLayout]);
 
   useEffect(() => {
     if (!map) return;

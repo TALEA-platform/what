@@ -64,10 +64,22 @@ const MOBILE_PLAN_IMAGE_STYLE = {
   height: `${MOBILE_PLAN_CANVAS.height}px`,
 };
 const MOBILE_PLAN_BASE_ASSET = `${MOBILE_ASSET_ROOT}/cityplan-base.svg`;
-const MOBILE_PLAN_STATE_ASSETS = Array.from(
-  { length: planBeatSpecs.length },
-  (_, beat) => `${MOBILE_ASSET_ROOT}/cityplan-state-${String(beat + 1).padStart(2, "0")}.svg`,
-);
+const MOBILE_PLAN_LAYER_SPECS = [
+  { name: "parking-state", from: 0, until: 2 },
+  { name: "initial-sites", from: 0, until: 3 },
+  { name: "gap-emphasis", from: 1, until: 2 },
+  { name: "relief-sites", from: 1, until: 3 },
+  { name: "first-refuge-accent", from: 2, until: 3 },
+  { name: "first-refuge", from: 2, until: null },
+  { name: "extra-refuges-accent", from: 3, until: 4 },
+  { name: "extra-refuges", from: 3, until: null },
+  { name: "corridor-network", from: 4, until: null },
+  { name: "porticoes", from: 5, until: null },
+  { name: "final-network", from: 6, until: null },
+].map((layer) => ({
+  ...layer,
+  src: `${MOBILE_ASSET_ROOT}/cityplan-layer-${layer.name}.svg`,
+}));
 const MOBILE_VIGNETTE_LAYER_SPECS = {
   costruire: [
     { name: "context", kind: "context", delay: 0 },
@@ -131,9 +143,17 @@ function decodeMobileImage(src) {
   return cachedPromise;
 }
 
+function mobilePlanLayersForBeat(beat) {
+  return MOBILE_PLAN_LAYER_SPECS.filter(
+    ({ from, until }) => beat >= from && (until == null || beat < until),
+  );
+}
+
 function mobileAssetsForBeat(beat) {
-  const assets = [MOBILE_PLAN_BASE_ASSET, MOBILE_PLAN_STATE_ASSETS[beat]];
-  if (beat > 0) assets.push(MOBILE_PLAN_STATE_ASSETS[beat - 1]);
+  const assets = [
+    MOBILE_PLAN_BASE_ASSET,
+    ...mobilePlanLayersForBeat(beat).map(({ src }) => src),
+  ];
   const name = planBeatSpecs[beat]?.vignette;
   const vignetteAssets = name ? MOBILE_VIGNETTE_ASSETS[name] : null;
   if (vignetteAssets) assets.push(...vignetteAssets.map(({ src }) => src));
@@ -281,22 +301,14 @@ function paintVignetteStep(items, step) {
   });
 }
 
-function MobilePersistentPlan({
-  activeBeat,
-  requestedBeat,
-  readyBeats,
-  fallbackActive,
-  onAssetSettled,
-}) {
+function MobilePersistentPlan({ activeBeat, fallbackActive, onAssetSettled }) {
   return (
     <figure
       className="plan-figure plan-figure--mobile-images"
       aria-hidden="true"
     >
       <img
-        className={`plan-mobile-map-state plan-mobile-map-base${
-          fallbackActive ? " is-active" : ""
-        }`}
+        className="plan-mobile-map-state plan-mobile-map-base is-active"
         src={MOBILE_PLAN_BASE_ASSET}
         style={MOBILE_PLAN_IMAGE_STYLE}
         alt=""
@@ -306,25 +318,24 @@ function MobilePersistentPlan({
         onLoad={onAssetSettled}
         onError={onAssetSettled}
       />
-      {MOBILE_PLAN_STATE_ASSETS.map((src, beat) => {
-        const isActive = beat === activeBeat && !fallbackActive;
-        const isPrepared =
-          !isActive &&
-          readyBeats.has(beat) &&
-          (beat === requestedBeat || Math.abs(beat - activeBeat) === 1);
+      {MOBILE_PLAN_LAYER_SPECS.map((layer) => {
+        const isActive =
+          !fallbackActive &&
+          activeBeat >= layer.from &&
+          (layer.until == null || activeBeat < layer.until);
         return (
           <img
-            key={src}
-            className={`plan-mobile-map-state${
+            key={layer.src}
+            className={`plan-mobile-map-state plan-mobile-map-layer${
               isActive ? " is-active" : ""
-            }${isPrepared ? " is-prepared" : ""}`}
-            src={src}
+            }`}
+            src={layer.src}
             style={MOBILE_PLAN_IMAGE_STYLE}
             alt=""
             decoding="async"
-            fetchPriority={isActive || isPrepared ? "high" : "low"}
+            fetchPriority={isActive ? "high" : "low"}
             draggable="false"
-            data-mobile-map-beat={beat}
+            data-mobile-map-layer={layer.name}
             onLoad={onAssetSettled}
             onError={onAssetSettled}
           />
@@ -336,25 +347,18 @@ function MobilePersistentPlan({
 
 function MobilePersistentVignettes({
   activeName,
-  activeBeat,
-  requestedBeat,
-  readyBeats,
   onAssetSettled,
 }) {
   return Object.keys(VIGNETTE_HTML).map((name) => {
     const config = MOBILE_VIGNETTE_CONFIG[name];
     const isCurrent = name === activeName;
-    const isPrepared =
-      !isCurrent &&
-      readyBeats.has(config.beat) &&
-      (config.beat === requestedBeat || Math.abs(config.beat - activeBeat) === 1);
     const layers = MOBILE_VIGNETTE_ASSETS[name];
     return (
       <div
         key={name}
         className={`plan-vignette plan-vignette--mobile plan-vignette--${config.place} plan-vignette--${config.side}${
           isCurrent ? " is-active" : ""
-        }${isPrepared ? " is-prepared" : ""}`}
+        }`}
         style={{ "--ratio": planVignetteMeta[name].ratio }}
         data-mobile-vignette-active={String(isCurrent)}
         data-vignette={name}
@@ -368,7 +372,7 @@ function MobilePersistentVignettes({
               src={layer.src}
               alt=""
               decoding="async"
-              fetchPriority={isCurrent || isPrepared ? "high" : "low"}
+              fetchPriority={isCurrent ? "high" : "low"}
               draggable="false"
               data-vignette-layer={layer.name}
               data-vignette-layer-kind={layer.kind}
@@ -479,6 +483,7 @@ export function CityPlanScene() {
   const mobilePrewarmedBeatRef = useRef(null);
   const mobilePreparedGeometryRef = useRef(null);
   const mobileDecodedBeatsRef = useRef(new Set());
+  const mobileAssetSettleFrameRef = useRef(null);
   const mobileGenerationRef = useRef(0);
   const mobileRequestedBeatRef = useRef(0);
   const mobileCommittedBeatRef = useRef(0);
@@ -793,10 +798,17 @@ export function CityPlanScene() {
   const prewarmMobileBeat = useCallback(
     (targetBeat) => {
       if (!mobileDecodedBeatsRef.current.has(targetBeat)) return false;
-      const planImage = camRef.current?.querySelector(
-        `[data-mobile-map-beat="${targetBeat}"]`,
-      );
-      if (!planImage?.complete || !planImage.naturalWidth) return false;
+      const planImages = [
+        camRef.current?.querySelector(".plan-mobile-map-base"),
+        ...mobilePlanLayersForBeat(targetBeat).map(({ name }) =>
+          camRef.current?.querySelector(`[data-mobile-map-layer="${name}"]`),
+        ),
+      ];
+      if (
+        planImages.some((image) => !image?.complete || !image.naturalWidth)
+      ) {
+        return false;
+      }
 
       const name = planBeatSpecs[targetBeat]?.vignette;
       if (!name) {
@@ -849,8 +861,21 @@ export function CityPlanScene() {
   }, [prewarmMobileBeat, requestMobileBeat]);
 
   const handleMobileAssetSettled = useCallback(() => {
-    setMobileAssetVersion((version) => version + 1);
+    if (mobileAssetSettleFrameRef.current != null) return;
+    mobileAssetSettleFrameRef.current = requestAnimationFrame(() => {
+      mobileAssetSettleFrameRef.current = null;
+      setMobileAssetVersion((version) => version + 1);
+    });
   }, []);
+
+  useEffect(
+    () => () => {
+      if (mobileAssetSettleFrameRef.current != null) {
+        cancelAnimationFrame(mobileAssetSettleFrameRef.current);
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!mobileCameraActive || !mobileVignettesMounted) return undefined;
@@ -876,10 +901,9 @@ export function CityPlanScene() {
         .catch(() => {});
     };
 
-    // Decode both directions as soon as a beat is requested. The corresponding
-    // persistent DOM images are pre-painted at near-zero opacity below, so the
-    // eventual commit only flips composited layers instead of triggering the
-    // first raster paint on a mobile device.
+    // Prime the resource/decode cache in both directions. Hidden SVG images are
+    // deliberately not promoted or pre-painted: only the small active semantic
+    // deltas are composited over the single persistent base.
     neighboringMobileBeats(targetBeat).forEach(decodeNeighbor);
 
     decodeMobileBeatAssets(targetBeat)
@@ -969,8 +993,8 @@ export function CityPlanScene() {
     if (wasPrewarmed || reduceMotion) {
       commit();
     } else {
-      // DOM/layout readiness is already established above. These two frames only
-      // separate the hidden preparation paint from the atomic semantic commit.
+      // DOM/layout readiness is already established above. Keep the semantic
+      // commit on a clean frame without forcing hidden SVGs into compositor layers.
       firstFrame = requestAnimationFrame(() => {
         secondFrame = requestAnimationFrame(commit);
       });
@@ -1680,8 +1704,6 @@ export function CityPlanScene() {
                 ) : (
                   <MobilePersistentPlan
                     activeBeat={beat}
-                    requestedBeat={requestedBeat}
-                    readyBeats={mobileReadyBeats}
                     fallbackActive={!mobileVisualReady}
                     onAssetSettled={handleMobileAssetSettled}
                   />
@@ -1874,9 +1896,6 @@ export function CityPlanScene() {
             mobileVignettesMounted ? (
               <MobilePersistentVignettes
                 activeName={vignetteLive ? vignetteName : null}
-                activeBeat={beat}
-                requestedBeat={requestedBeat}
-                readyBeats={mobileReadyBeats}
                 onAssetSettled={handleMobileAssetSettled}
               />
             ) : null

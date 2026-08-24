@@ -348,11 +348,6 @@ export function ZonesMapScene() {
       mapRef.current = map;
       lockCamera(map);
       const mobileMap = window.matchMedia(MOBILE_LAYOUT_QUERY).matches;
-      if (mobileMap) {
-        map.touchZoomRotate.enable();
-        map.touchZoomRotate.disableRotation();
-        map.doubleClickZoom.enable();
-      }
       map.on("render", () => {
         positionFocusMask(map, activeZoneRef.current, focusMaskRef.current);
       });

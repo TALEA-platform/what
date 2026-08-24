@@ -28,6 +28,19 @@ NS = f"{{{SVG_NS}}}"
 # an 8-unit safety margin around the measured source bounds
 # (-552, -300) -> (2961, 2078).
 PLAN_CANVAS = (-560, -308, 3530, 2394)
+PLAN_LAYER_SPECS = (
+    ("parking-state", 0, 2),
+    ("initial-sites", 0, 3),
+    ("gap-emphasis", 1, 2),
+    ("relief-sites", 1, 3),
+    ("first-refuge-accent", 2, 3),
+    ("first-refuge", 2, None),
+    ("extra-refuges-accent", 3, 4),
+    ("extra-refuges", 3, None),
+    ("corridor-network", 4, None),
+    ("porticoes", 5, None),
+    ("final-network", 6, None),
+)
 
 ET.register_namespace("", SVG_NS)
 
@@ -110,6 +123,26 @@ def plan_state(source: ET.Element, beat: int, *, stable_base: bool = False) -> E
             else:
                 keep = plan_group_is_active(item, beat)
             if not keep:
+                layer.remove(item)
+    root.set("viewBox", " ".join(str(value) for value in PLAN_CANVAS))
+    make_decorative(root)
+    style_plan_linework(root)
+    strip_story_attributes(root)
+    return root
+
+
+def plan_lifecycle_layer(
+    source: ET.Element,
+    at: int,
+    until: int | None,
+) -> ET.Element:
+    root = copy.deepcopy(source)
+    for layer in root.findall(f"{NS}g"):
+        for item in list(layer.findall(f"{NS}g")):
+            item_at = int(item.get("data-at", "0"))
+            item_until_value = item.get("data-until")
+            item_until = int(item_until_value) if item_until_value is not None else None
+            if item_at != at or item_until != until:
                 layer.remove(item)
     root.set("viewBox", " ".join(str(value) for value in PLAN_CANVAS))
     make_decorative(root)
@@ -218,6 +251,10 @@ def main() -> None:
     # changing the semantic partition cannot leave unused assets in a build.
     for stale_vignette in OUT_DIR.glob("cityplan-vignette-*.svg"):
         stale_vignette.unlink()
+    for stale_plan_state in OUT_DIR.glob("cityplan-state-*.svg"):
+        stale_plan_state.unlink()
+    for stale_plan_layer in OUT_DIR.glob("cityplan-layer-*.svg"):
+        stale_plan_layer.unlink()
 
     plan_source = parse_svg(extract_template(DATA_DIR / "cityPlan.js", "cityPlanSvg"))
     vignette_source = {
@@ -227,23 +264,25 @@ def main() -> None:
 
     manifest: dict[str, object] = {
         "format": "external-svg",
-        "architecture": "full-map-states-plus-semantic-vignette-layers",
+        "architecture": "stable-base-plus-semantic-delta-layers",
         "plan": {
             "base": write_asset("cityplan-base.svg", plan_state(plan_source, 0, stable_base=True)),
-            "states": [],
+            "layers": [],
         },
         "vignettes": {},
     }
 
-    states = manifest["plan"]["states"]
-    assert isinstance(states, list)
-    for beat in range(7):
-        states.append(
+    plan_layers = manifest["plan"]["layers"]
+    assert isinstance(plan_layers, list)
+    for name, at, until in PLAN_LAYER_SPECS:
+        plan_layers.append(
             {
-                "beat": beat,
+                "name": name,
+                "from": at,
+                "until": until,
                 **write_asset(
-                    f"cityplan-state-{beat + 1:02d}.svg",
-                    plan_state(plan_source, beat),
+                    f"cityplan-layer-{name}.svg",
+                    plan_lifecycle_layer(plan_source, at, until),
                 ),
             }
         )
@@ -268,7 +307,7 @@ def main() -> None:
         item["bytes"]
         for item in [
             manifest["plan"]["base"],
-            *states,
+            *plan_layers,
             *(layer for vignette in vignettes.values() for layer in vignette["layers"]),
         ]
     )
@@ -279,7 +318,7 @@ def main() -> None:
     )
     vignette_layer_count = sum(len(item["layers"]) for item in vignettes.values())
     print(
-        f"{len(states) + vignette_layer_count + 1} SVG assets, "
+        f"{len(plan_layers) + vignette_layer_count + 1} SVG assets, "
         f"{total_bytes / 1024:.1f} KiB -> {OUT_DIR}"
     )
 

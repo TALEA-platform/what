@@ -1,6 +1,6 @@
 {
   "format": "external-svg",
-  "architecture": "full-map-states-plus-semantic-vignette-layers",
+  "architecture": "stable-base-plus-semantic-delta-layers",
   "plan": {
     "base": {
       "file": "cityplan-base.svg",
@@ -14,96 +14,170 @@
       "circles": 8,
       "ellipses": 0
     },
-    "states": [
+    "layers": [
       {
-        "beat": 0,
-        "file": "cityplan-state-01.svg",
-        "bytes": 374143,
+        "name": "parking-state",
+        "from": 0,
+        "until": 2,
+        "file": "cityplan-layer-parking-state.svg",
+        "bytes": 22609,
         "viewBox": [
           3530.0,
           2394.0
         ],
-        "paths": 1758,
-        "groups": 58,
-        "circles": 9,
+        "paths": 67,
+        "groups": 20,
+        "circles": 0,
         "ellipses": 0
       },
       {
-        "beat": 1,
-        "file": "cityplan-state-02.svg",
-        "bytes": 375589,
+        "name": "initial-sites",
+        "from": 0,
+        "until": 3,
+        "file": "cityplan-layer-initial-sites.svg",
+        "bytes": 20121,
         "viewBox": [
           3530.0,
           2394.0
         ],
-        "paths": 1764,
-        "groups": 64,
-        "circles": 11,
+        "paths": 49,
+        "groups": 20,
+        "circles": 1,
         "ellipses": 0
       },
       {
-        "beat": 2,
-        "file": "cityplan-state-03.svg",
-        "bytes": 378337,
+        "name": "gap-emphasis",
+        "from": 1,
+        "until": 2,
+        "file": "cityplan-layer-gap-emphasis.svg",
+        "bytes": 20481,
         "viewBox": [
           3530.0,
           2394.0
         ],
-        "paths": 1781,
-        "groups": 68,
-        "circles": 12,
+        "paths": 49,
+        "groups": 22,
+        "circles": 2,
         "ellipses": 0
       },
       {
-        "beat": 3,
-        "file": "cityplan-state-04.svg",
-        "bytes": 399548,
+        "name": "relief-sites",
+        "from": 1,
+        "until": 3,
+        "file": "cityplan-layer-relief-sites.svg",
+        "bytes": 19741,
         "viewBox": [
           3530.0,
           2394.0
         ],
-        "paths": 1896,
-        "groups": 88,
-        "circles": 11,
+        "paths": 47,
+        "groups": 20,
+        "circles": 0,
         "ellipses": 0
       },
       {
-        "beat": 4,
-        "file": "cityplan-state-05.svg",
-        "bytes": 450063,
+        "name": "first-refuge-accent",
+        "from": 2,
+        "until": 3,
+        "file": "cityplan-layer-first-refuge-accent.svg",
+        "bytes": 19738,
         "viewBox": [
           3530.0,
           2394.0
         ],
-        "paths": 2263,
-        "groups": 160,
-        "circles": 11,
+        "paths": 47,
+        "groups": 19,
+        "circles": 0,
         "ellipses": 0
       },
       {
-        "beat": 5,
-        "file": "cityplan-state-06.svg",
-        "bytes": 477826,
+        "name": "first-refuge",
+        "from": 2,
+        "until": null,
+        "file": "cityplan-layer-first-refuge.svg",
+        "bytes": 26098,
         "viewBox": [
           3530.0,
           2394.0
         ],
-        "paths": 2335,
-        "groups": 166,
-        "circles": 11,
+        "paths": 86,
+        "groups": 27,
+        "circles": 3,
         "ellipses": 0
       },
       {
-        "beat": 6,
-        "file": "cityplan-state-07.svg",
-        "bytes": 481817,
+        "name": "extra-refuges-accent",
+        "from": 3,
+        "until": 4,
+        "file": "cityplan-layer-extra-refuges-accent.svg",
+        "bytes": 19770,
         "viewBox": [
           3530.0,
           2394.0
         ],
-        "paths": 2340,
-        "groups": 178,
-        "circles": 21,
+        "paths": 47,
+        "groups": 19,
+        "circles": 0,
+        "ellipses": 0
+      },
+      {
+        "name": "extra-refuges",
+        "from": 3,
+        "until": null,
+        "file": "cityplan-layer-extra-refuges.svg",
+        "bytes": 41654,
+        "viewBox": [
+          3530.0,
+          2394.0
+        ],
+        "paths": 166,
+        "groups": 42,
+        "circles": 0,
+        "ellipses": 0
+      },
+      {
+        "name": "corridor-network",
+        "from": 4,
+        "until": null,
+        "file": "cityplan-layer-corridor-network.svg",
+        "bytes": 70283,
+        "viewBox": [
+          3530.0,
+          2394.0
+        ],
+        "paths": 414,
+        "groups": 91,
+        "circles": 0,
+        "ellipses": 0
+      },
+      {
+        "name": "porticoes",
+        "from": 5,
+        "until": null,
+        "file": "cityplan-layer-porticoes.svg",
+        "bytes": 47150,
+        "viewBox": [
+          3530.0,
+          2394.0
+        ],
+        "paths": 117,
+        "groups": 24,
+        "circles": 0,
+        "ellipses": 0
+      },
+      {
+        "name": "final-network",
+        "from": 6,
+        "until": null,
+        "file": "cityplan-layer-final-network.svg",
+        "bytes": 23378,
+        "viewBox": [
+          3530.0,
+          2394.0
+        ],
+        "paths": 50,
+        "groups": 30,
+        "circles": 10,
         "ellipses": 0
       }
     ]
@@ -330,5 +404,5 @@
       ]
     }
   },
-  "totalBytes": 3571782
+  "totalBytes": 965482
 }

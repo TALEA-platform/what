@@ -7672,12 +7672,6 @@
   opacity: 1;
 }
 
-.plan-mobile-map-state.is-prepared {
-  opacity: 0.001;
-  transform: translateZ(0);
-  will-change: opacity;
-}
-
 .plan-figure .pl-ink {
   fill: none;
   stroke: var(--relief-ink, #3a352a);
@@ -8398,16 +8392,6 @@
     opacity: 1;
   }
 
-  .plan-vignette--mobile.is-prepared {
-    opacity: 0.001;
-    transform: translateX(-50%) translateZ(0);
-    will-change: opacity;
-  }
-
-  .plan-stage .plan-vignette--mobile[data-vignette="portico"].is-prepared {
-    transform: translateZ(0);
-  }
-
   .plan-vignette--mobile .plan-vignette-art {
     width: 100%;
     height: 100%;
@@ -8424,11 +8408,6 @@
     .plan-vignette-layer[data-vignette-layer-kind="context"],
   .plan-vignette--mobile.is-active
     .plan-vignette-layer[data-vignette-layer-kind="build"] {
-    opacity: 1;
-    transform: none;
-  }
-
-  .plan-vignette--mobile.is-prepared .plan-vignette-layer {
     opacity: 1;
     transform: none;
   }
@@ -8461,11 +8440,6 @@
 
   .plan-mobile-map-state {
     will-change: auto;
-  }
-
-  .plan-mobile-map-state.is-active,
-  .plan-mobile-map-state.is-prepared {
-    will-change: opacity;
   }
 
   .plan-vignette--mobile .pv-i {
@@ -8666,12 +8640,16 @@
   }
 
   .plan-stage[data-story-beat="2"]
-    .plan-mobile-map-state[data-mobile-map-beat="1"] {
+    .plan-mobile-map-state[data-mobile-map-layer="parking-state"],
+  .plan-stage[data-story-beat="2"]
+    .plan-mobile-map-state[data-mobile-map-layer="gap-emphasis"] {
     animation: plan-mobile-detail-out 300ms ease-out 930ms both;
   }
 
   .plan-stage[data-story-beat="2"]
-    .plan-mobile-map-state[data-mobile-map-beat="2"] {
+    .plan-mobile-map-state[data-mobile-map-layer="first-refuge-accent"],
+  .plan-stage[data-story-beat="2"]
+    .plan-mobile-map-state[data-mobile-map-layer="first-refuge"] {
     animation: plan-mobile-detail-in 300ms ease-out 930ms both;
   }
 
@@ -8680,42 +8658,26 @@
   }
 
   .plan-stage[data-story-beat="3"][data-mobile-reveal="holding"]
-    .plan-mobile-map-state[data-mobile-map-beat="2"] {
-    opacity: 1;
-  }
-
+    .plan-mobile-map-state[data-mobile-map-layer="extra-refuges-accent"],
   .plan-stage[data-story-beat="3"][data-mobile-reveal="holding"]
-    .plan-mobile-map-state[data-mobile-map-beat="3"] {
+    .plan-mobile-map-state[data-mobile-map-layer="extra-refuges"] {
     opacity: 0;
   }
 
   .plan-stage[data-story-beat="3"][data-mobile-reveal="ready"]
-    .plan-mobile-map-state[data-mobile-map-beat="2"] {
-    animation: plan-mobile-detail-out 260ms ease-out both;
-  }
-
+    .plan-mobile-map-state[data-mobile-map-layer="extra-refuges-accent"],
   .plan-stage[data-story-beat="3"][data-mobile-reveal="ready"]
-    .plan-mobile-map-state[data-mobile-map-beat="3"] {
+    .plan-mobile-map-state[data-mobile-map-layer="extra-refuges"] {
     animation: plan-mobile-detail-in 260ms ease-out both;
   }
 
   .plan-stage[data-story-beat="6"][data-mobile-reveal="holding"]
-    .plan-mobile-map-state[data-mobile-map-beat="5"] {
-    opacity: 1;
-  }
-
-  .plan-stage[data-story-beat="6"][data-mobile-reveal="holding"]
-    .plan-mobile-map-state[data-mobile-map-beat="6"] {
+    .plan-mobile-map-state[data-mobile-map-layer="final-network"] {
     opacity: 0;
   }
 
   .plan-stage[data-story-beat="6"][data-mobile-reveal="ready"]
-    .plan-mobile-map-state[data-mobile-map-beat="5"] {
-    animation: plan-mobile-detail-out 280ms ease-out both;
-  }
-
-  .plan-stage[data-story-beat="6"][data-mobile-reveal="ready"]
-    .plan-mobile-map-state[data-mobile-map-beat="6"] {
+    .plan-mobile-map-state[data-mobile-map-layer="final-network"] {
     animation: plan-mobile-detail-in 280ms ease-out both;
   }
 

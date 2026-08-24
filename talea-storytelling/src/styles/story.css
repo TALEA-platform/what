@@ -7672,6 +7672,12 @@
   opacity: 1;
 }
 
+.plan-mobile-map-state.is-prepared {
+  opacity: 0.001;
+  transform: translateZ(0);
+  will-change: opacity;
+}
+
 .plan-figure .pl-ink {
   fill: none;
   stroke: var(--relief-ink, #3a352a);
@@ -8392,6 +8398,16 @@
     opacity: 1;
   }
 
+  .plan-vignette--mobile.is-prepared {
+    opacity: 0.001;
+    transform: translateX(-50%) translateZ(0);
+    will-change: opacity;
+  }
+
+  .plan-stage .plan-vignette--mobile[data-vignette="portico"].is-prepared {
+    transform: translateZ(0);
+  }
+
   .plan-vignette--mobile .plan-vignette-art {
     width: 100%;
     height: 100%;
@@ -8408,6 +8424,11 @@
     .plan-vignette-layer[data-vignette-layer-kind="context"],
   .plan-vignette--mobile.is-active
     .plan-vignette-layer[data-vignette-layer-kind="build"] {
+    opacity: 1;
+    transform: none;
+  }
+
+  .plan-vignette--mobile.is-prepared .plan-vignette-layer {
     opacity: 1;
     transform: none;
   }
@@ -8442,7 +8463,8 @@
     will-change: auto;
   }
 
-  .plan-mobile-map-state.is-active {
+  .plan-mobile-map-state.is-active,
+  .plan-mobile-map-state.is-prepared {
     will-change: opacity;
   }
 

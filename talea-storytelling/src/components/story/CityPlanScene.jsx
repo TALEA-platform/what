@@ -112,6 +112,7 @@ function decodeMobileImage(src) {
   const promise = new Promise((resolve, reject) => {
     const image = new Image();
     image.decoding = "async";
+    image.fetchPriority = "high";
     image.onload = () => {
       if (typeof image.decode !== "function") {
         resolve();
@@ -141,6 +142,12 @@ function mobileAssetsForBeat(beat) {
 
 function decodeMobileBeatAssets(beat) {
   return Promise.all(mobileAssetsForBeat(beat).map(decodeMobileImage));
+}
+
+function neighboringMobileBeats(beat) {
+  return [beat - 1, beat + 1].filter(
+    (candidate) => candidate >= 0 && candidate < planBeatSpecs.length,
+  );
 }
 
 const VIGNETTE_PLACE = {
@@ -274,7 +281,13 @@ function paintVignetteStep(items, step) {
   });
 }
 
-function MobilePersistentPlan({ activeBeat, fallbackActive, onAssetSettled }) {
+function MobilePersistentPlan({
+  activeBeat,
+  requestedBeat,
+  readyBeats,
+  fallbackActive,
+  onAssetSettled,
+}) {
   return (
     <figure
       className="plan-figure plan-figure--mobile-images"
@@ -288,41 +301,60 @@ function MobilePersistentPlan({ activeBeat, fallbackActive, onAssetSettled }) {
         style={MOBILE_PLAN_IMAGE_STYLE}
         alt=""
         decoding="async"
+        fetchPriority="high"
         draggable="false"
         onLoad={onAssetSettled}
         onError={onAssetSettled}
       />
-      {MOBILE_PLAN_STATE_ASSETS.map((src, beat) => (
-        <img
-          key={src}
-          className={`plan-mobile-map-state${
-            beat === activeBeat && !fallbackActive ? " is-active" : ""
-          }`}
-          src={src}
-          style={MOBILE_PLAN_IMAGE_STYLE}
-          alt=""
-          decoding="async"
-          draggable="false"
-          data-mobile-map-beat={beat}
-          onLoad={onAssetSettled}
-          onError={onAssetSettled}
-        />
-      ))}
+      {MOBILE_PLAN_STATE_ASSETS.map((src, beat) => {
+        const isActive = beat === activeBeat && !fallbackActive;
+        const isPrepared =
+          !isActive &&
+          readyBeats.has(beat) &&
+          (beat === requestedBeat || Math.abs(beat - activeBeat) === 1);
+        return (
+          <img
+            key={src}
+            className={`plan-mobile-map-state${
+              isActive ? " is-active" : ""
+            }${isPrepared ? " is-prepared" : ""}`}
+            src={src}
+            style={MOBILE_PLAN_IMAGE_STYLE}
+            alt=""
+            decoding="async"
+            fetchPriority={isActive || isPrepared ? "high" : "low"}
+            draggable="false"
+            data-mobile-map-beat={beat}
+            onLoad={onAssetSettled}
+            onError={onAssetSettled}
+          />
+        );
+      })}
     </figure>
   );
 }
 
-function MobilePersistentVignettes({ activeName, onAssetSettled }) {
+function MobilePersistentVignettes({
+  activeName,
+  activeBeat,
+  requestedBeat,
+  readyBeats,
+  onAssetSettled,
+}) {
   return Object.keys(VIGNETTE_HTML).map((name) => {
     const config = MOBILE_VIGNETTE_CONFIG[name];
     const isCurrent = name === activeName;
+    const isPrepared =
+      !isCurrent &&
+      readyBeats.has(config.beat) &&
+      (config.beat === requestedBeat || Math.abs(config.beat - activeBeat) === 1);
     const layers = MOBILE_VIGNETTE_ASSETS[name];
     return (
       <div
         key={name}
         className={`plan-vignette plan-vignette--mobile plan-vignette--${config.place} plan-vignette--${config.side}${
           isCurrent ? " is-active" : ""
-        }`}
+        }${isPrepared ? " is-prepared" : ""}`}
         style={{ "--ratio": planVignetteMeta[name].ratio }}
         data-mobile-vignette-active={String(isCurrent)}
         data-vignette={name}
@@ -336,6 +368,7 @@ function MobilePersistentVignettes({ activeName, onAssetSettled }) {
               src={layer.src}
               alt=""
               decoding="async"
+              fetchPriority={isCurrent || isPrepared ? "high" : "low"}
               draggable="false"
               data-vignette-layer={layer.name}
               data-vignette-layer-kind={layer.kind}
@@ -824,8 +857,6 @@ export function CityPlanScene() {
     const targetBeat = mobileScene.requestedBeat;
     const generation = mobileScene.generation;
     let live = true;
-    let idleId = null;
-    let timeoutId = null;
 
     const markDecoded = (decodedBeat) => {
       mobileDecodedBeatsRef.current.add(decodedBeat);
@@ -837,31 +868,30 @@ export function CityPlanScene() {
       });
     };
 
-    const warmNextBeat = () => {
-      const nextBeat = targetBeat + 1;
-      if (!live || nextBeat >= planBeatSpecs.length) return;
-      decodeMobileBeatAssets(nextBeat)
+    const decodeNeighbor = (neighborBeat) => {
+      decodeMobileBeatAssets(neighborBeat)
         .then(() => {
-          if (live) markDecoded(nextBeat);
+          if (live) markDecoded(neighborBeat);
         })
         .catch(() => {});
     };
 
+    // Decode both directions as soon as a beat is requested. The corresponding
+    // persistent DOM images are pre-painted at near-zero opacity below, so the
+    // eventual commit only flips composited layers instead of triggering the
+    // first raster paint on a mobile device.
+    neighboringMobileBeats(targetBeat).forEach(decodeNeighbor);
+
     decodeMobileBeatAssets(targetBeat)
       .then(() => {
+        if (!live) return;
         markDecoded(targetBeat);
         if (
-          live &&
           mobileGenerationRef.current === generation &&
           mobileRequestedBeatRef.current === targetBeat
         ) {
           setMobileAssetFailure(false);
           setMobileAssetVersion((version) => version + 1);
-        }
-        if (typeof window.requestIdleCallback === "function") {
-          idleId = window.requestIdleCallback(warmNextBeat, { timeout: 900 });
-        } else {
-          timeoutId = window.setTimeout(warmNextBeat, 120);
         }
       })
       .catch(() => {
@@ -876,8 +906,6 @@ export function CityPlanScene() {
 
     return () => {
       live = false;
-      if (idleId != null) window.cancelIdleCallback?.(idleId);
-      if (timeoutId != null) window.clearTimeout(timeoutId);
     };
   }, [
     mobileCameraActive,
@@ -1652,6 +1680,8 @@ export function CityPlanScene() {
                 ) : (
                   <MobilePersistentPlan
                     activeBeat={beat}
+                    requestedBeat={requestedBeat}
+                    readyBeats={mobileReadyBeats}
                     fallbackActive={!mobileVisualReady}
                     onAssetSettled={handleMobileAssetSettled}
                   />
@@ -1844,6 +1874,9 @@ export function CityPlanScene() {
             mobileVignettesMounted ? (
               <MobilePersistentVignettes
                 activeName={vignetteLive ? vignetteName : null}
+                activeBeat={beat}
+                requestedBeat={requestedBeat}
+                readyBeats={mobileReadyBeats}
                 onAssetSettled={handleMobileAssetSettled}
               />
             ) : null

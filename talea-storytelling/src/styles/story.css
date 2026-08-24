@@ -2117,6 +2117,20 @@
     line-height: 1;
     letter-spacing: 0.08em;
     font-variant-numeric: tabular-nums;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-4px);
+    transition:
+      opacity 260ms ease,
+      transform 360ms var(--ease-cine),
+      visibility 0s linear 360ms;
+  }
+
+  .causes-local-progress.is-ready {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+    transition-delay: 60ms, 60ms, 0s;
   }
 
   .causes-progress-count {
@@ -2210,6 +2224,8 @@
     position: relative;
     inset: auto;
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
     height: auto;
   }
 
@@ -2245,6 +2261,8 @@
     position: relative;
     inset: auto;
     grid-area: 1 / 1;
+    width: 100%;
+    margin-inline: auto;
   }
 
   .causes-mobile-compare-stack {
@@ -2293,6 +2311,8 @@
   .causes-mobile-compare-stack .causes-mobile-story-body {
     position: relative;
     inset: auto;
+    width: 100%;
+    margin-inline: auto;
     text-align: center;
   }
 
@@ -3655,6 +3675,10 @@
 @media (max-width: 1279px) {
   .sf-intro-inner {
     transform: translateY(clamp(34px, 5.2svh, 50px));
+  }
+
+  .sf-opening {
+    margin-inline: auto;
   }
 
   .sf-scene {
@@ -5821,6 +5845,13 @@
   font-weight: 700;
   text-align: center;
   text-wrap: pretty;
+}
+
+@media (max-width: 1279px) {
+  .rifugi-map-invitation {
+    width: min(100%, 860px);
+    margin-inline: auto;
+  }
 }
 
 .relief-title {
@@ -8294,7 +8325,7 @@
   --copy-r: var(--plan-edge);
 }
 
-@media (min-width: 861px) {
+@media (min-width: 1280px) {
   .plan-copy--left {
     top: clamp(150px, 19vh, 206px);
     width: min(330px, var(--plan-col));
@@ -8313,7 +8344,7 @@
 
 }
 
-@media (min-width: 901px) {
+@media (min-width: 1280px) {
   .plan-stage[data-story-beat="5"] .plan-copy--right,
   .plan-stage[data-story-beat="6"] .plan-copy--right {
     top: clamp(118px, 14vh, 168px);
@@ -8742,7 +8773,7 @@
   .plan-stage .plan-vignette--mobile[data-vignette="portico"] {
     --vig-l: auto;
     --vig-r: clamp(12px, 3vw, 28px);
-    width: min(54vw, 270px);
+    width: min(54vw, 420px);
     height: auto;
     top: clamp(12px, 2dvh, 22px);
     transform: none;
@@ -11189,6 +11220,10 @@
     height: clamp(360px, 62svh, 540px);
   }
 
+  .zones-step--historic-center {
+    height: clamp(420px, 72svh, 660px);
+  }
+
   .zones-tail {
     height: clamp(180px, 34svh, 300px);
   }
@@ -11211,6 +11246,12 @@
     .maplibregl-ctrl-attrib.maplibregl-compact:not(.maplibregl-compact-show)
     .maplibregl-ctrl-attrib-inner {
     display: none;
+  }
+}
+
+@media (min-width: 700px) and (max-width: 1279px) and (min-height: 720px) {
+  .zones-step--historic-center {
+    height: clamp(720px, 74svh, 960px);
   }
 }
 

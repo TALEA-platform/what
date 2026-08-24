@@ -1711,7 +1711,9 @@ export function PhysicalDriversSection() {
             {mobileLayout ? (
               <div
                 ref={localProgressRef}
-                className="causes-local-progress"
+                className={`causes-local-progress${
+                  landedTopics.green && landedTopics.materials ? " is-ready" : ""
+                }`}
               >
                 <span className="sr-only" aria-live="polite" aria-atomic="true">
                   {localStepLabel}

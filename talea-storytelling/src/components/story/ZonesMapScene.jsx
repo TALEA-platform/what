@@ -656,7 +656,9 @@ export function ZonesMapScene() {
             ref={(el) => {
               stepsRef.current[i] = el;
             }}
-            className="zones-step"
+            className={`zones-step${
+              i === STAGE_COUNT - 1 ? " zones-step--historic-center" : ""
+            }`}
           />
         ))}
         <div className="zones-tail" />

@@ -421,3 +421,24 @@
     max-width: min(38ch, 100%);
   }
 }
+
+@media (min-width: 700px) and (max-width: 1279px) and (min-height: 720px) {
+  .causes-mobile-story-body,
+  .zones-caption-text,
+  .plan-text {
+    font-size: 1.125rem;
+    line-height: 1.5;
+  }
+
+  .causes-mobile-story-body {
+    max-width: min(46ch, 100%);
+  }
+
+  .zones-caption-text {
+    max-width: min(44ch, 100%);
+  }
+
+  .plan-text {
+    max-width: min(40ch, 100%);
+  }
+}

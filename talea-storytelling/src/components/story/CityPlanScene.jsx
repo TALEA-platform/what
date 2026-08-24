@@ -25,6 +25,7 @@ import { planVignetteMeta, planVignettes } from "../../data/planVignettes";
 import { CopySegments } from "./CopySegments";
 import { editorialLinks, useContent } from "../../content";
 import { assetUrl } from "../../lib/assetUrl";
+import { cityPlanMobileRasters } from "../../generated/cityPlanMobileRasters";
 
 // Stable objects stop React reinjecting SVG innerHTML and erasing animation classes.
 const PLAN_HTML = { __html: cityPlanSvg };
@@ -49,19 +50,21 @@ const LINK_R = 30;
 const MOBILE_CAMERA_THEN_REVEAL_BEATS = new Set([3, 6]);
 
 const MOBILE_ASSET_ROOT = assetUrl("/assets/cityplan-mobile");
-// Matches PLAN_CANVAS in scripts/build_cityplan_mobile_assets.py. The image is
-// offset inside the unchanged 2400x1500 camera coordinate system so external
-// SVGs retain the overflow that the original inline SVG paints visibly.
-const MOBILE_PLAN_CANVAS = { x: -560, y: -308, width: 3530, height: 2394 };
-const MOBILE_PLAN_IMAGE_STYLE = {
-  left: `${MOBILE_PLAN_CANVAS.x}px`,
-  top: `${MOBILE_PLAN_CANVAS.y}px`,
+const mobileRasterStyle = ({ left, top, width, height }) => ({
+  left: `${left}px`,
+  top: `${top}px`,
   right: "auto",
   bottom: "auto",
-  width: `${MOBILE_PLAN_CANVAS.width}px`,
-  height: `${MOBILE_PLAN_CANVAS.height}px`,
-};
-const MOBILE_PLAN_BASE_ASSET = `${MOBILE_ASSET_ROOT}/cityplan-base.svg`;
+  width: `${width}px`,
+  height: `${height}px`,
+});
+const MOBILE_PLAN_BASE_ASSET = `${MOBILE_ASSET_ROOT}/${cityPlanMobileRasters.base.file}`;
+const MOBILE_PLAN_BASE_STYLE = mobileRasterStyle(
+  cityPlanMobileRasters.base.style,
+);
+const MOBILE_PLAN_RASTERS = new Map(
+  cityPlanMobileRasters.layers.map((layer) => [layer.name, layer]),
+);
 const MOBILE_PLAN_LAYER_SPECS = [
   { name: "parking-state", from: 0, until: 2 },
   { name: "initial-sites", from: 0, until: 3 },
@@ -76,7 +79,8 @@ const MOBILE_PLAN_LAYER_SPECS = [
   { name: "final-network", from: 6, until: null },
 ].map((layer) => ({
   ...layer,
-  src: `${MOBILE_ASSET_ROOT}/cityplan-layer-${layer.name}.svg`,
+  src: `${MOBILE_ASSET_ROOT}/${MOBILE_PLAN_RASTERS.get(layer.name).file}`,
+  style: mobileRasterStyle(MOBILE_PLAN_RASTERS.get(layer.name).style),
 }));
 const MOBILE_VIGNETTE_LAYER_SPECS = {
   costruire: [
@@ -322,7 +326,7 @@ function MobilePersistentPlan({
       <img
         className="plan-mobile-map-state plan-mobile-map-base is-active"
         src={MOBILE_PLAN_BASE_ASSET}
-        style={MOBILE_PLAN_IMAGE_STYLE}
+        style={MOBILE_PLAN_BASE_STYLE}
         alt=""
         decoding="async"
         fetchPriority="high"
@@ -339,7 +343,7 @@ function MobilePersistentPlan({
               isActive ? " is-active" : ""
             }`}
             src={layer.src}
-            style={MOBILE_PLAN_IMAGE_STYLE}
+            style={layer.style}
             alt=""
             decoding="async"
             fetchPriority="high"

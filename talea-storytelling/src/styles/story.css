@@ -7652,6 +7652,26 @@
   overflow: visible;
 }
 
+.plan-figure--mobile-images {
+  overflow: visible;
+}
+
+.plan-mobile-map-state {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 180ms ease-out;
+}
+
+.plan-mobile-map-state.is-active {
+  opacity: 1;
+}
+
 .plan-figure .pl-ink {
   fill: none;
   stroke: var(--relief-ink, #3a352a);
@@ -7786,7 +7806,8 @@
 }
 
 .plan-vignette-art,
-.plan-vignette-art svg {
+.plan-vignette-art svg,
+.plan-vignette-image {
   width: 100%;
   height: 100%;
   display: block;
@@ -7817,6 +7838,12 @@
   position: relative;
   z-index: 1;
   filter: drop-shadow(0 8px 7px rgba(58, 53, 42, 0.08));
+}
+
+.plan-vignette-image {
+  position: relative;
+  z-index: 1;
+  object-fit: contain;
 }
 
 .plan-link {
@@ -8257,6 +8284,11 @@
     --plan-edge: 16px;
   }
 
+  .plan-stage {
+    height: 100dvh;
+    min-height: 100svh;
+  }
+
   .plan-bleed {
     width: 100%;
     -webkit-mask-image: linear-gradient(
@@ -8346,6 +8378,7 @@
 
   .plan-vignette-art::before,
   .plan-vignette-art svg,
+  .plan-vignette-image,
   .plan-vignette.is-building .plan-vignette-art svg {
     filter: none;
   }
@@ -8357,6 +8390,26 @@
 
   .plan-vignette--mobile.is-active {
     opacity: 1;
+  }
+
+  .plan-vignette--mobile .plan-vignette-art {
+    width: 100%;
+    height: 100%;
+  }
+
+  .plan-vignette--mobile .plan-vignette-layer {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  .plan-vignette--mobile.is-active
+    .plan-vignette-layer[data-vignette-layer-kind="context"],
+  .plan-vignette--mobile.is-active
+    .plan-vignette-layer[data-vignette-layer-kind="build"] {
+    opacity: 1;
+    transform: none;
   }
 
   .plan-link--mobile {
@@ -8383,6 +8436,14 @@
   .plan-link--mobile.is-ready .plan-link-dot {
     animation: none;
     opacity: 0.68;
+  }
+
+  .plan-mobile-map-state {
+    will-change: auto;
+  }
+
+  .plan-mobile-map-state.is-active {
+    will-change: opacity;
   }
 
   .plan-vignette--mobile .pv-i {
@@ -8426,14 +8487,14 @@
     top: auto;
     bottom: 0;
     width: 100%;
-    height: 52%;
+    height: 45%;
     transform: none;
     background:
       radial-gradient(
-        ellipse 82% 76% at 50% 94%,
-        rgba(var(--pg), 0.98) 0%,
-        rgba(var(--pg), 0.9) 46%,
-        rgba(var(--pg), 0.42) 72%,
+        ellipse 86% 82% at 50% 100%,
+        rgba(var(--pg), 0.96) 0%,
+        rgba(var(--pg), 0.82) 44%,
+        rgba(var(--pg), 0.32) 72%,
         rgba(var(--pg), 0) 100%
       );
   }
@@ -8453,20 +8514,22 @@
 
   .plan-vignette,
   .plan-stage--right .plan-vignette {
-    --vig-l: 14px;
-    --vig-r: 14px;
-    height: min(42svh, 360px);
-    top: clamp(8px, 2vh, 24px);
+    --vig-l: 50%;
+    --vig-r: auto;
+    width: min(calc(100vw - 56px), 440px);
+    height: auto;
+    top: clamp(8px, 1.5dvh, 16px);
     bottom: auto;
-    transform: none;
+    transform: translateX(-50%);
   }
 
   .plan-stage .plan-vignette--mobile[data-vignette="portico"] {
     --vig-l: auto;
-    --vig-r: clamp(10px, 2vw, 22px);
-    width: min(58vw, 300px);
+    --vig-r: clamp(12px, 3vw, 28px);
+    width: min(54vw, 270px);
     height: auto;
-    top: clamp(10px, 2vh, 24px);
+    top: clamp(12px, 2dvh, 22px);
+    transform: none;
   }
 
   .plan-stage .plan-link-lead { display: inline; }
@@ -8475,6 +8538,13 @@
 
   .plan-annotation-label {
     max-width: min(180px, 46vw);
+  }
+
+  .plan-annotation--mobile.plan-annotation--new-relief
+    .plan-annotation-label {
+    padding-right: 8px;
+    padding-left: 18px;
+    transform: translate(-100%, -50%);
   }
 
   .plan-text {
@@ -8500,8 +8570,30 @@
 }
 
 @keyframes plan-mobile-model-in {
-  from { opacity: 0.3; }
+  from { opacity: 0; }
   to { opacity: 1; }
+}
+
+@keyframes plan-mobile-layer-build {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes plan-mobile-before-out {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
 }
 
 @keyframes plan-mobile-detail-in {
@@ -8521,7 +8613,28 @@
 
 @media (max-width: 1279px) and (prefers-reduced-motion: no-preference) {
   .plan-vignette--mobile.is-active {
-    animation: plan-mobile-model-in 210ms ease-out both;
+    animation: plan-mobile-model-in 320ms ease-out both;
+  }
+
+  .plan-vignette--mobile.is-active
+    .plan-vignette-layer[data-vignette-layer-kind="context"] {
+    animation: plan-mobile-model-in 360ms ease-out both;
+  }
+
+  .plan-vignette--mobile.is-active
+    .plan-vignette-layer[data-vignette-layer-kind="build"] {
+    animation: plan-mobile-layer-build 420ms var(--ease-cine)
+      var(--layer-delay) both;
+  }
+
+  .plan-vignette--mobile.is-active
+    .plan-vignette-layer[data-vignette-layer-kind="before"] {
+    animation: plan-mobile-before-out 300ms ease-in 680ms both;
+  }
+
+  .plan-vignette--mobile.is-active[data-vignette="corridoio"]
+    .plan-vignette-layer[data-vignette-layer-kind="before"] {
+    animation-delay: 820ms;
   }
 
   .plan-figure .pl-ring.is-now,
@@ -8531,77 +8644,57 @@
   }
 
   .plan-stage[data-story-beat="2"]
-    .plan-figure
-    .pl-i[data-until="2"] {
-    animation: plan-mobile-detail-out 150ms ease-out 220ms both;
+    .plan-mobile-map-state[data-mobile-map-beat="1"] {
+    animation: plan-mobile-detail-out 300ms ease-out 930ms both;
   }
 
   .plan-stage[data-story-beat="2"]
-    .plan-figure
-    :is(.pl-l--newgreen, .pl-l--newshade, .pl-l--newtree, .pl-l--prop)
-    .pl-i.is-now {
-    animation: plan-mobile-detail-in 240ms ease-out 300ms both;
+    .plan-mobile-map-state[data-mobile-map-beat="2"] {
+    animation: plan-mobile-detail-in 300ms ease-out 930ms both;
   }
 
   .plan-stage[data-story-beat="2"] .plan-annotation--mobile.is-visible {
-    animation: plan-mobile-detail-in 180ms ease-out 380ms both;
+    animation: plan-mobile-detail-in 240ms ease-out 1110ms both;
   }
 
   .plan-stage[data-story-beat="3"][data-mobile-reveal="holding"]
-    .plan-figure
-    .pl-i[data-until="3"] {
+    .plan-mobile-map-state[data-mobile-map-beat="2"] {
     opacity: 1;
   }
 
   .plan-stage[data-story-beat="3"][data-mobile-reveal="holding"]
-    .plan-figure
-    :is(.pl-l--newgreen, .pl-l--newshade, .pl-l--newtree)
-    .pl-i.is-now {
+    .plan-mobile-map-state[data-mobile-map-beat="3"] {
     opacity: 0;
   }
 
   .plan-stage[data-story-beat="3"][data-mobile-reveal="ready"]
-    .plan-figure
-    .pl-i[data-until="3"] {
-    animation: plan-mobile-detail-out 150ms ease-out both;
+    .plan-mobile-map-state[data-mobile-map-beat="2"] {
+    animation: plan-mobile-detail-out 260ms ease-out both;
   }
 
   .plan-stage[data-story-beat="3"][data-mobile-reveal="ready"]
-    .plan-figure
-    :is(.pl-l--newgreen, .pl-l--newshade, .pl-l--newtree)
-    .pl-i.is-now {
-    animation: plan-mobile-detail-in 260ms ease-out 60ms both;
+    .plan-mobile-map-state[data-mobile-map-beat="3"] {
+    animation: plan-mobile-detail-in 260ms ease-out both;
   }
 
   .plan-stage[data-story-beat="6"][data-mobile-reveal="holding"]
-    .plan-figure
-    .pl-l--route
-    .pl-i.is-now {
+    .plan-mobile-map-state[data-mobile-map-beat="5"] {
+    opacity: 1;
+  }
+
+  .plan-stage[data-story-beat="6"][data-mobile-reveal="holding"]
+    .plan-mobile-map-state[data-mobile-map-beat="6"] {
     opacity: 0;
   }
 
   .plan-stage[data-story-beat="6"][data-mobile-reveal="ready"]
-    .plan-figure
-    .pl-l--route
-    .pl-i.is-now {
+    .plan-mobile-map-state[data-mobile-map-beat="5"] {
+    animation: plan-mobile-detail-out 280ms ease-out both;
+  }
+
+  .plan-stage[data-story-beat="6"][data-mobile-reveal="ready"]
+    .plan-mobile-map-state[data-mobile-map-beat="6"] {
     animation: plan-mobile-detail-in 280ms ease-out both;
-  }
-
-  .plan-vignette--mobile.is-active[data-vignette="costruire"]
-    .pv-i:is([data-step="7"], [data-step="8"])
-    .pv-c {
-    animation: plan-mobile-accent-in 300ms ease-out 190ms both;
-  }
-
-  .plan-vignette--mobile.is-active[data-vignette="corridoio"]
-    .pv-sweep
-    .pv-c {
-    animation: plan-mobile-road-in 380ms ease-out 460ms both;
-  }
-
-  .plan-vignette--mobile.is-active[data-vignette="portico"]
-    .pv-i[data-step="7"] {
-    animation: plan-mobile-detail-in 300ms ease-out 360ms both;
   }
 
   .plan-legend-item {
@@ -8642,14 +8735,14 @@
     top: auto;
     bottom: 0;
     width: 100%;
-    height: 52%;
+    height: 45%;
     transform: none;
     background:
       radial-gradient(
-        ellipse 82% 76% at 50% 94%,
-        rgba(var(--pg), 0.98) 0%,
-        rgba(var(--pg), 0.9) 46%,
-        rgba(var(--pg), 0.42) 72%,
+        ellipse 86% 82% at 50% 100%,
+        rgba(var(--pg), 0.96) 0%,
+        rgba(var(--pg), 0.82) 44%,
+        rgba(var(--pg), 0.32) 72%,
         rgba(var(--pg), 0) 100%
       );
   }
@@ -8667,11 +8760,13 @@
 
   .plan-vignette,
   .plan-stage--right .plan-vignette {
-    --vig-l: 10px;
-    --vig-r: 10px;
-    height: min(42svh, 340px);
-    top: clamp(8px, 2vh, 24px);
-    transform: none;
+    --vig-l: 50%;
+    --vig-r: auto;
+    width: calc(100vw - 56px);
+    max-width: 440px;
+    height: auto;
+    top: clamp(8px, 1.5dvh, 16px);
+    transform: translateX(-50%);
   }
 
   .plan-link-lead { display: none; }
@@ -8691,6 +8786,31 @@
     flex-direction: row;
     flex-wrap: wrap;
     gap: 5px 16px;
+  }
+
+}
+
+@media (max-width: 1279px) and (max-height: 520px) {
+  .plan-vignette,
+  .plan-stage--right .plan-vignette {
+    width: min(40vw, 340px);
+    top: 4px;
+  }
+
+  .plan-stage .plan-vignette--mobile[data-vignette="portico"] {
+    --vig-r: 8px;
+    width: min(30vw, 230px);
+    top: 4px;
+  }
+
+  .plan-veil--l,
+  .plan-veil--r {
+    height: 58%;
+  }
+
+  .plan-copy,
+  .plan-copy--right {
+    bottom: 12px;
   }
 
 }

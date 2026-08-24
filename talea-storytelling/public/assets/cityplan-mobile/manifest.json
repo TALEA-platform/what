@@ -1,0 +1,334 @@
+{
+  "format": "external-svg",
+  "architecture": "full-map-states-plus-semantic-vignette-layers",
+  "plan": {
+    "base": {
+      "file": "cityplan-base.svg",
+      "bytes": 370195,
+      "viewBox": [
+        3530.0,
+        2394.0
+      ],
+      "paths": 1732,
+      "groups": 54,
+      "circles": 8,
+      "ellipses": 0
+    },
+    "states": [
+      {
+        "beat": 0,
+        "file": "cityplan-state-01.svg",
+        "bytes": 374143,
+        "viewBox": [
+          3530.0,
+          2394.0
+        ],
+        "paths": 1758,
+        "groups": 58,
+        "circles": 9,
+        "ellipses": 0
+      },
+      {
+        "beat": 1,
+        "file": "cityplan-state-02.svg",
+        "bytes": 375589,
+        "viewBox": [
+          3530.0,
+          2394.0
+        ],
+        "paths": 1764,
+        "groups": 64,
+        "circles": 11,
+        "ellipses": 0
+      },
+      {
+        "beat": 2,
+        "file": "cityplan-state-03.svg",
+        "bytes": 378337,
+        "viewBox": [
+          3530.0,
+          2394.0
+        ],
+        "paths": 1781,
+        "groups": 68,
+        "circles": 12,
+        "ellipses": 0
+      },
+      {
+        "beat": 3,
+        "file": "cityplan-state-04.svg",
+        "bytes": 399548,
+        "viewBox": [
+          3530.0,
+          2394.0
+        ],
+        "paths": 1896,
+        "groups": 88,
+        "circles": 11,
+        "ellipses": 0
+      },
+      {
+        "beat": 4,
+        "file": "cityplan-state-05.svg",
+        "bytes": 450063,
+        "viewBox": [
+          3530.0,
+          2394.0
+        ],
+        "paths": 2263,
+        "groups": 160,
+        "circles": 11,
+        "ellipses": 0
+      },
+      {
+        "beat": 5,
+        "file": "cityplan-state-06.svg",
+        "bytes": 477826,
+        "viewBox": [
+          3530.0,
+          2394.0
+        ],
+        "paths": 2335,
+        "groups": 166,
+        "circles": 11,
+        "ellipses": 0
+      },
+      {
+        "beat": 6,
+        "file": "cityplan-state-07.svg",
+        "bytes": 481817,
+        "viewBox": [
+          3530.0,
+          2394.0
+        ],
+        "paths": 2340,
+        "groups": 178,
+        "circles": 21,
+        "ellipses": 0
+      }
+    ]
+  },
+  "vignettes": {
+    "costruire": {
+      "layers": [
+        {
+          "name": "context",
+          "file": "cityplan-vignette-costruire-context.svg",
+          "bytes": 19582,
+          "viewBox": [
+            1287.0,
+            1077.1
+          ],
+          "paths": 102,
+          "groups": 40,
+          "circles": 4,
+          "ellipses": 0
+        },
+        {
+          "name": "parking",
+          "file": "cityplan-vignette-costruire-parking.svg",
+          "bytes": 7611,
+          "viewBox": [
+            1287.0,
+            1077.1
+          ],
+          "paths": 50,
+          "groups": 26,
+          "circles": 0,
+          "ellipses": 0
+        },
+        {
+          "name": "ground-and-green",
+          "file": "cityplan-vignette-costruire-ground-and-green.svg",
+          "bytes": 20423,
+          "viewBox": [
+            1287.0,
+            1077.1
+          ],
+          "paths": 82,
+          "groups": 41,
+          "circles": 0,
+          "ellipses": 0
+        },
+        {
+          "name": "water",
+          "file": "cityplan-vignette-costruire-water.svg",
+          "bytes": 6616,
+          "viewBox": [
+            1287.0,
+            1077.1
+          ],
+          "paths": 10,
+          "groups": 6,
+          "circles": 0,
+          "ellipses": 11
+        },
+        {
+          "name": "life",
+          "file": "cityplan-vignette-costruire-life.svg",
+          "bytes": 79838,
+          "viewBox": [
+            1287.0,
+            1077.1
+          ],
+          "paths": 749,
+          "groups": 32,
+          "circles": 2,
+          "ellipses": 0
+        }
+      ]
+    },
+    "corridoio": {
+      "layers": [
+        {
+          "name": "context",
+          "file": "cityplan-vignette-corridoio-context.svg",
+          "bytes": 9191,
+          "viewBox": [
+            1040.0,
+            1014.1
+          ],
+          "paths": 39,
+          "groups": 17,
+          "circles": 0,
+          "ellipses": 0
+        },
+        {
+          "name": "existing-shadow",
+          "file": "cityplan-vignette-corridoio-existing-shadow.svg",
+          "bytes": 525,
+          "viewBox": [
+            1040.0,
+            1014.1
+          ],
+          "paths": 2,
+          "groups": 4,
+          "circles": 0,
+          "ellipses": 0
+        },
+        {
+          "name": "structures",
+          "file": "cityplan-vignette-corridoio-structures.svg",
+          "bytes": 11107,
+          "viewBox": [
+            1040.0,
+            1014.1
+          ],
+          "paths": 75,
+          "groups": 13,
+          "circles": 0,
+          "ellipses": 0
+        },
+        {
+          "name": "green",
+          "file": "cityplan-vignette-corridoio-green.svg",
+          "bytes": 11948,
+          "viewBox": [
+            1040.0,
+            1014.1
+          ],
+          "paths": 37,
+          "groups": 25,
+          "circles": 0,
+          "ellipses": 3
+        },
+        {
+          "name": "shade",
+          "file": "cityplan-vignette-corridoio-shade.svg",
+          "bytes": 363,
+          "viewBox": [
+            1040.0,
+            1014.1
+          ],
+          "paths": 1,
+          "groups": 2,
+          "circles": 0,
+          "ellipses": 0
+        },
+        {
+          "name": "life",
+          "file": "cityplan-vignette-corridoio-life.svg",
+          "bytes": 36468,
+          "viewBox": [
+            1040.0,
+            1014.1
+          ],
+          "paths": 344,
+          "groups": 12,
+          "circles": 0,
+          "ellipses": 0
+        }
+      ]
+    },
+    "portico": {
+      "layers": [
+        {
+          "name": "context",
+          "file": "cityplan-vignette-portico-context.svg",
+          "bytes": 568,
+          "viewBox": [
+            1079.9,
+            1056.5
+          ],
+          "paths": 2,
+          "groups": 3,
+          "circles": 0,
+          "ellipses": 0
+        },
+        {
+          "name": "building",
+          "file": "cityplan-vignette-portico-building.svg",
+          "bytes": 6630,
+          "viewBox": [
+            1079.9,
+            1056.5
+          ],
+          "paths": 29,
+          "groups": 6,
+          "circles": 0,
+          "ellipses": 0
+        },
+        {
+          "name": "arcades",
+          "file": "cityplan-vignette-portico-arcades.svg",
+          "bytes": 14149,
+          "viewBox": [
+            1079.9,
+            1056.5
+          ],
+          "paths": 104,
+          "groups": 14,
+          "circles": 0,
+          "ellipses": 0
+        },
+        {
+          "name": "street",
+          "file": "cityplan-vignette-portico-street.svg",
+          "bytes": 2603,
+          "viewBox": [
+            1079.9,
+            1056.5
+          ],
+          "paths": 12,
+          "groups": 11,
+          "circles": 0,
+          "ellipses": 0
+        },
+        {
+          "name": "life",
+          "file": "cityplan-vignette-portico-life.svg",
+          "bytes": 36642,
+          "viewBox": [
+            1079.9,
+            1056.5
+          ],
+          "paths": 341,
+          "groups": 8,
+          "circles": 0,
+          "ellipses": 0
+        }
+      ]
+    }
+  },
+  "totalBytes": 3571782
+}

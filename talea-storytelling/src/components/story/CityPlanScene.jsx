@@ -46,8 +46,6 @@ const MAP_HANDOFF_MS = 320;
 const VIGNETTE_EXIT_MS = 720;
 
 const LINK_R = 30;
-const MOBILE_PREWARM_FORWARD = 0.58;
-const MOBILE_PREWARM_REVERSE = 0.42;
 const MOBILE_CAMERA_THEN_REVEAL_BEATS = new Set([3, 6]);
 
 const MOBILE_ASSET_ROOT = assetUrl("/assets/cityplan-mobile");
@@ -162,12 +160,6 @@ function mobileAssetsForBeat(beat) {
 
 function decodeMobileBeatAssets(beat) {
   return Promise.all(mobileAssetsForBeat(beat).map(decodeMobileImage));
-}
-
-function neighboringMobileBeats(beat) {
-  return [beat - 1, beat + 1].filter(
-    (candidate) => candidate >= 0 && candidate < planBeatSpecs.length,
-  );
 }
 
 const VIGNETTE_PLACE = {
@@ -301,7 +293,27 @@ function paintVignetteStep(items, step) {
   });
 }
 
-function MobilePersistentPlan({ activeBeat, fallbackActive, onAssetSettled }) {
+function MobilePersistentPlan({
+  activeBeat,
+  requestedBeat,
+  fallbackActive,
+  onAssetSettled,
+}) {
+  const activeLayers = mobilePlanLayersForBeat(activeBeat);
+  const requestedLayers = mobilePlanLayersForBeat(requestedBeat);
+  // Beat 2 deliberately retains the two outgoing parking/gap deltas just for
+  // its cinematic replacement animation. This is not speculative preloading.
+  const exitLayers = activeBeat === 2 ? mobilePlanLayersForBeat(1) : [];
+  const renderedLayerNames = new Set(
+    [...activeLayers, ...requestedLayers, ...exitLayers].map(
+      ({ name }) => name,
+    ),
+  );
+  const renderedLayers = MOBILE_PLAN_LAYER_SPECS.filter(({ name }) =>
+    renderedLayerNames.has(name),
+  );
+  const activeLayerNames = new Set(activeLayers.map(({ name }) => name));
+
   return (
     <figure
       className="plan-figure plan-figure--mobile-images"
@@ -318,11 +330,8 @@ function MobilePersistentPlan({ activeBeat, fallbackActive, onAssetSettled }) {
         onLoad={onAssetSettled}
         onError={onAssetSettled}
       />
-      {MOBILE_PLAN_LAYER_SPECS.map((layer) => {
-        const isActive =
-          !fallbackActive &&
-          activeBeat >= layer.from &&
-          (layer.until == null || activeBeat < layer.until);
+      {renderedLayers.map((layer) => {
+        const isActive = !fallbackActive && activeLayerNames.has(layer.name);
         return (
           <img
             key={layer.src}
@@ -333,7 +342,7 @@ function MobilePersistentPlan({ activeBeat, fallbackActive, onAssetSettled }) {
             style={MOBILE_PLAN_IMAGE_STYLE}
             alt=""
             decoding="async"
-            fetchPriority={isActive ? "high" : "low"}
+            fetchPriority="high"
             draggable="false"
             data-mobile-map-layer={layer.name}
             onLoad={onAssetSettled}
@@ -347,11 +356,13 @@ function MobilePersistentPlan({ activeBeat, fallbackActive, onAssetSettled }) {
 
 function MobilePersistentVignettes({
   activeName,
+  requestedName,
   onAssetSettled,
 }) {
   return Object.keys(VIGNETTE_HTML).map((name) => {
     const config = MOBILE_VIGNETTE_CONFIG[name];
     const isCurrent = name === activeName;
+    const shouldLoad = isCurrent || name === requestedName;
     const layers = MOBILE_VIGNETTE_ASSETS[name];
     return (
       <div
@@ -365,14 +376,14 @@ function MobilePersistentVignettes({
         aria-hidden="true"
       >
         <div className="plan-vignette-art">
-          {layers.map((layer) => (
+          {shouldLoad ? layers.map((layer) => (
             <img
               key={layer.src}
               className="plan-vignette-image plan-vignette-layer"
               src={layer.src}
               alt=""
               decoding="async"
-              fetchPriority={isCurrent ? "high" : "low"}
+              fetchPriority="high"
               draggable="false"
               data-vignette-layer={layer.name}
               data-vignette-layer-kind={layer.kind}
@@ -380,7 +391,7 @@ function MobilePersistentVignettes({
               onLoad={onAssetSettled}
               onError={onAssetSettled}
             />
-          ))}
+          )) : null}
         </div>
       </div>
     );
@@ -488,9 +499,7 @@ export function CityPlanScene() {
   const mobileRequestedBeatRef = useRef(0);
   const mobileCommittedBeatRef = useRef(0);
   const requestMobileBeatRef = useRef(null);
-  const prewarmMobileBeatRef = useRef(null);
   const viewportMetricsRef = useRef(null);
-  const lastScrollYRef = useRef(0);
   const mapBeatStatesRef = useRef(null);
   const mobilePaintedMapBeatRef = useRef(null);
   const vignetteNodeRef = useRef(null);
@@ -752,10 +761,7 @@ export function CityPlanScene() {
       const node = band?.querySelector(
         `.plan-vignette--mobile[data-vignette="${name}"]`,
       );
-      const visual = node?.querySelector(
-        ".plan-vignette-image, .plan-vignette-art svg",
-      );
-      if (!node || !visual) {
+      if (!node) {
         return;
       }
       nodes[name] = node;
@@ -856,9 +862,8 @@ export function CityPlanScene() {
   }, []);
 
   useLayoutEffect(() => {
-    prewarmMobileBeatRef.current = prewarmMobileBeat;
     requestMobileBeatRef.current = requestMobileBeat;
-  }, [prewarmMobileBeat, requestMobileBeat]);
+  }, [requestMobileBeat]);
 
   const handleMobileAssetSettled = useCallback(() => {
     if (mobileAssetSettleFrameRef.current != null) return;
@@ -893,19 +898,9 @@ export function CityPlanScene() {
       });
     };
 
-    const decodeNeighbor = (neighborBeat) => {
-      decodeMobileBeatAssets(neighborBeat)
-        .then(() => {
-          if (live) markDecoded(neighborBeat);
-        })
-        .catch(() => {});
-    };
-
-    // Prime the resource/decode cache in both directions. Hidden SVG images are
-    // deliberately not promoted or pre-painted: only the small active semantic
-    // deltas are composited over the single persistent base.
-    neighboringMobileBeats(targetBeat).forEach(decodeNeighbor);
-
+    // Decode only the requested beat. Adjacent beats are neither fetched nor
+    // decoded speculatively; the committed visual stays visible until this set
+    // of semantic delta assets is ready.
     decodeMobileBeatAssets(targetBeat)
       .then(() => {
         if (!live) return;
@@ -1369,23 +1364,6 @@ export function CityPlanScene() {
           localProgress.toFixed(4),
         );
 
-        if (mobileViewport) {
-          const direction = y >= lastScrollYRef.current ? 1 : -1;
-          const prewarmBeat =
-            direction > 0 &&
-            localProgress >= MOBILE_PREWARM_FORWARD &&
-            next < planBeatSpecs.length - 1
-              ? next + 1
-              : direction < 0 &&
-                  localProgress <= MOBILE_PREWARM_REVERSE &&
-                  next > 0
-                ? next - 1
-                : null;
-          if (prewarmBeat != null && planBeatSpecs[prewarmBeat]?.vignette) {
-            prewarmMobileBeatRef.current?.(prewarmBeat);
-          }
-          lastScrollYRef.current = y;
-        }
       }
       rootRef.current?.style.setProperty("--plan-progress", progress.toFixed(4));
       rootRef.current?.style.setProperty("--plan-entry", entry.toFixed(4));
@@ -1704,6 +1682,7 @@ export function CityPlanScene() {
                 ) : (
                   <MobilePersistentPlan
                     activeBeat={beat}
+                    requestedBeat={requestedBeat}
                     fallbackActive={!mobileVisualReady}
                     onAssetSettled={handleMobileAssetSettled}
                   />
@@ -1896,6 +1875,9 @@ export function CityPlanScene() {
             mobileVignettesMounted ? (
               <MobilePersistentVignettes
                 activeName={vignetteLive ? vignetteName : null}
+                requestedName={
+                  entered ? planBeatSpecs[requestedBeat]?.vignette ?? null : null
+                }
                 onAssetSettled={handleMobileAssetSettled}
               />
             ) : null

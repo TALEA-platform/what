@@ -4,6 +4,7 @@ import { HotspotLayer } from "../maps/HotspotLayer";
 import { AnnotationLayer } from "../maps/AnnotationLayer";
 import { BolognaBoundaryLayer } from "../maps/BolognaBoundaryLayer";
 import { ScrollCue } from "../ui/ScrollCue";
+import { LocalStoryProgress } from "../ui/LocalStoryProgress";
 import { CopySegments } from "./CopySegments";
 import { useTimedSequence } from "../../hooks/useTimedSequence";
 import { editorialLinks, useContent } from "../../content";
@@ -152,6 +153,7 @@ export function HotspotMapScene() {
   const mobileLastWheelAtRef = useRef(0);
   const mobileRevealPlayedRef = useRef(false);
   const mobileGestureHintShownRef = useRef(false);
+  const mobileProgressRef = useRef(null);
   const lastZoomRef = useRef(null);
   const scrollAccelerationUnlockAtRef = useRef(Infinity);
 
@@ -253,15 +255,59 @@ export function HotspotMapScene() {
     selected,
     forceComplete,
     goTo,
+    getPlaybackSnapshot,
   } = useTimedSequence({
     count: hotspotSteps.length,
-    engaged: sceneReady,
+    engaged: sceneReady && !legendOpen,
     startDelay: reduceMotion ? START_DELAY_REDUCED : START_DELAY,
     readMs: mobileLayout ? mobileStepReadMs : hotspotStepReadMs,
     tailMs: TAIL_MS,
     pickDuringPlay: true,
     playbackRate,
   });
+
+  useEffect(() => {
+    if (!mobileLayout || !sceneReady) return undefined;
+
+    let frame = null;
+    const updateProgress = () => {
+      const snapshot = getPlaybackSnapshot();
+      const startAt = snapshot.entries[activeIndex] ?? 0;
+      const endAt =
+        snapshot.entries[activeIndex + 1] ?? snapshot.endAt ?? startAt;
+      const withinStep =
+        selected != null || sequenceComplete
+          ? 1
+          : Math.min(
+              1,
+              Math.max(
+                0,
+                (snapshot.virtualElapsed - startAt) / Math.max(1, endAt - startAt),
+              ),
+            );
+
+      mobileProgressRef.current?.style.setProperty(
+        "--local-story-progress",
+        withinStep.toFixed(4),
+      );
+      if (!legendOpen && !sequenceComplete && selected == null) {
+        frame = window.requestAnimationFrame(updateProgress);
+      }
+    };
+
+    updateProgress();
+    return () => {
+      if (frame != null) window.cancelAnimationFrame(frame);
+    };
+  }, [
+    activeIndex,
+    getPlaybackSnapshot,
+    legendOpen,
+    mobileLayout,
+    sceneReady,
+    selected,
+    sequenceComplete,
+  ]);
 
   useEffect(() => {
     if (!mobileLayout) return undefined;
@@ -342,6 +388,18 @@ export function HotspotMapScene() {
         sceneRect.top <= (mobileLayout ? mobileReleaseGate : releaseGate);
 
       if (mobileLayout) {
+        // A fling can physically leave the section before the timed copy has
+        // caught up. Complete only after the section is fully behind the
+        // viewport so reverse entry cannot restore an incoherent partial beat.
+        if (
+          sceneRect?.bottom <= 0 &&
+          engagedRef.current &&
+          !legendOpen &&
+          !sequenceComplete
+        ) {
+          forceComplete();
+        }
+
         const phaseLine = viewportHeight * MOBILE_PHASE_READING_LINE;
         const phaseNodes = mobileTrackRef.current?.querySelectorAll(
           ".hotspot-mobile-beat[data-mobile-phase]",
@@ -538,6 +596,7 @@ export function HotspotMapScene() {
     forceComplete,
     goTo,
     hotspotSteps.length,
+    legendOpen,
     mobileLayout,
   ]);
 
@@ -990,57 +1049,49 @@ export function HotspotMapScene() {
       )}
 
       {renderedMobilePhase === MOBILE_HANDOFF_PHASE && (
-        <div className="hotspot-mobile-story-card hotspot-mobile-story-card--handoff">
-          <h3 className="hotspot-mobile-handoff">
-            {hotspotMapCopy.handoff.question}
-          </h3>
+        <div className="hotspot-mobile-context-stack">
+          <div className="hotspot-mobile-story-card hotspot-mobile-story-card--handoff">
+            <h3 className="hotspot-mobile-handoff">
+              {hotspotMapCopy.handoff.question}
+            </h3>
+          </div>
+          <div
+            className="hotspot-mobile-context-cue hotspot-mobile-context-cue--handoff"
+            role="status"
+            aria-live="polite"
+          >
+            <span>{uiContent.localStory.hotspotToComparison}</span>
+          </div>
         </div>
       )}
 
-      {renderedMobilePhase === MOBILE_SLIDER_PHASE && sliderControl}
+      {renderedMobilePhase === MOBILE_SLIDER_PHASE && (
+        <div className="hotspot-mobile-slider-stack">
+          {sliderControl}
+          <div
+            className={`hotspot-mobile-context-cue hotspot-mobile-context-cue--slider${
+              sliderTouched ? " is-interacted" : ""
+            }`}
+            role="status"
+            aria-live="polite"
+          >
+            <span>{uiContent.localStory.hotspotToExit}</span>
+          </div>
+        </div>
+      )}
 
       {renderedMobilePhase === MOBILE_INTRO_PHASE && (
         <div
           className={`hotspot-mobile-story-nav${sequenceComplete ? " hotspot-mobile-story-nav--complete" : ""}`}
         >
           <div className="hotspot-mobile-nav-copy">
-            <div className="hotspot-mobile-phase-dots" aria-hidden="true">
-              {hotspotSteps.map((step, index) => {
-                const isDone = index < revealed;
-                const isCurrent = index === activeIndex;
-                const isCounting =
-                  selected == null &&
-                  !sequenceComplete &&
-                  index === revealed - 1;
-                return (
-                  <span
-                    key={step.id}
-                    className={`hotspot-mobile-phase-dot${isCurrent ? " is-current" : ""}${isDone ? " is-done" : ""}`}
-                    style={{
-                      "--tier": getHotspotPersistenceColor(step.minYears),
-                    }}
-                  >
-                    {isCounting && (
-                      <svg
-                        className="hotspot-mobile-phase-ring"
-                        viewBox="0 0 24 24"
-                        aria-hidden="true"
-                        focusable="false"
-                        style={{
-                          "--step-ms": `${
-                            (index === hotspotSteps.length - 1
-                              ? TAIL_MS
-                              : mobileStepReadMs[index]) / playbackRate
-                          }ms`,
-                        }}
-                      >
-                        <circle cx="12" cy="12" r="10" />
-                      </svg>
-                    )}
-                  </span>
-                );
-              })}
-            </div>
+            <LocalStoryProgress
+              ref={mobileProgressRef}
+              className="hotspot-local-progress"
+              currentStep={activeIndex}
+              stepCount={hotspotSteps.length}
+              labelTemplate={uiContent.localStory.stepLabelTemplate}
+            />
             {sequenceComplete && (
               <span className="hotspot-mobile-sequence-status">
                 {uiContent.map.hotspotSequenceDone}
@@ -1105,7 +1156,10 @@ export function HotspotMapScene() {
 
         <div className="hotspot-map-veil-close" aria-hidden="true" />
 
-        {mobileLayout && mobileGestureHintVisible && (
+        {mobileLayout &&
+          mobileGestureHintVisible &&
+          mobilePhase === MOBILE_INTRO_PHASE &&
+          renderedMobilePhase === MOBILE_INTRO_PHASE && (
           <div
             className="hotspot-mobile-gesture-hint"
             role="status"

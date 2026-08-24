@@ -188,6 +188,18 @@ export function ZonesMapScene() {
   const [stage, setStage] = useState(0);
   const [engaged, setEngaged] = useState(false);
   const [exiting, setExiting] = useState(false);
+  const [reduceMotion, setReduceMotion] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+  );
+
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const updatePreference = (event) => setReduceMotion(event.matches);
+    media.addEventListener?.("change", updatePreference);
+    return () => media.removeEventListener?.("change", updatePreference);
+  }, []);
 
   useEffect(() => {
     const mapLocale = {
@@ -248,19 +260,27 @@ export function ZonesMapScene() {
     if (s === 0) {
       map.fitBounds(zonesMap.intro.bounds, {
         padding: cameraPadding(),
-        duration: opening ? OPEN_DURATION : animate ? RETURN_DURATION : 0,
+        duration: reduceMotion
+          ? 0
+          : opening
+            ? OPEN_DURATION
+            : animate
+              ? RETURN_DURATION
+              : 0,
         easing: opening
           ? (t) => 1 - ((1 - t) ** 5)
           : EASE_FLIGHT,
-        essential: true,
+        essential: !reduceMotion,
       });
       return;
     }
 
     const startDrift = (direction = 1) => {
       if (
+        mobileLayout ||
+        reduceMotion ||
         driftGenerationRef.current !== generation ||
-        (mobileLayout && mobileCameraTouchedRef.current)
+        mobileCameraTouchedRef.current
       ) return;
       const onDriftEnd = () => {
         driftMoveEndRef.current = null;
@@ -280,13 +300,13 @@ export function ZonesMapScene() {
       });
     };
 
-    if (!animate) {
+    if (!animate || reduceMotion) {
       if (mobileLayout) {
         map.fitBounds(zoneBounds(zone), {
           padding: cameraPadding(),
           maxZoom: zone.zoom,
           duration: 0,
-          essential: true,
+          essential: !reduceMotion,
         });
         startDrift();
         return;
@@ -314,7 +334,7 @@ export function ZonesMapScene() {
         maxZoom: zone.zoom,
         duration: FLIGHT_DURATION,
         easing: EASE_FLIGHT,
-        essential: true,
+        essential: !reduceMotion,
       });
       return;
     }
@@ -327,7 +347,7 @@ export function ZonesMapScene() {
       easing: EASE_FLIGHT,
       essential: true,
     });
-  }, []);
+  }, [reduceMotion]);
 
   useEffect(() => {
     const section = sectionRef.current;
@@ -528,6 +548,9 @@ export function ZonesMapScene() {
 
   const activeZone = stage >= 1 ? ZONES[stage - 1] : null;
   const activeZoneContent = stage >= 1 ? localizedZones[stage - 1] : null;
+  const stepStatus = uiContent.localStory.stepLabelTemplate
+    .replace("{current}", String(stage + 1))
+    .replace("{total}", String(STAGE_COUNT));
 
   return (
     <section
@@ -536,6 +559,9 @@ export function ZonesMapScene() {
       aria-label={zonesContent.ariaLabel}
       lang={locale}
     >
+      <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+        {stepStatus}
+      </p>
       <div className="relief-map-sticky">
         <div ref={containerRef} className="map-canvas relief-map-canvas" aria-hidden="true" />
         <div className="relief-map-scrim" aria-hidden="true" />

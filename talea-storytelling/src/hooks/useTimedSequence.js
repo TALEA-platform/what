@@ -19,6 +19,9 @@ export function useTimedSequence({
   const timersRef = useRef([]);
   // Virtual elapsed time survives scene and background-tab pauses; timers do not.
   const playedRef = useRef(0);
+  const playStartedAtRef = useRef(null);
+  const activeRateRef = useRef(1);
+  const timelineRef = useRef({ entries: [], endAt: 0 });
   const rate =
     Number.isFinite(playbackRate) && playbackRate > 0 ? playbackRate : 1;
 
@@ -37,6 +40,8 @@ export function useTimedSequence({
   const forceComplete = useCallback(() => {
     if (completeRef.current) return;
     completeRef.current = true;
+    playedRef.current = timelineRef.current.endAt;
+    playStartedAtRef.current = null;
     // Stale callbacks must not reduce `revealed` after a forced completion.
     timersRef.current.forEach(clearTimeout);
     timersRef.current = [];
@@ -44,9 +49,25 @@ export function useTimedSequence({
     setComplete(true);
   }, [count]);
 
-  useEffect(() => {
-    if (!engaged || completeRef.current) return undefined;
+  const getPlaybackSnapshot = useCallback(() => {
+    const { entries, endAt } = timelineRef.current;
+    const runningElapsed =
+      playStartedAtRef.current == null
+        ? 0
+        : (now() - playStartedAtRef.current) * activeRateRef.current;
+    const virtualElapsed = completeRef.current
+      ? endAt
+      : Math.max(0, Math.min(endAt, playedRef.current + runningElapsed));
 
+    return {
+      virtualElapsed,
+      entries,
+      endAt,
+      complete: completeRef.current,
+    };
+  }, []);
+
+  useEffect(() => {
     const readAt = (index) =>
       Array.isArray(readMs) ? readMs[index] ?? readMs[readMs.length - 1] : readMs;
 
@@ -57,6 +78,9 @@ export function useTimedSequence({
       at += readAt(i);
     }
     const endAt = entries[count - 1] + tailMs;
+    timelineRef.current = { entries, endAt };
+
+    if (!engaged || completeRef.current) return undefined;
 
     const caught = entries.filter((time) => time <= playedRef.current).length;
     if (caught > 0) setRevealed((current) => Math.max(current, caught));
@@ -66,11 +90,10 @@ export function useTimedSequence({
       return undefined;
     }
 
-    let startedAt = null;
-
     const play = () => {
-      if (startedAt != null) return;
-      startedAt = now();
+      if (playStartedAtRef.current != null || completeRef.current) return;
+      playStartedAtRef.current = now();
+      activeRateRef.current = rate;
       const played = playedRef.current;
       const timers = [];
       entries.forEach((time, i) => {
@@ -85,6 +108,9 @@ export function useTimedSequence({
       timers.push(
         setTimeout(() => {
           completeRef.current = true;
+          playedRef.current = endAt;
+          playStartedAtRef.current = null;
+          timersRef.current = [];
           setComplete(true);
         }, (endAt - played) / rate),
       );
@@ -92,9 +118,10 @@ export function useTimedSequence({
     };
 
     const halt = () => {
-      if (startedAt == null) return;
-      playedRef.current += (now() - startedAt) * rate;
-      startedAt = null;
+      if (playStartedAtRef.current == null) return;
+      playedRef.current +=
+        (now() - playStartedAtRef.current) * activeRateRef.current;
+      playStartedAtRef.current = null;
       timersRef.current.forEach(clearTimeout);
       timersRef.current = [];
     };
@@ -148,5 +175,6 @@ export function useTimedSequence({
     goTo,
     goPrev,
     goNext,
+    getPlaybackSnapshot,
   };
 }

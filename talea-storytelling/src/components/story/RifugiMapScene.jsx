@@ -1061,7 +1061,12 @@ export function RifugiMapScene() {
       aria-label={reliefMapContent.ariaLabel}
     >
       <div className="relief-map-sticky">
-        <div ref={containerRef} className="map-canvas relief-map-canvas" aria-hidden="true" />
+        <div
+          ref={containerRef}
+          className="map-canvas relief-map-canvas"
+          role="region"
+          aria-label={reliefMapContent.ariaLabel}
+        />
         <div className="relief-map-scrim" aria-hidden="true" />
         <div className={`relief-map-veil${revealed ? " relief-map-veil--hidden" : ""}`} aria-hidden="true" />
         <div className="relief-map-veil-exit" aria-hidden="true" />

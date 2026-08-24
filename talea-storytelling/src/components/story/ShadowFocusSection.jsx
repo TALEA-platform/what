@@ -8,6 +8,7 @@ import {
 } from "../../lib/motion";
 import { SequenceStepper } from "../ui/SequenceStepper";
 import { ScrollCue } from "../ui/ScrollCue";
+import { LocalStoryProgress } from "../ui/LocalStoryProgress";
 import {
   getShadowStageReadMs,
   shadowMetricLayout,
@@ -673,6 +674,8 @@ export function ShadowFocusSection() {
   );
   const [renderedMobileIndex, setRenderedMobileIndex] = useState(0);
   const [mobilePanelExiting, setMobilePanelExiting] = useState(false);
+  const [mobileScrollCueVisible, setMobileScrollCueVisible] = useState(false);
+  const [mobileScrollCueDismissed, setMobileScrollCueDismissed] = useState(false);
   const [mobileGestureHintVisible, setMobileGestureHintVisible] = useState(false);
   const [legendOpen, setLegendOpen] = useState(false);
 
@@ -680,8 +683,10 @@ export function ShadowFocusSection() {
   const sceneMapRef = useRef(null);
   const holdRef = useRef(null);
   const mobileTrackRef = useRef(null);
+  const mobileProgressRef = useRef(null);
   const engagedRef = useRef(false);
   const mobileTransitionTimerRef = useRef(null);
+  const mobileScrollCueShownRef = useRef(false);
   const mobileGestureHintShownRef = useRef(false);
   const scrollAccelerationUnlockAtRef = useRef(Infinity);
 
@@ -699,9 +704,10 @@ export function ShadowFocusSection() {
     activeIndex: timedActiveIndex,
     selected,
     goTo,
+    getPlaybackSnapshot,
   } = useTimedSequence({
     count: stages.length,
-    engaged,
+    engaged: engaged && !legendOpen,
     startDelay: START_DELAY,
     readMs: mobileLayout ? mobileStepReadMs : shadowStageReadMs,
     tailMs: TAIL_MS,
@@ -748,6 +754,36 @@ export function ShadowFocusSection() {
     if (
       !mobileLayout ||
       !engaged ||
+      mobileScrollCueShownRef.current
+    ) {
+      return undefined;
+    }
+
+    mobileScrollCueShownRef.current = true;
+    const startY = window.scrollY;
+    setMobileScrollCueVisible(true);
+
+    const dismissCue = () => {
+      if (Math.abs(window.scrollY - startY) < 48) return;
+      setMobileScrollCueVisible(false);
+      setMobileScrollCueDismissed(true);
+      window.removeEventListener("scroll", dismissCue);
+    };
+
+    window.addEventListener("scroll", dismissCue, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", dismissCue);
+      setMobileScrollCueVisible(false);
+      setMobileScrollCueDismissed(true);
+    };
+  }, [engaged, mobileLayout]);
+
+  useEffect(() => {
+    if (
+      !mobileLayout ||
+      !engaged ||
+      !mobileScrollCueDismissed ||
+      legendOpen ||
       mobileGestureHintShownRef.current
     ) {
       return undefined;
@@ -766,7 +802,41 @@ export function ShadowFocusSection() {
       mapBox?.removeEventListener("touchstart", dismissHint);
       setMobileGestureHintVisible(false);
     };
-  }, [engaged, mobileLayout]);
+  }, [engaged, legendOpen, mobileLayout, mobileScrollCueDismissed]);
+
+  useEffect(() => {
+    if (!mobileLayout || !engaged) return undefined;
+
+    let frame = null;
+    const updateProgress = () => {
+      const progressNode = mobileProgressRef.current;
+      if (progressNode) {
+        const snapshot = getPlaybackSnapshot();
+        const stepStart = snapshot.entries[activeIndex] ?? 0;
+        const stepEnd =
+          snapshot.entries[activeIndex + 1] ?? snapshot.endAt ?? stepStart;
+        const duration = Math.max(1, stepEnd - stepStart);
+        const timelineProgress = Math.min(
+          1,
+          Math.max(0, (snapshot.virtualElapsed - stepStart) / duration),
+        );
+        const withinStepProgress =
+          complete || selected != null ? 1 : timelineProgress;
+        progressNode.style.setProperty(
+          "--local-story-progress",
+          String(withinStepProgress),
+        );
+      }
+      if (!legendOpen && !complete && selected == null) {
+        frame = window.requestAnimationFrame(updateProgress);
+      }
+    };
+
+    updateProgress();
+    return () => {
+      if (frame) window.cancelAnimationFrame(frame);
+    };
+  }, [activeIndex, complete, engaged, getPlaybackSnapshot, legendOpen, mobileLayout, selected]);
 
   useEffect(() => {
     if (!mobileLayout || renderedMobileIndex === activeIndex) {
@@ -1017,6 +1087,13 @@ export function ShadowFocusSection() {
             </div>
           )}
 
+          {engaged && mobileLayout && mobileScrollCueVisible && !legendOpen && (
+            <div className="sf-page-scroll-cue" role="status" aria-live="polite">
+              <span aria-hidden="true">↓</span>
+              <span>{uiContent.localStory.scrollPage}</span>
+            </div>
+          )}
+
           {engaged && mobileLayout && revealed > 0 && (
             <div
               className={`sf-mobile-story${sequenceVisible ? " sf-mobile-story--in" : " sf-mobile-story--out"}${mobilePanelExiting ? " is-exiting" : ""}`}
@@ -1033,39 +1110,13 @@ export function ShadowFocusSection() {
                 className={`sf-mobile-story-nav${complete ? " sf-mobile-story-nav--complete" : ""}`}
               >
                 <div className="sf-mobile-nav-copy">
-                  <div className="sf-mobile-phase-dots" aria-hidden="true">
-                    {stages.map((stage, index) => {
-                      const isDone = index < revealed;
-                      const isCurrent = index === activeIndex;
-                      const isCounting =
-                        selected == null && !complete && index === revealed - 1;
-                      return (
-                        <span
-                          key={stage.id}
-                          className={`sf-mobile-phase-dot${isCurrent ? " is-current" : ""}${isDone ? " is-done" : ""}`}
-                          style={{ "--tier": STAGE_TONES[index] }}
-                        >
-                          {isCounting && (
-                            <svg
-                              className="sf-mobile-phase-ring"
-                              viewBox="0 0 24 24"
-                              aria-hidden="true"
-                              focusable="false"
-                              style={{
-                                "--step-ms": `${
-                                  (index === stages.length - 1
-                                    ? TAIL_MS
-                                    : mobileStepReadMs[index]) / playbackRate
-                                }ms`,
-                              }}
-                            >
-                              <circle cx="12" cy="12" r="10" />
-                            </svg>
-                          )}
-                        </span>
-                      );
-                    })}
-                  </div>
+                  <LocalStoryProgress
+                    ref={mobileProgressRef}
+                    className="sf-local-progress"
+                    currentStep={activeIndex}
+                    stepCount={stages.length}
+                    labelTemplate={uiContent.localStory.stepLabelTemplate}
+                  />
                   {complete && (
                     <span className="sf-mobile-sequence-status">
                       {uiContent.map.hotspotSequenceDone}
@@ -1096,7 +1147,7 @@ export function ShadowFocusSection() {
             </div>
           )}
 
-          {mobileLayout && mobileGestureHintVisible && (
+          {mobileLayout && mobileGestureHintVisible && !legendOpen && (
             <div className="sf-mobile-gesture-hint" role="status" aria-live="polite">
               <span>{uiContent.map.cooperativeGestures.mobile}</span>
             </div>

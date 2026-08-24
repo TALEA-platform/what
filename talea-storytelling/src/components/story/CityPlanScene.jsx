@@ -188,6 +188,19 @@ const MOBILE_VIGNETTE_CONFIG = Object.fromEntries(
 );
 
 const clamp01 = (value) => Math.min(1, Math.max(0, value));
+
+function physicalBeatProgress(y, marks, beat) {
+  const beatStart = beat === 0 ? marks.start : marks[beat - 1];
+  const beatEnd = marks[beat] ?? marks.end;
+  if (!Number.isFinite(beatStart) || !Number.isFinite(beatEnd)) return 0;
+  return clamp01((y - beatStart) / Math.max(1, beatEnd - beatStart));
+}
+
+function formatLocalStepLabel(template, current, total) {
+  return (template ?? "{current} / {total}")
+    .replaceAll("{current}", String(current))
+    .replaceAll("{total}", String(total));
+}
 const lerp = (from, to, amount) => from + (to - from) * amount;
 const smoothstep = (value) => {
   const t = clamp01(value);
@@ -438,7 +451,7 @@ function MobilePersistentLink({ name, ready, linkRef }) {
 }
 
 export function CityPlanScene() {
-  const { content } = useContent();
+  const { content, uiContent } = useContent();
   const cityPlanContent = content.climateRelief.cityPlan;
   const {
     planAnnotations,
@@ -514,6 +527,9 @@ export function CityPlanScene() {
   const previousBeatRef = useRef(0);
   const completedVignetteBeatsRef = useRef(new Set());
   const enteredVignetteMountRef = useRef(-1);
+  const planScrollCueShownRef = useRef(false);
+  const planScrollCueVisibleRef = useRef(false);
+  const planScrollCueStartYRef = useRef(null);
 
   const [entered, setEntered] = useState(false);
   const [mobileCameraActive, setMobileCameraActive] = useState(
@@ -545,6 +561,7 @@ export function CityPlanScene() {
   const [vignetteMount, setVignetteMount] = useState(0);
   const [vignetteNode, setVignetteNode] = useState(null);
   const [link, setLink] = useState(null);
+  const [planScrollCueVisible, setPlanScrollCueVisible] = useState(false);
   const beat = mobileCameraActive ? mobileScene.committedBeat : scrollBeat;
   const requestedBeat = mobileCameraActive
     ? mobileScene.requestedBeat
@@ -1029,6 +1046,19 @@ export function CityPlanScene() {
     syncMobileOverlayGeometry,
   ]);
 
+  useLayoutEffect(() => {
+    if (!mobileCameraActive) return;
+    const committedProgress = physicalBeatProgress(
+      window.scrollY,
+      marksRef.current,
+      mobileScene.committedBeat,
+    );
+    rootRef.current?.style.setProperty(
+      "--plan-camera-step-progress",
+      committedProgress.toFixed(4),
+    );
+  }, [mobileCameraActive, mobileScene.committedBeat]);
+
   useEffect(() => {
     if (!entered) return undefined;
     const previousBeat = previousBeatRef.current;
@@ -1315,12 +1345,31 @@ export function CityPlanScene() {
       const stage = stageRef.current;
       const band = bandRef.current;
       const cam = camRef.current;
+      if (
+        mobileViewport &&
+        !planScrollCueShownRef.current &&
+        y >= marks.start &&
+        y < marks.end
+      ) {
+        planScrollCueShownRef.current = true;
+        planScrollCueVisibleRef.current = true;
+        planScrollCueStartYRef.current = y;
+        setPlanScrollCueVisible(true);
+      }
       if (stage && band && cam) {
         const viewport = viewportMetricsRef.current;
         const viewportWidth = viewport?.viewportWidth ?? window.innerWidth ?? 1280;
-        const beatStart = next === 0 ? marks.start : marks[next - 1];
-        const beatEnd = marks[next] ?? marks.end;
-        const localProgress = clamp01((y - beatStart) / Math.max(1, beatEnd - beatStart));
+        const localProgress = physicalBeatProgress(y, marks, next);
+        if (
+          mobileViewport &&
+          planScrollCueVisibleRef.current &&
+          planScrollCueStartYRef.current != null &&
+          y - planScrollCueStartYRef.current >= 48 &&
+          localProgress > 0
+        ) {
+          planScrollCueVisibleRef.current = false;
+          setPlanScrollCueVisible(false);
+        }
         if (mobileViewport) {
           const revealAfterCamera = MOBILE_CAMERA_THEN_REVEAL_BEATS.has(next);
           const revealAt =
@@ -1365,7 +1414,10 @@ export function CityPlanScene() {
         cam.style.setProperty("--sy", `${sy.toFixed(2)}px`);
         rootRef.current?.style.setProperty(
           "--plan-camera-step-progress",
-          localProgress.toFixed(4),
+          (mobileViewport && next !== mobileCommittedBeatRef.current
+            ? 1
+            : localProgress
+          ).toFixed(4),
         );
 
       }
@@ -1651,6 +1703,19 @@ export function CityPlanScene() {
           {planLegendLabel}: {planLegend.map((item) => item.label).join(", ")}.
         </p>
       </div>
+
+      {mobileCameraActive ? (
+        <>
+          <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+            {formatLocalStepLabel(
+              uiContent.localStory?.stepLabelTemplate,
+              beat + 1,
+              planBeats.length,
+            )}
+          </p>
+          <p className="sr-only">{uiContent.localStory?.scrollPlan}</p>
+        </>
+      ) : null}
 
       <div
         ref={stageRef}
@@ -1943,10 +2008,44 @@ export function CityPlanScene() {
                     {String(beat + 1).padStart(2, "0")} /{" "}
                     {String(planBeats.length).padStart(2, "0")}
                   </span>
-                  <span className="plan-step-track" aria-hidden="true">
-                    <span className="plan-step-progress" />
-                  </span>
+                  {mobileCameraActive ? (
+                    <span className="plan-step-segments" aria-hidden="true">
+                      {planBeats.map((step, segmentIndex) => (
+                        <span
+                          key={step.id}
+                          className={`plan-step-segment${
+                            segmentIndex < beat
+                              ? " is-complete"
+                              : segmentIndex === beat
+                                ? " is-current"
+                                : ""
+                          }`}
+                          style={{
+                            "--plan-step-fill":
+                              segmentIndex < beat
+                                ? 1
+                                : segmentIndex === beat
+                                  ? "var(--plan-camera-step-progress)"
+                                  : 0,
+                          }}
+                        />
+                      ))}
+                    </span>
+                  ) : (
+                    <span className="plan-step-track" aria-hidden="true">
+                      <span className="plan-step-progress" />
+                    </span>
+                  )}
                 </span>
+
+                {mobileCameraActive && currentSide && planScrollCueVisible ? (
+                  <span className="plan-scroll-cue">
+                    <span className="plan-scroll-cue-arrow" aria-hidden="true">
+                      ↓
+                    </span>{" "}
+                    {uiContent.localStory?.scrollPlan}
+                  </span>
+                ) : null}
 
                 <div className="plan-copy-body">
                   {planBeats.map((step, i) => {

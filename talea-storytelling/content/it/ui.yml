@@ -61,6 +61,18 @@ map:
     mac: "Usa ⌘ + scorrimento per ingrandire la mappa"
     mobile: "Usa due dita per spostare la mappa"
 
+localStory:
+  scrollPage: "Scorri la pagina"
+  hotspotToComparison: "Continua a scorrere per regolare la soglia"
+  hotspotToExit: "Continua a scorrere per lasciare la mappa"
+  scrollPlan: "Scorri per seguire il piano"
+  keepScrollingPage: "Continua a scorrere la pagina"
+  mapTwoFingers: "Usa due dita sulla mappa"
+  exploreRefuges: "Tocca un luogo · pizzica per zoom"
+  continuePage: "Scorri la pagina per continuare"
+  modelGesture: "Trascina il modello per ruotarlo · usa due dita per lo zoom"
+  stepLabelTemplate: "Passaggio {current} di {total}"
+
 actions:
   id: global-actions
   close: "Chiudi"

@@ -1002,7 +1002,7 @@ function NarrativeSegments({ segments, landedDescriptions, targetRefs }) {
 }
 
 export function PhysicalDriversSection() {
-  const { content, locale } = useContent();
+  const { content, locale, uiContent } = useContent();
   const physicalDrivers = content.physicalDrivers;
   const {
     aperture,
@@ -1055,6 +1055,7 @@ export function PhysicalDriversSection() {
   const [sliderValue, setSliderValue] = useState(50);
   const [compareDemoPlayed, setCompareDemoPlayed] = useState(false);
   const [sceneEntered, setSceneEntered] = useState(false);
+  const [scrollCueVisible, setScrollCueVisible] = useState(false);
   const [landedTopics, setLandedTopics] = useState(() => {
     const landed = prefersReducedMotion();
     return { green: landed, materials: landed };
@@ -1080,7 +1081,11 @@ export function PhysicalDriversSection() {
   const stageRef = useRef(null);
   const lensCropRef = useRef(null);
   const compareCropRef = useRef(null);
+  const localProgressRef = useRef(null);
   const enteredRef = useRef(false);
+  const scrollCueShownRef = useRef(false);
+  const scrollCueVisibleRef = useRef(false);
+  const scrollCueStartYRef = useRef(0);
   const topicSourceRefs = useRef({});
   const topicTargetRefs = useRef({});
   const topicFlyerRefs = useRef({});
@@ -1354,12 +1359,18 @@ export function PhysicalDriversSection() {
       if (mobileLayout) {
         const readingLine = vh * 0.48;
         const panels = panelRefs.current.filter(Boolean);
+        const panelMetrics = panels.map((panel) => {
+          const rect = panel.getBoundingClientRect();
+          return {
+            panel,
+            rect,
+            center: rect.top + rect.height * 0.5,
+          };
+        });
         let nextId = stages[0].id;
         let minDistance = Infinity;
 
-        panels.forEach((panel) => {
-          const rect = panel.getBoundingClientRect();
-          const center = rect.top + rect.height * 0.5;
+        panelMetrics.forEach(({ panel, rect, center }) => {
           const distance = Math.abs(center - readingLine);
           if (rect.bottom > 0 && rect.top < vh && distance < minDistance) {
             minDistance = distance;
@@ -1381,6 +1392,35 @@ export function PhysicalDriversSection() {
         setActiveStageId(nextId);
         setActiveTextStageId(nextId);
 
+        const activeIndex = Math.max(
+          0,
+          stages.findIndex((stage) => stage.id === nextId),
+        );
+        const activeMetric = panelMetrics[activeIndex];
+        if (activeMetric && localProgressRef.current) {
+          const previousMetric = panelMetrics[activeIndex - 1];
+          const nextMetric = panelMetrics[activeIndex + 1];
+          const beatStart = previousMetric
+            ? (previousMetric.center + activeMetric.center) * 0.5
+            : activeMetric.rect.top;
+          const beatEnd = nextMetric
+            ? (activeMetric.center + nextMetric.center) * 0.5
+            : activeMetric.rect.bottom;
+          const beatDistance = Math.max(1, beatEnd - beatStart);
+          const withinBeat = Math.min(
+            1,
+            Math.max(0, (readingLine - beatStart) / beatDistance),
+          );
+
+          stages.forEach((_, index) => {
+            const fill = index < activeIndex ? 1 : index === activeIndex ? withinBeat : 0;
+            localProgressRef.current?.style.setProperty(
+              `--causes-progress-${index}`,
+              fill.toFixed(4),
+            );
+          });
+        }
+
         const sceneRect = sceneRef.current?.getBoundingClientRect();
         if (
           !enteredRef.current &&
@@ -1390,6 +1430,23 @@ export function PhysicalDriversSection() {
         ) {
           enteredRef.current = true;
           setSceneEntered(true);
+        }
+        if (
+          !scrollCueShownRef.current &&
+          sceneRect &&
+          sceneRect.top < vh * 0.58 &&
+          sceneRect.bottom > 0
+        ) {
+          scrollCueShownRef.current = true;
+          scrollCueVisibleRef.current = true;
+          scrollCueStartYRef.current = window.scrollY;
+          setScrollCueVisible(true);
+        } else if (
+          scrollCueVisibleRef.current &&
+          Math.abs(window.scrollY - scrollCueStartYRef.current) >= 44
+        ) {
+          scrollCueVisibleRef.current = false;
+          setScrollCueVisible(false);
         }
         return;
       }
@@ -1550,6 +1607,15 @@ export function PhysicalDriversSection() {
   });
   const mobileNarrativeStageId = textStageId;
   const comparisonStage = stages.find((stage) => stage.id === "compare");
+  const localStepIndex = Math.max(
+    0,
+    stages.findIndex((stage) => stage.id === mobileNarrativeStageId),
+  );
+  const localStepLabel = uiContent.localStory.stepLabelTemplate
+    .replace("{current}", String(localStepIndex + 1))
+    .replace("{total}", String(stages.length));
+  const causeScrollCue =
+    uiContent.localStory.scrollCause ?? uiContent.localStory.scrollPage;
 
   return (
     <section
@@ -1638,33 +1704,64 @@ export function PhysicalDriversSection() {
         >
           <div
             className={`causes-topic-header${compareTopicsActive ? " causes-topic-header--compare" : ""}`}
-            aria-hidden="true"
           >
-            <span
-              className={`causes-topic-label${landedTopics.green ? " is-ready" : ""}${greenTopicActive ? " is-active" : ""}`}
-            >
+            <span className="causes-topic-header-labels" aria-hidden="true">
               <span
-                ref={(node) => {
-                  topicTargetRefs.current.green = node;
-                }}
-                className={`causes-topic-label-text${landedTopics.green ? "" : " is-waiting"}`}
+                className={`causes-topic-label${landedTopics.green ? " is-ready" : ""}${greenTopicActive ? " is-active" : ""}`}
               >
-                {greenTopicWord}
+                <span
+                  ref={(node) => {
+                    topicTargetRefs.current.green = node;
+                  }}
+                  className={`causes-topic-label-text${landedTopics.green ? "" : " is-waiting"}`}
+                >
+                  {greenTopicWord}
+                </span>
+              </span>
+              <span className="causes-topic-divider" />
+              <span
+                className={`causes-topic-label${landedTopics.materials ? " is-ready" : ""}${materialsTopicActive ? " is-active" : ""}`}
+              >
+                <span
+                  ref={(node) => {
+                    topicTargetRefs.current.materials = node;
+                  }}
+                  className={`causes-topic-label-text${landedTopics.materials ? "" : " is-waiting"}`}
+                >
+                  {materialsTopicWord}
+                </span>
               </span>
             </span>
-            <span className="causes-topic-divider" />
-            <span
-              className={`causes-topic-label${landedTopics.materials ? " is-ready" : ""}${materialsTopicActive ? " is-active" : ""}`}
-            >
-              <span
-                ref={(node) => {
-                  topicTargetRefs.current.materials = node;
-                }}
-                className={`causes-topic-label-text${landedTopics.materials ? "" : " is-waiting"}`}
+            {mobileLayout ? (
+              <div
+                ref={localProgressRef}
+                className="causes-local-progress"
               >
-                {materialsTopicWord}
+                <span className="sr-only" aria-live="polite" aria-atomic="true">
+                  {localStepLabel}
+                </span>
+                <span className="causes-progress-count tnum" aria-hidden="true">
+                  {String(localStepIndex + 1).padStart(2, "0")} /{" "}
+                  {String(stages.length).padStart(2, "0")}
+                </span>
+                <span className="causes-progress-segments" aria-hidden="true">
+                  {stages.map((stage, index) => (
+                    <span
+                      key={stage.id}
+                      className="causes-progress-segment"
+                      style={{
+                        "--causes-progress-fill": `var(--causes-progress-${index}, ${index < localStepIndex ? 1 : 0})`,
+                      }}
+                    />
+                  ))}
+                </span>
+              </div>
+            ) : null}
+            {mobileLayout && scrollCueVisible ? (
+              <span className="causes-scroll-cue">
+                <span aria-hidden="true">↓</span> {causeScrollCue}
               </span>
-            </span>
+            ) : null}
           </div>
 
           <CausesConnector

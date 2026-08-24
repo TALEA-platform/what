@@ -103,7 +103,7 @@ explainer:
   recipeLabel: "A climate refuge is made of"
   sequence:
     id: climate-refuge-sequence
-    playing: "Watch the street · the next element is on its way"
+    playing: "Watch the square · the next element is on its way"
     done: "Scroll to continue"
 
 refuges:

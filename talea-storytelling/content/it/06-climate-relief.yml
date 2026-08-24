@@ -103,7 +103,7 @@ explainer:
   recipeLabel: "Un rifugio climatico è fatto di"
   sequence:
     id: climate-refuge-sequence
-    playing: "Guarda la strada · il prossimo elemento sta arrivando"
+    playing: "Osserva la piazza · il prossimo elemento sta arrivando"
     done: "Scorri per continuare"
 
 refuges:

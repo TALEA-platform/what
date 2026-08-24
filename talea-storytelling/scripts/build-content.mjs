@@ -2018,6 +2018,7 @@ function validateUi(document, location) {
   const progress = requireObject(document.progress, `${location}.progress`);
   const glossary = requireObject(document.glossary, `${location}.glossary`);
   const map = requireObject(document.map, `${location}.map`);
+  const localStory = requireObject(document.localStory, `${location}.localStory`);
   const cooperativeGestures = requireObject(
     map.cooperativeGestures,
     `${location}.map.cooperativeGestures`,
@@ -2124,6 +2125,53 @@ function validateUi(document, location) {
             `${location}.map.cooperativeGestures.mobile`,
           ),
         },
+      },
+      localStory: {
+        scrollPage: requireString(
+          localStory.scrollPage,
+          `${location}.localStory.scrollPage`,
+        ),
+        hotspotToComparison: requireString(
+          localStory.hotspotToComparison,
+          `${location}.localStory.hotspotToComparison`,
+        ),
+        hotspotToExit: requireString(
+          localStory.hotspotToExit,
+          `${location}.localStory.hotspotToExit`,
+        ),
+        scrollPlan: requireString(
+          localStory.scrollPlan,
+          `${location}.localStory.scrollPlan`,
+        ),
+        keepScrollingPage: requireString(
+          localStory.keepScrollingPage,
+          `${location}.localStory.keepScrollingPage`,
+        ),
+        mapTwoFingers: requireString(
+          localStory.mapTwoFingers,
+          `${location}.localStory.mapTwoFingers`,
+        ),
+        exploreRefuges: requireString(
+          localStory.exploreRefuges,
+          `${location}.localStory.exploreRefuges`,
+        ),
+        continuePage: requireString(
+          localStory.continuePage,
+          `${location}.localStory.continuePage`,
+        ),
+        modelGesture: requireString(
+          localStory.modelGesture,
+          `${location}.localStory.modelGesture`,
+        ),
+        stepLabelTemplate: requireTemplate(
+          requireTemplate(
+            localStory.stepLabelTemplate,
+            "{current}",
+            `${location}.localStory.stepLabelTemplate`,
+          ),
+          "{total}",
+          `${location}.localStory.stepLabelTemplate`,
+        ),
       },
       actions: {
         id: requireStableString(

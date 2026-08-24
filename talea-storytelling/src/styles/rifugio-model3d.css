@@ -523,6 +523,10 @@
 
 .rifugio-model3d-hint[data-used="true"] { opacity: 0; }
 
+.rifugio-model3d-mobile-hint {
+  display: none;
+}
+
 @media (max-width: 780px) {
   .rifugio-model3d-hint { display: none; }
 }
@@ -673,6 +677,32 @@
     display: none;
   }
 
+  .rifugio-model3d-mobile-hint {
+    position: absolute;
+    z-index: 4;
+    top: 8px;
+    left: 50%;
+    display: block;
+    width: max-content;
+    max-width: min(78%, 360px);
+    padding: 3px 6px;
+    border-radius: 4px;
+    background: rgba(244, 242, 233, 0.78);
+    color: #56665a;
+    font-size: clamp(11.5px, 1.6vw, 13px);
+    font-weight: 600;
+    line-height: 1.25;
+    text-align: center;
+    text-wrap: balance;
+    pointer-events: none;
+    transform: translateX(-50%);
+    transition: opacity 160ms ease;
+  }
+
+  .rifugio-model3d-mobile-hint[data-used="true"] {
+    opacity: 0;
+  }
+
   .rifugio-model3d-temp {
     position: absolute;
     z-index: 3;
@@ -701,6 +731,12 @@
 
   .rifugio-model3d-temp-where {
     font-size: 11px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rifugio-model3d-mobile-hint {
+    transition: none;
   }
 }
 

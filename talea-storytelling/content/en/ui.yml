@@ -61,6 +61,18 @@ map:
     mac: "Use ⌘ + scroll to zoom the map"
     mobile: "Use two fingers to move the map"
 
+localStory:
+  scrollPage: "Scroll the page"
+  hotspotToComparison: "Keep scrolling to adjust the threshold"
+  hotspotToExit: "Keep scrolling to leave the map"
+  scrollPlan: "Scroll to follow the plan"
+  keepScrollingPage: "Keep scrolling down the page"
+  mapTwoFingers: "Use two fingers on the map"
+  exploreRefuges: "Tap a place · pinch to zoom"
+  continuePage: "Scroll the page to continue"
+  modelGesture: "Drag the model to rotate · use two fingers to zoom"
+  stepLabelTemplate: "Step {current} of {total}"
+
 actions:
   id: global-actions
   close: "Close"

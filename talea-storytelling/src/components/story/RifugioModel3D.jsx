@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import {
   createRifugioModel,
   RIFUGIO_TEMPERATURES,
@@ -41,9 +41,16 @@ const Minus = () => (
   </svg>
 );
 
-export function RifugioModel3D({ step = 0, label, content, idle = false }) {
+export function RifugioModel3D({
+  step = 0,
+  label,
+  content,
+  idle = false,
+  gestureHint,
+}) {
   const shellRef = useRef(null);
   const modelRef = useRef(null);
+  const gestureHintId = useId();
   const [zoom, setZoom] = useState(1);
   const [touched, setTouched] = useState(false);
   const [mobileMode, setMobileMode] = useState(
@@ -176,6 +183,7 @@ export function RifugioModel3D({ step = 0, label, content, idle = false }) {
         data-step={step}
         data-idle={String(idle)}
         aria-label={label}
+        aria-describedby={mobileMode && !touched ? gestureHintId : undefined}
       >
         <svg
           id="model-svg"
@@ -184,6 +192,15 @@ export function RifugioModel3D({ step = 0, label, content, idle = false }) {
           aria-label={label}
         />
       </div>
+
+      <span
+        id={gestureHintId}
+        className="rifugio-model3d-mobile-hint"
+        data-used={String(touched)}
+        aria-hidden={mobileMode && !touched ? undefined : "true"}
+      >
+        {gestureHint}
+      </span>
 
       <div className="rifugio-model3d-controls">
         <div className="rifugio-model3d-controls-row">

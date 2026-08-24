@@ -16,16 +16,21 @@ export function SequenceStepper({
   prevLabel,
   nextLabel,
   showNavigation = true,
+  navigationEnabled,
+  manual = false,
+  showCaption = true,
+  reserveCaptionSpace = false,
   className = "",
 }) {
   const { uiContent } = useContent();
   const resolvedPrevLabel = prevLabel ?? uiContent.actions.previousItem;
   const resolvedNextLabel = nextLabel ?? uiContent.actions.nextItem;
+  const resolvedNavigationEnabled = navigationEnabled ?? complete;
 
   return (
     <div
-      className={`seq-stepper seq-stepper--${variant}${complete ? " seq-stepper--done" : ""}${showNavigation ? "" : " seq-stepper--no-nav"}${className ? ` ${className}` : ""}`}
-      aria-hidden={complete ? undefined : "true"}
+      className={`seq-stepper seq-stepper--${variant}${complete ? " seq-stepper--done" : ""}${resolvedNavigationEnabled ? " seq-stepper--nav-enabled" : ""}${manual ? " seq-stepper--manual" : ""}${reserveCaptionSpace ? " seq-stepper--caption-reserved" : ""}${showNavigation ? "" : " seq-stepper--no-nav"}${className ? ` ${className}` : ""}`}
+      aria-hidden={complete || resolvedNavigationEnabled ? undefined : "true"}
     >
       <div className="seq-stepper-row">
         {showNavigation && (
@@ -33,9 +38,9 @@ export function SequenceStepper({
             type="button"
             className="seq-nav seq-nav--prev"
             onClick={onPrev}
-            disabled={!complete || activeIndex <= 0}
+            disabled={!resolvedNavigationEnabled || activeIndex <= 0}
             aria-label={resolvedPrevLabel}
-            tabIndex={complete ? 0 : -1}
+            tabIndex={resolvedNavigationEnabled ? 0 : -1}
           >
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
               <path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
@@ -45,11 +50,15 @@ export function SequenceStepper({
 
         <div className="seq-dots">
           {Array.from({ length: count }).map((_, i) => {
-            const filling = Boolean(stepMs) && !complete && i === revealed - 1;
+            const filling =
+              Boolean(stepMs) && !complete && !manual && i === revealed - 1;
+            const done = manual ? i < activeIndex : i < revealed;
+            const next = !manual && !complete && i === revealed;
+            const current = (complete || manual) && i === activeIndex;
             return (
               <span
                 key={i}
-                className={`seq-dot${i < revealed ? " is-done" : ""}${!complete && i === revealed ? " is-next" : ""}${complete && i === activeIndex ? " is-current" : ""}`}
+                className={`seq-dot${done ? " is-done" : ""}${next ? " is-next" : ""}${current ? " is-current" : ""}`}
                 style={tones ? { "--tone": tones[i] } : undefined}
               >
                 {filling && (
@@ -75,9 +84,9 @@ export function SequenceStepper({
             type="button"
             className="seq-nav seq-nav--next"
             onClick={onNext}
-            disabled={!complete || activeIndex >= count - 1}
+            disabled={!resolvedNavigationEnabled || activeIndex >= count - 1}
             aria-label={resolvedNextLabel}
-            tabIndex={complete ? 0 : -1}
+            tabIndex={resolvedNavigationEnabled ? 0 : -1}
           >
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
               <path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
@@ -86,7 +95,16 @@ export function SequenceStepper({
         )}
       </div>
 
-      <span className="seq-caption">{complete ? captionDone : captionPlaying}</span>
+      {showCaption ? (
+        <span className="seq-caption">{complete ? captionDone : captionPlaying}</span>
+      ) : reserveCaptionSpace ? (
+        <span
+          className="seq-caption seq-caption--placeholder"
+          aria-hidden="true"
+        >
+          {captionPlaying || "\u00a0"}
+        </span>
+      ) : null}
     </div>
   );
 }

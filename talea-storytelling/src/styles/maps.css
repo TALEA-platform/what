@@ -442,6 +442,12 @@
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .hotspot-mobile-gesture-hint {
+    animation: none;
+  }
+}
+
 @media (max-width: 1279px) {
   .hotspot-intro-vg.is-building .scene {
     filter: none !important;
@@ -2665,9 +2671,55 @@
     padding: 5px 0 5px 2px;
   }
 
+  .hotspot-local-progress {
+    --local-story-color: var(--talea-dark-green);
+    --local-story-fill: var(--talea-dark-green);
+    --local-story-track: rgba(27, 58, 41, 0.16);
+    --local-story-rail-width: 72px;
+  }
+
+  .hotspot-mobile-context-stack,
+  .hotspot-mobile-slider-stack {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: auto;
+  }
+
+  .hotspot-mobile-context-cue {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    color: var(--talea-dark-green);
+    font-size: clamp(12px, 1.7vw, 13px);
+    font-weight: 700;
+    line-height: 1.3;
+    text-align: center;
+    text-wrap: balance;
+    pointer-events: none;
+  }
+
+  .hotspot-mobile-context-cue > [aria-hidden="true"] {
+    flex: none;
+    color: #a43c22;
+    font-size: 1.08em;
+  }
+
+  .hotspot-mobile-context-cue--handoff,
+  .hotspot-mobile-context-cue--slider {
+    min-height: 38px;
+    padding: 8px 12px;
+    border: 1px solid rgba(27, 58, 41, 0.16);
+    border-radius: 10px;
+    background: rgba(248, 246, 239, 0.97);
+    box-shadow: 0 10px 26px -18px rgba(27, 58, 41, 0.55);
+  }
+
   .hotspot-mobile-sequence-status {
     max-width: 310px;
-    color: var(--ink-soft);
+    color: var(--talea-dark-green);
     font-weight: 600;
     text-wrap: pretty;
   }

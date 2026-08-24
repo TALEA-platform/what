@@ -19,7 +19,7 @@ const ENGAGE_SETTLE_MS = 640;
 const VIGNETTE_DRAW_MS = 1500;
 
 export function RifugioExplainer({ onGlossary }) {
-  const { content } = useContent();
+  const { content, uiContent } = useContent();
   const reliefContent = content.climateRelief;
   const reliefHeader = reliefContent.opening;
   const reliefExplainer = reliefContent.explainer;
@@ -51,10 +51,12 @@ export function RifugioExplainer({ onGlossary }) {
   const rifugioScrollGraceMs = START_DELAY + readMs[0] + 300;
   const [entered, setEntered] = useState(false);
   const [engaged, setEngaged] = useState(false);
-  const [scrolledPast, setScrolledPast] = useState(false);
+  const [manualMode, setManualMode] = useState(false);
   const [nearby, setNearby] = useState(false);
   const [settled, setSettled] = useState(false);
   const [figureInView, setFigureInView] = useState(false);
+  const [pageCueVisible, setPageCueVisible] = useState(false);
+  const [finalCueUnlocked, setFinalCueUnlocked] = useState(false);
 
   const explainerRef = useRef(null);
   const figureRef = useRef(null);
@@ -64,6 +66,10 @@ export function RifugioExplainer({ onGlossary }) {
   const lastNudgeAtRef = useRef(0);
   const activeIndexRef = useRef(0);
   const drawnKeysRef = useRef(new Set());
+  const pageCueShownRef = useRef(false);
+  const pageCueStartYRef = useRef(null);
+  const pageCueVisibleRef = useRef(false);
+  const manualModeRef = useRef(false);
 
   const {
     revealed,
@@ -74,30 +80,45 @@ export function RifugioExplainer({ onGlossary }) {
     advanceTo,
     forceComplete,
     goTo,
-    goPrev,
-    goNext,
   } = useTimedSequence({
     count: rifugioSteps.length,
-    engaged,
+    engaged: engaged && !manualMode,
     startDelay: START_DELAY,
     readMs,
     tailMs: TAIL_MS,
-    pickDuringPlay: scrolledPast,
+    pickDuringPlay: true,
   });
-
-  const released = scrolledPast || revealed >= rifugioSteps.length;
-
-  useEffect(() => {
-    if (released && selected == null) goTo(activeIndex);
-  }, [released, selected, activeIndex, goTo]);
 
   const step = activeIndex;
   const textIndex = selected != null ? selected : activeIndex;
-  const canStep = complete || released;
+  const lastStepIndex = rifugioSteps.length - 1;
+  const finalCueVisible = finalCueUnlocked || (!manualMode && complete);
+  const sequencePlaying = !manualMode && !complete;
+  const stepStatus = uiContent.localStory.stepLabelTemplate
+    .replace("{current}", String(activeIndex + 1))
+    .replace("{total}", String(rifugioSteps.length));
 
   useEffect(() => {
     activeIndexRef.current = activeIndex;
   }, [activeIndex]);
+
+  const takeManualStep = (delta) => {
+    const nextIndex = Math.max(
+      0,
+      Math.min(lastStepIndex, activeIndexRef.current + delta),
+    );
+    if (nextIndex === activeIndexRef.current) return;
+    if (
+      (!manualModeRef.current && completeRef.current) ||
+      nextIndex === lastStepIndex
+    ) {
+      setFinalCueUnlocked(true);
+    }
+    manualModeRef.current = true;
+    setManualMode(true);
+    activeIndexRef.current = nextIndex;
+    goTo(nextIndex);
+  };
 
   useEffect(() => {
     scrollAccelerationUnlockAtRef.current = engaged
@@ -196,7 +217,7 @@ export function RifugioExplainer({ onGlossary }) {
       frame = null;
       const vh = window.innerHeight || 768;
       const readingLine = vh * 0.52;
-      const mobileLayout = window.matchMedia("(max-width: 1100px)").matches;
+      const mobileLayout = window.matchMedia("(max-width: 1279px)").matches;
 
       const sectionRect = explainerRef.current?.getBoundingClientRect();
       const introHoldRect = introHoldRef.current?.getBoundingClientRect();
@@ -207,13 +228,37 @@ export function RifugioExplainer({ onGlossary }) {
       const nextEngaged =
         inScene && Boolean(introHoldRect) && introHoldRect.top <= readingLine;
 
-      if (Boolean(holdRect) && holdRect.bottom <= readingLine) setScrolledPast(true);
+      if (mobileLayout && nextEngaged && !pageCueShownRef.current) {
+        if (pageCueStartYRef.current == null) {
+          pageCueStartYRef.current = window.scrollY;
+          pageCueVisibleRef.current = true;
+          setPageCueVisible(true);
+        } else if (Math.abs(window.scrollY - pageCueStartYRef.current) >= 56) {
+          pageCueShownRef.current = true;
+          pageCueVisibleRef.current = false;
+          setPageCueVisible(false);
+        }
+      } else if (
+        pageCueVisibleRef.current &&
+        (!mobileLayout || !nextEngaged)
+      ) {
+        pageCueVisibleRef.current = false;
+        setPageCueVisible(false);
+        if (pageCueStartYRef.current != null) pageCueShownRef.current = true;
+      }
+
       const leftBehind = Boolean(sectionRect) && sectionRect.bottom < vh * 0.3;
       if (leftBehind && !completeRef.current) forceComplete();
 
       const scrollAccelerationReady =
         performance.now() >= scrollAccelerationUnlockAtRef.current;
-      if (nextEngaged && scrollAccelerationReady && holdRect && !completeRef.current) {
+      if (
+        nextEngaged &&
+        !manualModeRef.current &&
+        scrollAccelerationReady &&
+        holdRect &&
+        !completeRef.current
+      ) {
         const travelled = (vh - holdRect.top) / Math.max(1, holdRect.height);
         const progress = Math.min(1, Math.max(0, travelled));
         const askedByScroll = Math.min(
@@ -257,7 +302,11 @@ export function RifugioExplainer({ onGlossary }) {
       ref={explainerRef}
       className={`relief-explainer${entered ? " relief-explainer--entered" : ""}${engaged ? " relief-explainer--engaged" : ""}`}
       data-step={step}
+      data-manual={String(manualMode)}
     >
+      <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+        {stepStatus}
+      </p>
       <div className="relief-explainer-stage">
         <div className="relief-explainer-inner">
           <div className="relief-intro-heading">
@@ -301,6 +350,7 @@ export function RifugioExplainer({ onGlossary }) {
                   label={reliefExplainer.figure.ariaLabel}
                   content={reliefExplainer.model}
                   idle={!engaged || !settled}
+                  gestureHint={uiContent.localStory.modelGesture}
                 />
               ) : null}
             </div>
@@ -310,10 +360,14 @@ export function RifugioExplainer({ onGlossary }) {
               count={rifugioSteps.length}
               revealed={revealed}
               activeIndex={activeIndex}
-              complete={canStep}
+              complete={complete}
+              navigationEnabled
+              manual={manualMode}
+              showCaption={sequencePlaying}
+              reserveCaptionSpace
               stepMs={readMs}
-              onPrev={goPrev}
-              onNext={goNext}
+              onPrev={() => takeManualStep(-1)}
+              onNext={() => takeManualStep(1)}
               captionPlaying={reliefExplainer.sequence.playing}
               captionDone={reliefExplainer.sequence.done}
             />
@@ -339,13 +393,35 @@ export function RifugioExplainer({ onGlossary }) {
                 ))}
               </ul>
             </div>
+            <div
+              className="relief-final-cue-slot relief-final-cue-slot--mobile"
+              data-unlocked={String(finalCueVisible)}
+            >
+              <ScrollCue
+                label={reliefExplainer.sequence.done}
+                variant="light"
+                loop
+                className={`relief-seq-cue relief-seq-cue--final relief-seq-cue--mobile${
+                  finalCueVisible ? " is-unlocked" : " is-locked"
+                }`}
+                decorative={!finalCueVisible}
+              />
+            </div>
           </div>
 
           <div
             className={`relief-explainer-text${
-              canStep ? "" : " relief-explainer-text--playing"
+              sequencePlaying ? " relief-explainer-text--playing" : ""
             }`}
           >
+            {pageCueVisible ? (
+              <ScrollCue
+                label={uiContent.localStory.keepScrollingPage}
+                variant="light"
+                className="relief-page-scroll-cue"
+                decorative={false}
+              />
+            ) : null}
             <div className="relief-seq-body" data-motion="story">
               {rifugioSteps.map((s, i) => {
                 const state =
@@ -379,14 +455,30 @@ export function RifugioExplainer({ onGlossary }) {
               count={rifugioSteps.length}
               revealed={revealed}
               activeIndex={activeIndex}
-              complete={canStep}
+              complete={complete}
+              navigationEnabled
+              manual={manualMode}
+              showCaption={sequencePlaying}
+              reserveCaptionSpace
               stepMs={readMs}
-              onPrev={goPrev}
-              onNext={goNext}
+              onPrev={() => takeManualStep(-1)}
+              onNext={() => takeManualStep(1)}
               captionPlaying={reliefExplainer.sequence.playing}
               captionDone={reliefExplainer.sequence.done}
             />
-            {canStep ? <ScrollCue variant="light" className="relief-seq-cue" /> : null}
+            <div
+              className="relief-final-cue-slot relief-final-cue-slot--desktop"
+              data-unlocked={String(finalCueVisible)}
+            >
+              <ScrollCue
+                label={reliefExplainer.sequence.done}
+                variant="light"
+                className={`relief-seq-cue relief-seq-cue--final relief-seq-cue--desktop${
+                  finalCueVisible ? " is-unlocked" : " is-locked"
+                }`}
+                decorative={!finalCueVisible}
+              />
+            </div>
           </div>
         </div>
       </div>

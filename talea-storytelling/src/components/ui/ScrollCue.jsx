@@ -1,8 +1,16 @@
-export function ScrollCue({ label, variant = "dark", loop = false, className = "" }) {
+export function ScrollCue({
+  label,
+  variant = "dark",
+  loop = false,
+  className = "",
+  decorative = true,
+}) {
   return (
     <div
       className={`scroll-cue scroll-cue--${variant}${loop ? " scroll-cue--loop" : ""}${className ? ` ${className}` : ""}`}
-      aria-hidden="true"
+      aria-hidden={decorative ? "true" : undefined}
+      role={decorative ? undefined : "status"}
+      aria-live={decorative ? undefined : "polite"}
     >
       {label ? <span className="scroll-cue-label">{label}</span> : null}
       <svg className="scroll-cue-chevron" viewBox="0 0 24 24" focusable="false">

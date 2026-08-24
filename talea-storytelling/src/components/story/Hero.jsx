@@ -9,17 +9,17 @@ const heroPoster = assetUrl("/data/hero/bologna-poster.jpg");
 
 const SCALE_STOPS = [[0, 1], [0.4, 1.14], [0.75, 1.34], [1, 1.58]];
 const TEXT_OPACITY_STOPS = [[0, 1], [0.24, 0.65], [0.4, 0.12], [0.48, 0]];
-const MOBILE_TEXT_OPACITY_STOPS = [[0, 1], [0.22, 0.7], [0.32, 0], [1, 0]];
 const TEXT_Y_STOPS = [[0, 0], [0.26, -20], [0.48, -48], [1, -72]];
 const TEXT_SCALE_STOPS = [[0, 1], [0.24, 1.08], [0.4, 1.24], [0.48, 1.44]];
 const OVERLAY_STOPS = [[0, 0.1], [0.3, 0.24], [0.48, 0.38], [0.9, 0.38], [1, 0.12]];
 const BRIDGE_OPACITY_STOPS = [[0, 0], [0.26, 0], [0.38, 0.5], [0.48, 1], [0.9, 1], [1, 0]];
-const MOBILE_BRIDGE_OPACITY_STOPS = [[0, 0], [0.4, 0], [0.48, 1], [0.9, 1], [1, 0]];
+const MOBILE_BRIDGE_VISIBLE_STOPS = [[0.35, 1], [0.9, 1], [1, 0]];
 const BRIDGE_Y_STOPS = [[0, 30], [0.38, 14], [0.48, 0], [0.9, 0], [1, -22]];
 const BRIDGE_SCALE_STOPS = [[0, 1.1], [0.38, 1.04], [0.48, 1], [0.9, 1], [1, 1.16]];
 const BRIDGE_BLUR_STOPS = [[0, 6], [0.38, 2], [0.48, 0], [0.9, 0], [1, 10]];
 const HERO_FADE_STOPS = [[0, 1], [0.87, 1], [1, 0]];
 const MOBILE_HERO_FADE_STOPS = [[0, 1], [0.75, 1], [1, 0]];
+const MOBILE_COPY_SWAP_AT = 0.35;
 
 const BRIDGE_LIT_ON = 0.46;
 const BRIDGE_LIT_OFF = 0.4;
@@ -198,17 +198,21 @@ export function Hero() {
 
       sticky.style.setProperty(
         "--hero-text-opacity",
-        interp(
-          progress,
-          mobileMode ? MOBILE_TEXT_OPACITY_STOPS : TEXT_OPACITY_STOPS,
+        (mobileMode
+          ? progress < MOBILE_COPY_SWAP_AT
+            ? 1
+            : 0
+          : interp(progress, TEXT_OPACITY_STOPS)
         ).toFixed(3),
       );
       sticky.style.setProperty("--hero-overlay-opacity", interp(progress, OVERLAY_STOPS).toFixed(3));
       sticky.style.setProperty(
         "--bridge-opacity",
-        interp(
-          progress,
-          mobileMode ? MOBILE_BRIDGE_OPACITY_STOPS : BRIDGE_OPACITY_STOPS,
+        (mobileMode
+          ? progress < MOBILE_COPY_SWAP_AT
+            ? 0
+            : interp(progress, MOBILE_BRIDGE_VISIBLE_STOPS)
+          : interp(progress, BRIDGE_OPACITY_STOPS)
         ).toFixed(3),
       );
       const heroFade = interp(

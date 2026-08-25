@@ -25,7 +25,7 @@ progress:
     - id: cause
       label: "Le cause"
     - id: ombra
-      label: "L'ombra"
+      label: "L’ombra"
     - id: persone
       label: "Le persone"
     - id: sollievo
@@ -55,7 +55,7 @@ map:
   title: "Mappa"
   legend: "Legenda"
   hotspotSequenceDone: "Usa le frecce per rivedere una frase, oppure scorri per continuare"
-  toggleAttribution: "Mostra o nascondi l'attribuzione della mappa"
+  toggleAttribution: "Mostra o nascondi l’attribuzione della mappa"
   cooperativeGestures:
     windows: "Usa Ctrl + scorrimento per ingrandire la mappa"
     mac: "Usa ⌘ + scorrimento per ingrandire la mappa"

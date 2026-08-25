@@ -49,7 +49,7 @@ Il grafico iniziale usa la media estiva delle massime giornaliere dell'aria: rac
 
 ## Cos'è un hotspot climatico
 
-È un'area che, in una o più estati, rientra nel 10 % delle superfici più calde di Bologna. La ricorrenza indica in quante estati su tredici un'area è rientrata in quella fascia: 1, 3 o 5 estati segnano livelli diversi di persistenza.
+È un'area che, in più estati, rientra nel 10% delle superfici più calde di Bologna. La ricorrenza indica in quante estati su tredici un'area è rientrata in quella fascia.
 
 ## I dati sull'ombra
 
@@ -57,7 +57,7 @@ Sono simulazioni basate sul modello tridimensionale della città, calcolate a in
 
 ## Chi è più esposto
 
-La fragilità climatica non si legge solo sul termometro: mette insieme quanto un'area si scalda, chi la abita e quante possibilità offre di trovare riparo. Il 75 % citato nella storia viene da uno studio pubblicato su Bologna, che trovi linkato nel testo, non da un'elaborazione di questa webapp.
+La fragilità climatica non si legge solo sul termometro: mette insieme quanto un'area si scalda, chi la abita e quante possibilità offre di trovare riparo. Il 75% citato nella storia viene da uno studio pubblicato su Bologna, che trovi linkato nel testo, non da un'elaborazione di questa webapp.
 
 ## Come si contano i rifugi climatici
 

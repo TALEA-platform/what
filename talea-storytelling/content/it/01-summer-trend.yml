@@ -4,8 +4,8 @@ locale: it
 section:
   id: summer-trend
   ariaLabel: "Trend estati a Bologna"
-  title: "La prima conferma arriva dall'aria."
-  lead: "Le temperature massime si stanno alzando sempre di più, e i picchi torridi che un tempo erano rari stanno diventando la normalità."
+  title: "La prima conferma arriva dall’aria."
+  lead: "Le temperature massime si stanno alzando sempre di più, e i picchi torridi, che un tempo erano rari stanno diventando la normalità."
   bridge: "Questa tendenza, però, dice quanto fa caldo."
   punch:
     - id: trend-punch-negation
@@ -45,6 +45,6 @@ chart:
     prefix: "Fonte:"
     label: "ARPAE Eraclito61, cella ERG5 centrale 01421"
     meanLabel: "media storica delle massime, dal 1961 al 2025"
-    variable: "Media delle massime giornaliere dell'aria (°C)"
+    variable: "Media delle massime giornaliere dell’aria (°C)"
     period: "giugno-agosto, 1961-2025"
     area: "Bologna centro, quota media cella 69 m"

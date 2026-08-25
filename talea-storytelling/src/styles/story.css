@@ -10665,6 +10665,17 @@
   text-wrap: balance;
 }
 
+.talea-subtitle {
+  max-width: 34ch;
+  margin: clamp(14px, 1.5vw, 20px) 0 0;
+  color: var(--closing-ink);
+  font-family: var(--font-text);
+  font-size: clamp(1.45rem, 1.8vw, 2rem);
+  font-weight: 600;
+  line-height: 1.25;
+  text-wrap: balance;
+}
+
 .talea-meaning {
   max-width: 62ch;
   margin: clamp(30px, 3.4vw, 44px) auto 0;
@@ -10954,8 +10965,15 @@
 .talea-participation {
   position: relative;
   overflow-x: clip;
-  background: linear-gradient(180deg, var(--paper) 0%, #eef3e8 100%);
-  padding: clamp(96px, 12vw, 168px) var(--content-pad);
+  background:
+    radial-gradient(circle at 68% 24%, rgba(33, 168, 74, 0.065), transparent 26%),
+    linear-gradient(180deg, var(--paper) 0%, #eef3e8 100%);
+  padding: clamp(64px, 6vw, 88px) var(--content-pad) clamp(48px, 5vw, 68px);
+}
+
+.talea-participation-frame {
+  width: min(1120px, 100%);
+  margin: 0 auto;
 }
 
 .talea-say {
@@ -10964,25 +10982,641 @@
   text-align: center;
 }
 
-.talea-say-title {
+.talea-participation-intro-title {
   margin: 0;
   font-family: var(--font-display);
   font-optical-sizing: auto;
-  font-size: var(--fs-display);
+  font-size: clamp(2.35rem, 3.6vw, 3.3rem);
   font-weight: 400;
   color: var(--talea-dark-green);
-  line-height: 1.06;
+  line-height: 1.08;
   letter-spacing: -0.015em;
   text-wrap: balance;
 }
 
 .talea-say-body {
-  max-width: 62ch;
-  margin: clamp(24px, 2.6vw, 34px) auto 0;
+  max-width: 64ch;
+  margin-inline: auto;
   font-size: var(--fs-body);
-  line-height: 1.7;
+  line-height: 1.62;
   color: var(--closing-ink);
   text-wrap: pretty;
+}
+
+.talea-say-body {
+  margin-top: clamp(16px, 1.8vw, 22px);
+}
+
+.talea-participation-showcase {
+  display: grid;
+  grid-template-columns: minmax(0, 1.18fr) minmax(280px, 0.82fr);
+  align-items: center;
+  gap: clamp(34px, 5vw, 72px);
+  width: 100%;
+  margin: clamp(34px, 4vw, 50px) 0 0;
+}
+
+.talea-participation-vignette {
+  min-width: 0;
+}
+
+.talea-participation-vignette-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.talea-participation-vignette-svg .tpv-wash {
+  fill: rgba(33, 168, 74, 0.08);
+}
+
+.talea-participation-vignette-svg .tpv-paper {
+  fill: #fbfaf4;
+}
+
+.talea-participation-vignette-svg .tpv-paper-shadow {
+  fill: rgba(58, 53, 42, 0.1);
+}
+
+.talea-participation-vignette-svg .tpv-paper-texture {
+  fill: url("#tpv-paper-grain");
+  opacity: 0.42;
+}
+
+.talea-participation-vignette-svg .tpv-grain-dot {
+  fill: #8f866f;
+  opacity: 0.2;
+}
+
+.talea-participation-vignette-svg .tpv-fold {
+  fill: #ded6c2;
+}
+
+.talea-participation-vignette-svg .tpv-block {
+  fill: #e4ddca;
+}
+
+.talea-participation-vignette-svg .tpv-park {
+  fill: #c6d9b8;
+}
+
+.talea-participation-vignette-svg .tpv-route {
+  fill: none;
+  stroke: #73977a;
+  stroke-width: 9;
+  stroke-linecap: round;
+  stroke-dasharray: 5 12;
+  opacity: 0.48;
+}
+
+.talea-participation-vignette-svg .tpv-street {
+  fill: none;
+  stroke: #d6cebb;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-dasharray: 2 7;
+}
+
+.talea-participation-vignette-svg .tpv-map-hatch path {
+  fill: none;
+  stroke: #9d947e;
+  stroke-width: 1.35;
+  stroke-linecap: round;
+  opacity: 0.28;
+}
+
+.talea-participation-vignette-svg .tpv-crossing path {
+  fill: none;
+  stroke: #8e8672;
+  stroke-width: 3;
+  stroke-linecap: round;
+  opacity: 0.46;
+}
+
+.talea-participation-vignette-svg .tpv-symbol-plate {
+  fill: rgba(251, 250, 244, 0.82);
+  stroke: rgba(109, 118, 95, 0.2);
+  stroke-width: 1.4;
+}
+
+.talea-participation-vignette-svg .tpv-tree path {
+  fill: #8f7554;
+}
+
+.talea-participation-vignette-svg .tpv-tree circle {
+  fill: #83a96f;
+}
+
+.talea-participation-vignette-svg .tpv-bench rect,
+.talea-participation-vignette-svg .tpv-bench path {
+  fill: none;
+  stroke: #8c7759;
+  stroke-width: 5;
+  stroke-linecap: round;
+}
+
+.talea-participation-vignette-svg .tpv-water path:first-child {
+  fill: #d8e3df;
+  stroke: #688c80;
+  stroke-width: 2.2;
+}
+
+.talea-participation-vignette-svg .tpv-water path:last-child {
+  fill: none;
+  stroke: #688c80;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.talea-participation-vignette-svg .tpv-skin {
+  fill: #e9c39d;
+}
+
+.talea-participation-vignette-svg .tpv-skin-alt {
+  fill: #a97857;
+}
+
+.talea-participation-vignette-svg .tpv-sleeve {
+  fill: #91aa8e;
+}
+
+.talea-participation-vignette-svg .tpv-sleeve-alt {
+  fill: #c3b18a;
+}
+
+.talea-participation-vignette-svg .tpv-pencil {
+  fill: #7f9b77;
+}
+
+.talea-participation-vignette-svg .tpv-pencil-band {
+  fill: #d5c78f;
+}
+
+.talea-participation-vignette-svg .tpv-pencil-tip {
+  fill: #3a352a;
+}
+
+.talea-participation-vignette-svg .tpv-map-ink path,
+.talea-participation-vignette-svg .tpv-hand-ink path {
+  fill: none;
+  stroke: #3a352a;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.talea-participation-vignette-svg .tpv-hand-ink .tpv-hand-detail {
+  stroke-width: 1.35;
+  opacity: 0.52;
+}
+
+.talea-participation-vignette-svg .tpv-marker path {
+  fill: var(--marker-fill, var(--talea-green));
+  stroke: #fbfaf4;
+  stroke-width: 2;
+}
+
+.talea-participation-vignette-svg .tpv-marker circle {
+  fill: #ffffff;
+}
+
+.talea-participation-vignette-svg .tpv-marker--sage {
+  --marker-fill: #789e79;
+}
+
+.talea-participation-stat-column {
+  position: relative;
+  min-width: 0;
+  isolation: isolate;
+}
+
+.talea-participation-stat-column::before {
+  position: absolute;
+  z-index: -1;
+  inset: -28% -18% -24% -28%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(33, 168, 74, 0.075), transparent 64%);
+  content: "";
+  pointer-events: none;
+}
+
+.talea-participation-stat {
+  min-width: 0;
+  text-align: left;
+}
+
+.talea-participation-stat-lockup {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin: 0;
+}
+
+.talea-participation-stat-value {
+  display: block;
+  color: var(--talea-dark-green);
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-size: clamp(4rem, 5.6vw, 5.25rem);
+  font-weight: 400;
+  line-height: 0.88;
+  letter-spacing: -0.045em;
+}
+
+.talea-participation-stat-label {
+  margin-top: 14px;
+  color: var(--talea-dark-green);
+  font-family: var(--font-display);
+  font-size: clamp(1.4rem, 1.9vw, 1.75rem);
+  line-height: 1.12;
+  text-wrap: balance;
+}
+
+.talea-participation-stat-scope {
+  margin-top: 7px;
+  color: var(--closing-ink);
+  font-size: var(--fs-map);
+  line-height: 1.4;
+}
+
+.talea-participation-area-summary {
+  display: grid;
+  gap: 5px;
+  margin: 20px 0 0;
+  padding: 0;
+  color: var(--ink);
+  font-size: var(--fs-caption);
+  line-height: 1.4;
+  list-style: none;
+}
+
+.talea-participation-area-summary li {
+  white-space: nowrap;
+}
+
+.talea-participation-area-summary strong {
+  display: inline-block;
+  min-width: 2.2ch;
+  margin-right: 4px;
+  color: var(--talea-dark-green);
+  font-weight: 700;
+}
+
+.talea-participation-methodology {
+  max-width: 48ch;
+  margin: 14px 0 0;
+  color: var(--ink-soft);
+  font-size: var(--fs-caption);
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+
+.talea-participation-figure {
+  margin: clamp(48px, 5vw, 66px) 0 0;
+  padding-top: clamp(30px, 3.5vw, 42px);
+  border-top: 1px solid var(--border-soft);
+}
+
+.talea-participation-figure-caption {
+  max-width: 720px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.talea-participation-chart-title {
+  margin: 0;
+  color: var(--talea-dark-green);
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-size: clamp(2rem, 3vw, 2.75rem);
+  font-weight: 400;
+  line-height: 1.08;
+  letter-spacing: -0.016em;
+  text-wrap: balance;
+}
+
+.talea-participation-areas {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(24px, 3vw, 40px);
+  margin: clamp(26px, 3vw, 36px) 0 0;
+}
+
+.talea-participation-area {
+  min-width: 0;
+  padding: clamp(20px, 2.2vw, 26px);
+  border-block: 1px solid color-mix(in srgb, var(--talea-dark-green) 12%, transparent);
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--paper-hi) 32%, transparent),
+    transparent 78%
+  );
+}
+
+.talea-participation-area-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.talea-participation-area-header h4 {
+  margin: 0;
+  color: var(--talea-dark-green);
+  font-size: var(--fs-map);
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+}
+
+.talea-participation-area-total {
+  flex: none;
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: var(--fs-caption);
+  line-height: 1.35;
+  text-transform: uppercase;
+}
+
+.talea-participation-area-total strong {
+  color: var(--talea-dark-green);
+}
+
+.talea-participation-breakdown {
+  display: grid;
+  gap: 18px;
+  margin: 22px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.talea-participation-breakdown li {
+  min-width: 0;
+}
+
+.talea-participation-category-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.talea-participation-category-label {
+  min-width: 0;
+  color: var(--ink);
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  line-height: 1.35;
+  text-wrap: pretty;
+}
+
+.talea-participation-breakdown .is-dominant .talea-participation-category-label {
+  color: var(--talea-dark-green);
+  font-weight: 700;
+}
+
+.talea-participation-category-value {
+  flex: none;
+  min-width: 2ch;
+  color: var(--ink);
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  line-height: 1.3;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.talea-participation-category-value strong {
+  color: var(--ink);
+}
+
+.talea-participation-mini-track {
+  display: block;
+  width: 100%;
+  height: 6px;
+  margin-top: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ink-soft) 10%, var(--paper));
+}
+
+.talea-participation-mini-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--talea-dark-green) 74%, #8ca68f);
+  transform-origin: left center;
+}
+
+.talea-participation-breakdown .is-dominant .talea-participation-mini-fill {
+  background: var(--talea-dark-green);
+}
+
+.talea-participation-takeaway {
+  width: min(780px, 100%);
+  margin: clamp(36px, 4vw, 52px) auto 0;
+  text-align: center;
+}
+
+.talea-participation-takeaway-text {
+  margin: 0;
+  color: var(--talea-dark-green);
+  font-size: var(--fs-lead);
+  font-weight: 600;
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+
+@media (max-width: 1279px) {
+  .talea-participation {
+    padding-inline: clamp(22px, 4vw, 38px);
+  }
+
+  .talea-participation-intro-title {
+    font-size: var(--type-section);
+  }
+
+  .talea-say-body {
+    font-size: var(--type-body);
+  }
+
+  .talea-participation-stat-value {
+    font-size: var(--type-stat-large);
+  }
+
+  .talea-participation-stat-label {
+    font-size: var(--type-lead);
+  }
+
+  .talea-participation-takeaway-text {
+    font-size: var(--type-lead);
+  }
+
+  .talea-participation-stat-scope,
+  .talea-participation-area-header h4,
+  .talea-participation-category-label {
+    font-size: var(--type-body-compact);
+  }
+
+  .talea-participation-area-summary,
+  .talea-participation-methodology,
+  .talea-participation-area-total,
+  .talea-participation-category-value {
+    font-size: var(--type-caption);
+  }
+
+  .talea-participation-chart-title {
+    font-size: var(--type-section);
+  }
+}
+
+@media (max-width: 800px) {
+  .talea-participation-showcase,
+  .talea-participation-areas {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .talea-participation-showcase {
+    gap: 44px;
+  }
+
+  .talea-participation-vignette {
+    width: min(620px, 100%);
+    margin-inline: auto;
+  }
+
+  .talea-participation-stat-column {
+    width: min(620px, 100%);
+    margin-inline: auto;
+    text-align: center;
+  }
+
+  .talea-participation-stat {
+    text-align: center;
+  }
+
+  .talea-participation-stat-lockup {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    align-items: center;
+    column-gap: 16px;
+    width: fit-content;
+    max-width: 100%;
+    margin-inline: auto;
+    text-align: left;
+  }
+
+  .talea-participation-stat-value {
+    grid-row: 1 / 3;
+  }
+
+  .talea-participation-stat-label {
+    align-self: end;
+    margin-top: 0;
+  }
+
+  .talea-participation-stat-scope {
+    align-self: start;
+  }
+
+  .talea-participation-area-summary {
+    justify-items: stretch;
+    width: max-content;
+    max-width: 100%;
+    margin-inline: auto;
+    text-align: left;
+  }
+
+  .talea-participation-area-summary li {
+    display: grid;
+    grid-template-columns: 2.2ch auto;
+    column-gap: 4px;
+  }
+
+  .talea-participation-area-summary strong {
+    min-width: 0;
+    margin-right: 0;
+    text-align: right;
+  }
+
+  .talea-participation-methodology {
+    margin-inline: auto;
+  }
+
+  .talea-participation-areas {
+    gap: 18px;
+  }
+}
+
+@media (max-width: 600px) {
+  .talea-participation {
+    padding: 54px 18px 46px;
+  }
+
+  .talea-participation-intro-title {
+    max-width: min(18ch, 100%);
+    margin-inline: auto;
+  }
+
+  .talea-say-body {
+    margin-top: 16px;
+  }
+
+  .talea-participation-showcase {
+    gap: 40px;
+    margin-top: 26px;
+  }
+
+  .talea-participation-figure {
+    margin-top: 38px;
+    padding-top: 26px;
+  }
+
+  .talea-participation-areas {
+    margin-top: 24px;
+  }
+
+  .talea-participation-area {
+    padding: 18px 14px;
+  }
+
+  .talea-participation-area-header {
+    align-items: flex-end;
+    gap: 10px;
+  }
+
+  .talea-participation-breakdown {
+    gap: 18px;
+    margin-top: 22px;
+  }
+
+  .talea-participation-category-line {
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .talea-participation-category-label {
+    max-width: 24ch;
+  }
+
+  .talea-participation-mini-track {
+    margin-top: 7px;
+  }
+
+  .talea-participation-takeaway {
+    margin-top: 32px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .talea-participation-mini-fill {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
 }
 
 .talea-partners {

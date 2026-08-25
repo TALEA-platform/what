@@ -49,7 +49,7 @@ The opening chart uses the summer average of daily maximum air temperatures: it 
 
 ## What is a climate hotspot?
 
-It is an area that falls within the hottest 10 % of Bologna's surfaces in one or more summers. Recurrence indicates how many of the thirteen summers an area fell within that range: 1, 3 or 5 summers mark different levels of persistence.
+It is an area that falls within the hottest 10% of Bologna's surfaces in multiple summers. Recurrence indicates how many of the thirteen summers an area fell within that range.
 
 ## Shade data
 
@@ -57,7 +57,7 @@ These simulations are based on the city's three-dimensional model and calculated
 
 ## Who is most exposed
 
-Climate vulnerability cannot be read from the thermometer alone: it brings together how much an area heats up, who lives there and how many opportunities it offers to find relief. The 75 % cited in the story comes from a published study on Bologna, linked in the text, rather than from an analysis produced by this web app.
+Climate vulnerability cannot be read from the thermometer alone: it brings together how much an area heats up, who lives there and how many opportunities it offers to find relief. The 75% cited in the story comes from a published study on Bologna, linked in the text, rather than from an analysis produced by this web app.
 
 ## How climate refuges are counted
 

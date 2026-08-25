@@ -6,10 +6,10 @@ chapter:
 
 opening:
   id: climate-relief-opening
-  title: "Green spaces are the solution."
+  title: "Green spaces can make a difference."
   lead:
     id: climate-relief-lead
-    before: "A "
+    before: "An outdoor "
     term:
       id: climate-refuge-term
       text: "climate refuge"
@@ -140,7 +140,7 @@ refuges:
     links:
       id: climate-refuges-links
       municipalLabel: "The Municipality’s climate refuge map"
-      taleaLabel: "TALEA’s climate refuge map"
+      taleaLabel: "Explore the analysis of parks and gardens with compatible characteristics"
     loadError: "Climate refuge data is currently unavailable."
     search:
       id: climate-refuges-search
@@ -281,7 +281,7 @@ cityPlan:
         - id: porticoes-middle
           text: " form continuous, sheltered routes. The municipal "
         - id: shadow-lines-link
-          text: "Linee d'ombra"
+          text: "Linee d’ombra"
           linkId: shadow-lines-project
         - id: porticoes-after
           text: " project explores how to enhance them and connect them to climate refuges."

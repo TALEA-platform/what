@@ -7,6 +7,7 @@ project:
   header:
     id: talea-project-header
     title: "Bologna is already working on it."
+    subtitle: "And it is doing so together with its citizens."
     lockup: "The project is called"
     logo:
       id: talea-project-logo
@@ -43,7 +44,7 @@ project:
 
 zones:
   id: talea-zones
-  ariaLabel: "Map of the TALEA project's pilot areas"
+  ariaLabel: "Map of the TALEA project’s pilot areas"
   legend:
     id: talea-zones-legend
     area: "Project areas"
@@ -93,8 +94,36 @@ zones:
 
 participation:
   id: talea-participation
-  title: "The project also grows through the contribution of the people who live in the city."
-  body: "Residents take part through neighbourhood walks, meetings and workshops: they explain how they experience these places, the difficulties they face and what could improve them."
+  intro:
+    title: "Input from people who live in these neighbourhoods helps define priorities."
+    body: "Through walks, mapping activities and workshops, citizens highlight issues, express needs and put forward proposals."
+    support: "These contributions complement technical and environmental analyses and help identify priorities and possible interventions."
+    vignette:
+      ariaLabel: "On a neighbourhood map, three hands point to a route, place a marker and annotate a proposal."
+      description: "The map contains georeferenced markers and symbols for trees, seating, water and routes; the hands represent observing, reporting and proposing."
+  stat:
+    mappedLabel: "mapped proposals"
+    scope: "across the two project areas"
+    methodology: "Data collected and mapped during participatory activities."
+  chart:
+    title: "What themes emerge?"
+    subtitle: "The proposals collected highlight different needs in the two contexts."
+    proposalsLabel: "proposals"
+    categories:
+      - id: greenComfort
+        label: "Green space and environmental comfort"
+      - id: servicesAmenities
+        label: "Services and amenities"
+      - id: accessibilityRoutes
+        label: "Accessibility and routes"
+    areas:
+      - id: historicCentreNorth
+        name: "Historic Centre–North"
+      - id: fossolo
+        name: "Fossolo"
+    interpretation: "In the Historic Centre–North, proposals focus mainly on green space and environmental comfort. In Fossolo, services and amenities stand out, together with a greater emphasis on accessibility."
+  takeaway:
+    text: "The contributions collected are considered alongside technical and environmental analyses in project decisions."
 
 partners:
   id: talea-partners
@@ -151,7 +180,7 @@ closing:
       - id: portale
         name: "TALEA platform"
         tag: "The project"
-        description: "The gateway to all the project's tools and open data."
+        description: "The gateway to all the project’s tools and open data."
         linkId: talea-platform
       - id: historysuhi
         name: "Heat, summer after summer"

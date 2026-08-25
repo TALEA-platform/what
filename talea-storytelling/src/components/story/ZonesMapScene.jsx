@@ -177,11 +177,7 @@ export function ZonesMapScene() {
   const flownRef = useRef(false);
   const openedRef = useRef(false);
   const activeZoneRef = useRef(null);
-  const driftGenerationRef = useRef(0);
-  const driftMoveEndRef = useRef(null);
   const openStartRef = useRef(0);
-  const mobileCameraTouchedRef = useRef(false);
-  const lastAppliedStageRef = useRef(null);
   const mapLibreLocaleRef = useRef({});
 
   const [ready, setReady] = useState(false);
@@ -233,17 +229,6 @@ export function ZonesMapScene() {
     const map = mapRef.current;
     if (!map) return;
     const mobileLayout = window.matchMedia(MOBILE_LAYOUT_QUERY).matches;
-    if (lastAppliedStageRef.current !== s) {
-      lastAppliedStageRef.current = s;
-      mobileCameraTouchedRef.current = false;
-    }
-
-    driftGenerationRef.current += 1;
-    const generation = driftGenerationRef.current;
-    if (driftMoveEndRef.current) {
-      map.off("moveend", driftMoveEndRef.current);
-      driftMoveEndRef.current = null;
-    }
     map.stop();
 
     const zone = s >= 1 ? ZONES[s - 1] : null;
@@ -276,31 +261,6 @@ export function ZonesMapScene() {
       return;
     }
 
-    const startDrift = (direction = 1) => {
-      if (
-        mobileLayout ||
-        reduceMotion ||
-        driftGenerationRef.current !== generation ||
-        mobileCameraTouchedRef.current
-      ) return;
-      const onDriftEnd = () => {
-        driftMoveEndRef.current = null;
-        startDrift(direction * -1);
-      };
-      driftMoveEndRef.current = onDriftEnd;
-      map.once("moveend", onDriftEnd);
-      map.easeTo({
-        center: [
-          zone.center[0] + (0.00052 * direction),
-          zone.center[1] + (0.00016 * direction),
-        ],
-        ...(mobileLayout ? {} : { zoom: zone.zoom }),
-        duration: 14000,
-        easing: (t) => t,
-        essential: true,
-      });
-    };
-
     if (!animate || reduceMotion) {
       if (mobileLayout) {
         map.fitBounds(zoneBounds(zone), {
@@ -309,7 +269,6 @@ export function ZonesMapScene() {
           duration: 0,
           essential: !reduceMotion,
         });
-        startDrift();
         return;
       }
       map.flyTo({
@@ -319,16 +278,9 @@ export function ZonesMapScene() {
         padding: cameraPadding(),
         essential: true,
       });
-      startDrift();
       return;
     }
 
-    const onFlightEnd = () => {
-      driftMoveEndRef.current = null;
-      startDrift();
-    };
-    driftMoveEndRef.current = onFlightEnd;
-    map.once("moveend", onFlightEnd);
     if (mobileLayout) {
       map.fitBounds(zoneBounds(zone), {
         padding: cameraPadding(),
@@ -372,16 +324,6 @@ export function ZonesMapScene() {
       map.on("render", () => {
         positionFocusMask(map, activeZoneRef.current, focusMaskRef.current);
       });
-      const markMobileCameraTouched = (event) => {
-        if (
-          window.matchMedia(MOBILE_LAYOUT_QUERY).matches &&
-          event.originalEvent
-        ) {
-          mobileCameraTouchedRef.current = true;
-        }
-      };
-      map.on("dragstart", markMobileCameraTouched);
-      map.on("zoomstart", markMobileCameraTouched);
 
       map.on("load", () => {
         try {
@@ -443,10 +385,6 @@ export function ZonesMapScene() {
     io.observe(section);
     return () => {
       io.disconnect();
-      driftGenerationRef.current += 1;
-      if (mapRef.current && driftMoveEndRef.current) {
-        mapRef.current.off("moveend", driftMoveEndRef.current);
-      }
       mapRef.current?.stop();
       mapRef.current?.remove();
       mapRef.current = null;
@@ -473,11 +411,6 @@ export function ZonesMapScene() {
     if (!ready || engaged) return;
     const map = mapRef.current;
     if (!map) return;
-    driftGenerationRef.current += 1;
-    if (driftMoveEndRef.current) {
-      map.off("moveend", driftMoveEndRef.current);
-      driftMoveEndRef.current = null;
-    }
     map.stop();
   }, [ready, engaged]);
 

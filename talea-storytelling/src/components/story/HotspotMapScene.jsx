@@ -966,10 +966,11 @@ export function HotspotMapScene() {
               ? hotspotMapCopy.sequence.done
               : hotspotMapCopy.sequence.playing}
           </span>
-          {!mobileLayout && sequenceComplete && (
-            <ScrollCue variant="light" className="hotspot-sequence-cue" />
-          )}
         </div>
+
+        {!mobileLayout && sequenceComplete && (
+          <ScrollCue variant="light" className="hotspot-sequence-cue" />
+        )}
 
         {mobileLayout && (
           <div className="hotspot-sequence-controls">

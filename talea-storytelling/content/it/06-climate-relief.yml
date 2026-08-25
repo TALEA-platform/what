@@ -6,7 +6,7 @@ chapter:
 
 opening:
   id: climate-relief-opening
-  title: "Gli spazi verdi sono la soluzione."
+  title: "Gli spazi verdi possono fare la differenza."
   lead:
     id: climate-relief-lead
     before: "Un "
@@ -14,7 +14,7 @@ opening:
       id: climate-refuge-term
       text: "rifugio climatico"
       glossary: climate-refuge
-    after: " nasce quando più forme di sollievo si incontrano nello stesso luogo."
+    after: " all'aperto nasce quando più forme di sollievo si incontrano nello stesso luogo."
   body:
     - id: climate-relief-opening-body
       text: "Questa combinazione trasforma uno spazio di passaggio in un luogo dove fermarsi, rinfrescarsi e riprendere fiato nelle ore più calde."
@@ -25,7 +25,7 @@ explainer:
   figure:
     id: climate-refuge-figure
     ariaLabel: "Una strada assolata di Bologna — sullo sfondo le Due Torri e i colli — si trasforma progressivamente in un rifugio climatico: compaiono ombra, strutture leggere, sedute, acqua, verde e suolo permeabile, una fermata dell’autobus a due passi. Il sole resta ma si fa più leggero, gli oggetti proiettano ombre e un indicatore racconta il passaggio da molto caldo al comfort termico. Le persone accaldate ritrovano il sorriso."
-    svgAriaLabel: "Cos'e' un rifugio climatico"
+    svgAriaLabel: "Cos’è un rifugio climatico"
   model:
     id: climate-refuge-model
     title: "Una piazza di quartiere prima della trasformazione climatica"
@@ -99,7 +99,7 @@ explainer:
       added: "Suolo vivo"
       piece: "verde e suolo vivo"
       paragraphs:
-        - "Il verde a terra mitiga il calore e permette all'acqua piovana di infiltrarsi naturalmente nel terreno."
+        - "Il verde a terra mitiga il calore e permette all’acqua piovana di infiltrarsi naturalmente nel terreno."
     - id: accessibility
       added: "Accessibilità"
       piece: "accessibilità"
@@ -140,7 +140,7 @@ refuges:
     links:
       id: climate-refuges-links
       municipalLabel: "La mappa dei rifugi climatici del Comune"
-      taleaLabel: "La mappa dei rifugi climatici di Talea"
+      taleaLabel: "Esplora l'analisi di parchi e giardini con caratteristiche compatibili"
     loadError: "Dati dei rifugi climatici non caricati al momento."
     search:
       id: climate-refuges-search
@@ -229,7 +229,7 @@ cityPlan:
     id: climate-relief-city-plan-scene
     ariaLabel: "Dove manca, si costruisce: scenario illustrativo di un quartiere tipo in cui spazi verdi, percorsi ombreggiati e portici diventano una rete"
     figureAriaLabel: "Scenario illustrativo, non una mappa dei cantieri. La pianta combina elementi riconoscibili di Bologna in un quartiere tipo: un viale, isolati a corte, strade porticate, palazzine, una piazza lastricata in parte usata per la sosta e il cortile asfaltato di una scuola. La piazza mantiene molto lastricato ma apre aiuole permeabili, acqua e ombra; altri spazi asfaltati diventano aree verdi. Una nuova fermata, filari di alberi e portici entrano nella stessa rete e un itinerario ombreggiato attraversa la mappa dal parco al giardino."
-    svgDescription: "Un pezzo di Bologna visto dall'alto: il viale di circonvallazione con l'aiuola alberata, il centro con piazze, palazzi a corte, fronti aperti e due strade porticate. Fuori, una periferia diversa per densita', con condomini, case a schiera, villini, laboratori, una piazza lastricata usata come parcheggio e il cortile d'asfalto di una scuola. Scorrendo, la piazza mantiene il suo centro lastricato ma apre aiuole permeabili, acqua e ombra, mentre il cortile diventa piu' verde. Una fermata, gruppi di alberi, pergolati e portici li uniscono in una fascia d'ombra continua che attraversa la mappa dal parco al giardino."
+    svgDescription: "Un pezzo di Bologna visto dall’alto: il viale di circonvallazione con l’aiuola alberata, il centro con piazze, palazzi a corte, fronti aperti e due strade porticate. Fuori, una periferia diversa per densità, con condomini, case a schiera, villini, laboratori, una piazza lastricata usata come parcheggio e il cortile d’asfalto di una scuola. Scorrendo, la piazza mantiene il suo centro lastricato ma apre aiuole permeabili, acqua e ombra, mentre il cortile diventa più verde. Una fermata, gruppi di alberi, pergolati e portici li uniscono in una fascia d’ombra continua che attraversa la mappa dal parco al giardino."
     context:
       id: climate-relief-city-plan-context
       title: "Dove manca, si costruisce"
@@ -281,7 +281,7 @@ cityPlan:
         - id: porticoes-middle
           text: " attraversano Bologna formando percorsi continui e riparati. Il progetto comunale "
         - id: shadow-lines-link
-          text: "Linee d'ombra"
+          text: "Linee d’ombra"
           linkId: shadow-lines-project
         - id: porticoes-after
           text: " studia come valorizzarli e connetterli ai rifugi climatici."
@@ -311,8 +311,8 @@ cityPlan:
         label: "portici"
   vignetteDescriptions:
     - id: costruire
-      text: "Una piazza lastricata ampia fra due palazzine, sul fronte di una strada, con quattro auto raccolte lungo stalli segnati su un solo bordo, una canaletta, lampioni, paracarri e rastrelliere. Arrivano le transenne e nella pavimentazione si aprono due grandi aiuole: sotto la pietra c'e' la terra nuda, poi il prato. Ci si piantano quattro alberi, si monta un pergolato con il rampicante, si scava un giardino della pioggia con la ghiaia e le pietre, e a filo del lastricato si accende una fontana a raso. Gran parte della pietra resta, con tre panche e le persone che ci stanno; sul marciapiede compare anche una fermata del bus con pensilina."
+      text: "Una piazza lastricata ampia fra due palazzine, sul fronte di una strada, con quattro auto raccolte lungo stalli segnati su un solo bordo, una canaletta, lampioni, paracarri e rastrelliere. Arrivano le transenne e nella pavimentazione si aprono due grandi aiuole: sotto la pietra c’è la terra nuda, poi il prato. Ci si piantano quattro alberi, si monta un pergolato con il rampicante, si scava un giardino della pioggia con la ghiaia e le pietre, e a filo del lastricato si accende una fontana a raso. Gran parte della pietra resta, con tre panche e le persone che ci stanno; sul marciapiede compare anche una fermata del bus con pensilina."
     - id: corridoio
-      text: "Una strada lungo un fronte di palazzine. Il marciapiede resta all'ombra per tutta la sua lunghezza con quattro mezzi diversi, uno dopo l'altro: un tratto di portico con le sue arcate, una pergola con i travetti che getta un'ombra a righe, un filare di tre alberi e infine una siepe con un alberello. All'inizio l'ombra e' a chiazze staccate; alla fine e' una fascia continua, e le persone la percorrono da un capo all'altro senza mai un tratto al sole."
+      text: "Una strada lungo un fronte di palazzine. Il marciapiede resta all’ombra per tutta la sua lunghezza con quattro mezzi diversi, uno dopo l’altro: un tratto di portico con le sue arcate, una pergola con i travetti che getta un’ombra a righe, un filare di tre alberi e infine una siepe con un alberello. All’inizio l’ombra è a chiazze staccate; alla fine è una fascia continua, e le persone la percorrono da un capo all’altro senza mai un tratto al sole."
     - id: portico
-      text: "Un portico bolognese visto di sbieco: tre campate con i piedritti sul filo strada, gli archi a tutto centro con la loro ghiera di conci e il concio di chiave, e le volte che vanno indietro fino al muro del palazzo, dove si vedono le vetrine e i portoni del piano terra. Sopra, tre piani di finestre con le persiane e un tetto a due falde con il comignolo. Sotto il passaggio corre un'ombra continua, e ci stanno una signora anziana con il bastone e una persona in carrozzina: il portico e' gia' un rifugio, e lo e' per chi ne ha piu' bisogno."
+      text: "Un portico bolognese visto di sbieco: tre campate con i piedritti sul filo strada, gli archi a tutto centro con la loro ghiera di conci e il concio di chiave, e le volte che vanno indietro fino al muro del palazzo, dove si vedono le vetrine e i portoni del piano terra. Sopra, tre piani di finestre con le persiane e un tetto a due falde con il comignolo. Sotto il passaggio corre un’ombra continua, e ci stanno una signora anziana con il bastone e una persona in carrozzina: il portico è già un rifugio, e lo è per chi ne ha più bisogno."

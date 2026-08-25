@@ -3,12 +3,12 @@ locale: it
 
 chapter:
   id: shadow-focus
-  ariaLabel: "L'ombra a Bologna"
+  ariaLabel: "L’ombra a Bologna"
 
 intro:
   id: shadow-focus-intro
-  opening: "C'è un terzo fattore, e si comporta in modo strano."
-  title: "L'ombra"
+  opening: "C’è un terzo fattore, e si comporta in modo strano."
+  title: "L’ombra"
   lead: "Verrebbe da pensare che le zone più ombreggiate siano anche più fresche."
   pivot: "A Bologna, in alcuni punti, succede il contrario."
 
@@ -17,7 +17,7 @@ map:
   ariaLabel: "Mappa scura ombra Bologna"
   stages:
     - id: overview
-      body: "Nelle ore più calde, alberi e edifici creano un'alternanza di luce e ombra in tutta la città.\n L'esposizione al sole cambia da una zona all'altra."
+      body: "Nelle ore più calde, alberi e edifici creano un’alternanza di luce e ombra in tutta la città.\n L’esposizione al sole cambia da una zona all’altra."
     - id: centro
       body: "Avvicinandosi al centro storico, i palazzi alti schermano la luce diretta per gran parte della giornata. \n Eppure è proprio qui, dove il riparo sembra maggiore, che la temperatura è spesso elevata."
   legend:
@@ -28,23 +28,23 @@ map:
     to: "Più spesso in ombra"
     sourceLink:
       id: shadow-focus-data-link
-      label: "Esplora i dati dell'ombra in dettaglio"
+      label: "Esplora i dati dell’ombra in dettaglio"
   sequence:
     id: shadow-focus-sequence
-    playing: "L'ombra alle ore più calde"
+    playing: "L’ombra alle ore più calde"
     done: "Seleziona una descrizione, o scorri per continuare"
 
 closing:
   id: shadow-focus-closing
-  pivot: "L'ombra c'è, ma il calore rimane."
-  body: "Un paradosso urbano: la protezione dal sole dona un sollievo apparente, mentre l'ambiente circostante continua ad assorbire e rilasciare calore."
+  pivot: "L’ombra c’è, ma il calore rimane."
+  body: "Un paradosso urbano: la protezione dal sole dona un sollievo apparente, mentre l’ambiente circostante continua ad assorbire e rilasciare calore."
 
 statistics:
   id: shadow-focus-statistics
   kicker: "Nel centro urbano di Bologna"
   scope: "Percentuale della superficie nel perimetro evidenziato"
   hinge: "Eppure"
-  because: "E questo perché qui c'è"
+  because: "E questo perché qui c’è"
   municipalComparison: "Media comunale"
   handoff: "Ma la città non è fatta solo di superfici."
   metrics:
@@ -53,7 +53,7 @@ statistics:
       note: "nelle ore più calde, fra le 12 e le 15"
     - metricId: hotspot
       label: "ricade negli hotspot climatici"
-      note: "nel 10 % più caldo dell'intero Comune, in almeno 9 estati su 13"
+      note: "nel 10% più caldo dell’intero Comune, in almeno 9 estati su 13"
     - metricId: vegetation
       label: "di verde"
     - metricId: absorbing-surfaces

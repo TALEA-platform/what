@@ -777,6 +777,20 @@
   margin-top: 2px;
 }
 
+@media (min-width: 1280px) {
+  .hotspot-sequence-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: fit-content;
+  }
+
+  .hotspot-sequence-cue {
+    align-self: center;
+    margin-top: 8px;
+  }
+}
+
 .hotspot-entry-runway {
   min-height: 70vh;
   flex: none;

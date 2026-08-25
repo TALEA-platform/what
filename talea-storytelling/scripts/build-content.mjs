@@ -1477,6 +1477,26 @@ function validateTalea(document, location) {
   const zonesLegend = requireObject(zones.legend, `${location}.zones.legend`);
   const zonesIntro = requireObject(zones.intro, `${location}.zones.intro`);
   const participation = requireObject(document.participation, `${location}.participation`);
+  const participationIntro = requireObject(
+    participation.intro,
+    `${location}.participation.intro`,
+  );
+  const participationVignette = requireObject(
+    participationIntro.vignette,
+    `${location}.participation.intro.vignette`,
+  );
+  const participationStat = requireObject(
+    participation.stat,
+    `${location}.participation.stat`,
+  );
+  const participationChart = requireObject(
+    participation.chart,
+    `${location}.participation.chart`,
+  );
+  const participationTakeaway = requireObject(
+    participation.takeaway,
+    `${location}.participation.takeaway`,
+  );
   const partners = requireObject(document.partners, `${location}.partners`);
   const partnerFunding = requireObject(
     partners.funding,
@@ -1608,6 +1628,31 @@ function validateTalea(document, location) {
     throw new Error(`${location}.zones.areas must contain two areas`);
   }
 
+  const participationCategories = requireOrderedIds(
+    participationChart.categories,
+    ["greenComfort", "servicesAmenities", "accessibilityRoutes"],
+    `${location}.participation.chart.categories`,
+  ).map((rawCategory, index) => {
+    const categoryLocation = `${location}.participation.chart.categories[${index}]`;
+    const category = requireObject(rawCategory, categoryLocation);
+    return {
+      id: requireString(category.id, `${categoryLocation}.id`),
+      label: requireString(category.label, `${categoryLocation}.label`),
+    };
+  });
+  const participationAreas = requireOrderedIds(
+    participationChart.areas,
+    ["historicCentreNorth", "fossolo"],
+    `${location}.participation.chart.areas`,
+  ).map((rawArea, index) => {
+    const areaLocation = `${location}.participation.chart.areas[${index}]`;
+    const area = requireObject(rawArea, areaLocation);
+    return {
+      id: requireString(area.id, `${areaLocation}.id`),
+      name: requireString(area.name, `${areaLocation}.name`),
+    };
+  });
+
   const partnerIds = [
     "comune-bologna",
     "universita-bologna",
@@ -1698,6 +1743,7 @@ function validateTalea(document, location) {
         header: {
           id: requireString(header.id, `${location}.project.header.id`),
           title: requireString(header.title, `${location}.project.header.title`),
+          subtitle: requireString(header.subtitle, `${location}.project.header.subtitle`),
           lockup: requireString(header.lockup, `${location}.project.header.lockup`),
           logo: {
             id: requireString(logo.id, `${location}.project.header.logo.id`),
@@ -1737,8 +1783,70 @@ function validateTalea(document, location) {
       },
       participation: {
         id: requireString(participation.id, `${location}.participation.id`),
-        title: requireString(participation.title, `${location}.participation.title`),
-        body: requireString(participation.body, `${location}.participation.body`),
+        intro: {
+          title: requireString(
+            participationIntro.title,
+            `${location}.participation.intro.title`,
+          ),
+          body: requireString(
+            participationIntro.body,
+            `${location}.participation.intro.body`,
+          ),
+          support: requireString(
+            participationIntro.support,
+            `${location}.participation.intro.support`,
+          ),
+          vignette: {
+            ariaLabel: requireString(
+              participationVignette.ariaLabel,
+              `${location}.participation.intro.vignette.ariaLabel`,
+            ),
+            description: requireString(
+              participationVignette.description,
+              `${location}.participation.intro.vignette.description`,
+            ),
+          },
+        },
+        stat: {
+          mappedLabel: requireString(
+            participationStat.mappedLabel,
+            `${location}.participation.stat.mappedLabel`,
+          ),
+          scope: requireString(
+            participationStat.scope,
+            `${location}.participation.stat.scope`,
+          ),
+          methodology: requireString(
+            participationStat.methodology,
+            `${location}.participation.stat.methodology`,
+          ),
+        },
+        chart: {
+          title: requireString(
+            participationChart.title,
+            `${location}.participation.chart.title`,
+          ),
+          subtitle: requireString(
+            participationChart.subtitle,
+            `${location}.participation.chart.subtitle`,
+          ),
+          proposalsLabel: requireString(
+            participationChart.proposalsLabel,
+            `${location}.participation.chart.proposalsLabel`,
+          ),
+          categories: participationCategories,
+          areas: participationAreas,
+          interpretation: requireString(
+            participationChart.interpretation,
+            `${location}.participation.chart.interpretation`,
+          ),
+        },
+        takeaway: {
+          text: requireString(
+            participationTakeaway.text,
+            `${location}.participation.takeaway.text`,
+          ),
+        },
       },
       partners: {
         id: requireString(partners.id, `${location}.partners.id`),

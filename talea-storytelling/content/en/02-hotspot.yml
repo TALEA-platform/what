@@ -30,7 +30,7 @@ intro:
       figureLabel: "Three overlapping sheets show the same part of the city from above, one for each summer. Some areas are among the hottest on every sheet, but only two recur on all of them."
       visual:
         ariaLabel: "The same city, summer after summer"
-        description: "Coloured-pencil illustration: three overlapping maps show Bologna's municipal area from above, one for each summer, overlaid with the grid used to sample surface temperature. Some cells are among the hottest on each map, but only two recur on all three; they are circled in pencil."
+        description: "Coloured-pencil illustration: three overlapping maps show Bologna’s municipal area from above, one for each summer, overlaid with the grid used to sample surface temperature. Some cells are among the hottest on each map, but only two recur on all three; they are circled in pencil."
         labels:
           recurring: "always among the hottest"
       paragraphs:
@@ -49,7 +49,7 @@ intro:
               text: ": surfaces that fall within the hottest 10% of the city, summer after summer."
   closer:
     id: hotspot-intro-closer
-    text: "Let's find them on the map."
+    text: "Let’s find them on the map."
 
 map:
   id: hotspot-map
@@ -64,7 +64,7 @@ map:
         - id: threshold-narrow
           segments:
             - id: threshold-narrow-body
-              text: "Let's narrow it down."
+              text: "Let’s narrow it down."
     - id: recurrence
       paragraphs:
         - id: recurrence-pattern
@@ -76,7 +76,7 @@ map:
         - id: persistence-definition
           segments:
             - id: persistence-definition-intro
-              text: "Here are Bologna's "
+              text: "Here are Bologna’s "
             - id: persistence-definition-term
               text: "climate hotspots"
               kw: true
@@ -97,7 +97,7 @@ map:
       - id: stazione-centrale
         name: "Central Station"
         tag: "tracks and rail yards"
-        context: "the rail corridor retains the sun's heat until nightfall"
+        context: "the rail corridor retains the sun’s heat until nightfall"
       - id: scalo-ravone
         name: "Ravone rail yard"
         tag: "former rail yard"
@@ -137,7 +137,7 @@ map:
       id: hotspot-legend-scale
       min: "1 summer"
       max: "13 summers"
-    caption: "Number of the 13 summers (from 2013 to 2025) in which the area ranked among Bologna's hottest 10% of surfaces."
+    caption: "Number of the 13 summers (from 2013 to 2025) in which the area ranked among Bologna’s hottest 10% of surfaces."
     sourceLink:
       id: hotspot-source-link
       label: "Explore the technical data in detail"

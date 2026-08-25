@@ -33,6 +33,34 @@ export const taleaPartnerSpecs = [
 
 export const taleaOtherPartnerCount = taleaPartnerSpecs.length - 2;
 
+// Derived from the PROPOSTE folders in the two project KML files. Existing
+// furnishings, perceptions and reports are intentionally excluded.
+export const taleaParticipationData = {
+  categories: [
+    { id: "greenComfort" },
+    { id: "servicesAmenities" },
+    { id: "accessibilityRoutes" },
+  ],
+  areas: [
+    {
+      id: "historicCentreNorth",
+      categoryCounts: {
+        greenComfort: 20,
+        servicesAmenities: 13,
+        accessibilityRoutes: 1,
+      },
+    },
+    {
+      id: "fossolo",
+      categoryCounts: {
+        greenComfort: 15,
+        servicesAmenities: 34,
+        accessibilityRoutes: 12,
+      },
+    },
+  ],
+};
+
 export const zonesMap = {
   intro: {
     bounds: [

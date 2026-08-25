@@ -29,7 +29,7 @@ bridge:
       text: "neighbourhoods most exposed"
       kw: true
     - id: bridge-actions
-      text: " to heatwaves, strengthen places that offer relief, and plan concrete solutions to make the city more liveable."
+      text: " to heatwaves, strengthen areas that offer relief, and plan concrete solutions to make the city more liveable."
   callout:
     id: hero-bridge-callout
     lead: "This is not just about observing change:"

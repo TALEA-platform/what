@@ -31,7 +31,7 @@ progress:
     - id: sollievo
       label: "Green spaces"
     - id: rifugi
-      label: "Bologna's climate refuges"
+      label: "Bologna’s climate refuges"
     - id: costruire
       label: "Where they are missing, build them"
     - id: talea

@@ -7,15 +7,15 @@ chapter:
 intro:
   id: hotspot-intro
   ariaLabel: "Introduzione hotspot"
-  lead: "Se l'aria avvolge l'intera città in modo uniforme, le sue superfici reagiscono al sole in modo differente da una zona all'altra."
+  lead: "Se l’aria avvolge l’intera città in modo uniforme, le sue superfici reagiscono al sole in modo differente da una zona all’altra."
   vignettes:
     - id: superficie
-      figureLabel: "Una strada al tramonto. Un satellite misura dall'alto il calore delle superfici: il tetto segna 48 gradi, l'asfalto 52, la panchina 41, mentre il termometro della persona che cammina segna 34 gradi d'aria."
+      figureLabel: "Una strada al tramonto. Un satellite misura dall’alto il calore delle superfici: il tetto segna 48 gradi, l’asfalto 52, la panchina 41, mentre il termometro della persona che cammina segna 34 gradi d’aria."
       visual:
-        ariaLabel: "L'aria e le superfici, alla stessa ora"
-        description: "Illustrazione a matita colorata: una strada d'estate. Un satellite misura dall'alto il calore delle superfici. Il tetto segna 48 gradi, l'asfalto 52, la panchina 41, mentre il termometro della persona che cammina segna 34 gradi d'aria."
+        ariaLabel: "L’aria e le superfici, alla stessa ora"
+        description: "Illustrazione a matita colorata: una strada d’estate. Un satellite misura dall’alto il calore delle superfici. Il tetto segna 48 gradi, l’asfalto 52, la panchina 41, mentre il termometro della persona che cammina segna 34 gradi d’aria."
         labels:
-          air: "l'aria"
+          air: "l’aria"
       paragraphs:
         - id: surface-temperature-explanation
           segments:
@@ -27,10 +27,10 @@ intro:
             - id: surface-definition
               text: ": il calore accumulato da asfalto, tetti e piazze durante il giorno e rilasciato a lungo dopo il tramonto."
     - id: ricorrenza
-      figureLabel: "Tre fogli sovrapposti mostrano la stessa porzione di città vista dall'alto, uno per estate. In ognuno alcune zone sono fra le più calde, ma solo due tornano su tutti i fogli."
+      figureLabel: "Tre fogli sovrapposti mostrano la stessa porzione di città vista dall’alto, uno per estate. In ognuno alcune zone sono fra le più calde, ma solo due tornano su tutti i fogli."
       visual:
         ariaLabel: "La stessa città, estate dopo estate"
-        description: "Illustrazione a matita colorata: tre carte sovrapposte mostrano il territorio del comune di Bologna visto dall'alto, una per estate, con sopra la griglia con cui la temperatura di superficie viene campionata. In ogni carta alcune caselle sono fra le più calde, ma solo due tornano su tutte e tre: sono cerchiate a matita."
+        description: "Illustrazione a matita colorata: tre carte sovrapposte mostrano il territorio del comune di Bologna visto dall’alto, una per estate, con sopra la griglia con cui la temperatura di superficie viene campionata. In ogni carta alcune caselle sono fra le più calde, ma solo due tornano su tutte e tre: sono cerchiate a matita."
         labels:
           recurring: "sempre tra le più calde"
       paragraphs:
@@ -46,7 +46,7 @@ intro:
               text: "hotspot climatici"
               glossary: climate-hotspot
             - id: hotspot-definition-body
-              text: ": le superfici che rientrano nel 10 % con le temperature più alte della città, estate dopo estate."
+              text: ": le superfici che rientrano nel 10% con le temperature più alte della città, estate dopo estate."
   closer:
     id: hotspot-intro-closer
     text: "Andiamo a cercarli sulla mappa."
@@ -137,13 +137,13 @@ map:
       id: hotspot-legend-scale
       min: "1 estate"
       max: "13 estati"
-    caption: "In quante delle 13 estati (dal 2013 al 2025) l'area è rientrata nel 10 % di superfici più calde di Bologna."
+    caption: "In quante delle 13 estati (dal 2013 al 2025) l’area è rientrata nel 10% di superfici più calde di Bologna."
     sourceLink:
       id: hotspot-source-link
       label: "Esplora i dati tecnici in dettaglio"
   sequence:
     id: hotspot-sequence
-    playing: "13 estati, una sopra l'altra"
+    playing: "13 estati, una sopra l’altra"
     done: "Tocca una frase per rivederla, o scorri per continuare"
   slider:
     id: hotspot-slider

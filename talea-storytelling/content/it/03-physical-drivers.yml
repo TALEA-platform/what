@@ -45,7 +45,7 @@ narrative:
           topic: green
           flightTarget: green
         - id: green-body
-          text: ", inteso come presenza e densità della vegetazione sul territorio, non offre solo ombra, ma rilascia umidità nell'aria contribuendo a mitigare la temperatura circostante.\n\nDove alberi e piante si diradano, il tessuto urbano perde questa naturale capacità di bilanciare il calore."
+          text: ", inteso come presenza e densità della vegetazione sul territorio, non offre solo ombra, ma rilascia umidità nell’aria contribuendo a mitigare la temperatura circostante.\n\nDove alberi e piante si diradano, il tessuto urbano perde questa naturale capacità di bilanciare il calore."
     - id: clue-materials
       segments:
         - id: materials-intro
@@ -56,7 +56,7 @@ narrative:
           topic: materials
           flightTarget: materials
         - id: materials-body
-          text: " da cui è composta la città, dall'asfalto delle strade al cemento degli edifici, rispondono al sole in base alle loro proprietà fisiche. \n\n Le superfici scure e compatte raggiungono temperature più elevate e si raffreddano più lentamente, influenzando anche le condizioni dell’ambiente circostante."
+          text: " da cui è composta la città, dall’asfalto delle strade al cemento degli edifici, rispondono al sole in base alle loro proprietà fisiche. \n\n Le superfici scure e compatte raggiungono temperature più elevate e si raffreddano più lentamente, influenzando anche le condizioni dell’ambiente circostante."
     - id: compare
       segments:
         - id: compare-intro

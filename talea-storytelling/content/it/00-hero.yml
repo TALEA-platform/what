@@ -29,7 +29,7 @@ bridge:
       text: "quartieri più esposti"
       kw: true
     - id: bridge-actions
-      text: " alle ondate di calore, valorizzare i presidi di sollievo e pianificare soluzioni concrete per la vivibilità della città."
+      text: " alle ondate di calore, valorizzare le aree di sollievo e pianificare soluzioni concrete per la vivibilità della città."
   callout:
     id: hero-bridge-callout
     lead: "Non si tratta solo di osservare il cambiamento:"

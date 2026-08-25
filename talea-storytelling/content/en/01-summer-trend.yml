@@ -5,7 +5,7 @@ section:
   id: summer-trend
   ariaLabel: "Summer trends in Bologna"
   title: "The first confirmation comes from the air."
-  lead: "Maximum temperatures are climbing higher and higher, and scorching peaks that were once rare are becoming the norm."
+  lead: "Maximum temperatures are climbing higher and higher, and scorching peaks, that were once rare are becoming the norm."
   bridge: "But this trend tells us how hot it is."
   punch:
     - id: trend-punch-negation

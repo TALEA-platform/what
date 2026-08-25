@@ -30,7 +30,7 @@ intro:
         text: "."
   close:
     id: physical-drivers-intro-close
-    text: "Let's examine them in detail."
+    text: "Let’s examine them in detail."
 
 narrative:
   id: physical-drivers-narrative

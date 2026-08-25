@@ -7,6 +7,7 @@ project:
   header:
     id: talea-project-header
     title: "Bologna ci sta già lavorando."
+    subtitle: "E lo sta facendo con i cittadini."
     lockup: "Il progetto si chiama"
     logo:
       id: talea-project-logo
@@ -28,7 +29,7 @@ project:
       - id: chi
         label: "Chi lo realizza"
         value: "Il Comune di Bologna"
-        noteTemplate: "con l'Università di Bologna e altri {n} partner"
+        noteTemplate: "con l’Università di Bologna e altri {n} partner"
       - id: quando
         label: "Quanto dura"
         value: "Fino al 2028"
@@ -52,7 +53,7 @@ zones:
     title: "TALEA prende forma sul territorio."
     body:
       - id: zones-intro-before-fossolo
-        text: "Due aree di intervento iniziali, nate dall'incontro tra analisi del territorio e partecipazione dei cittadini: la zona del "
+        text: "Due aree di intervento iniziali, nate dall’incontro tra analisi del territorio e partecipazione dei cittadini: la zona del "
       - id: zones-intro-fossolo
         text: "Fossolo"
         emphasis: true
@@ -88,13 +89,41 @@ zones:
           text: "via Fratelli Rosselli"
           emphasis: true
         - id: historic-centre-after-streets
-          text: ", il progetto mette al centro vegetazione, suolo e spazio pubblico, in un'area densa, priva di terreno capace di assorbire la pioggia."
+          text: ", il progetto mette al centro vegetazione, suolo e spazio pubblico, in un’area densa, priva di terreno capace di assorbire la pioggia."
   loadError: "Mappa non caricata al momento."
 
 participation:
   id: talea-participation
-  title: "Il progetto cresce grazie anche al contributo di chi vive la città."
-  body: "I cittadini partecipano con passeggiate, incontri e laboratori nei quartieri: raccontano come vivono questi luoghi, quali difficoltà incontrano e cosa potrebbe migliorarli."
+  intro:
+    title: "Il contributo di chi vive questi quartieri aiuta a definire le priorità."
+    body: "Attraverso passeggiate, mappature e laboratori, i cittadini segnalano criticità, esprimono bisogni e formulano proposte."
+    support: "Questi contributi affiancano le analisi tecniche e ambientali e aiutano a definire priorità e possibili interventi."
+    vignette:
+      ariaLabel: "Su una mappa di quartiere, tre mani indicano un percorso, collocano un marker e annotano una proposta."
+      description: "La mappa raccoglie marker georeferenziati e simboli di alberi, sedute, acqua e percorsi; le mani rappresentano osservazione, segnalazione e proposta."
+  stat:
+    mappedLabel: "proposte mappate"
+    scope: "nelle due aree di progetto"
+    methodology: "Dati raccolti e localizzati sulla mappa durante le attività partecipative."
+  chart:
+    title: "Quali temi emergono?"
+    subtitle: "Le proposte raccolte mostrano esigenze differenti nei due contesti."
+    proposalsLabel: "proposte"
+    categories:
+      - id: greenComfort
+        label: "Verde e comfort ambientale"
+      - id: servicesAmenities
+        label: "Servizi e arredi"
+      - id: accessibilityRoutes
+        label: "Accessibilità e percorsi"
+    areas:
+      - id: historicCentreNorth
+        name: "Centro storico-Nord"
+      - id: fossolo
+        name: "Fossolo"
+    interpretation: "Nel Centro storico-Nord prevalgono le proposte legate a verde e comfort ambientale. A Fossolo emergono soprattutto servizi e arredi, insieme a un peso maggiore dell’accessibilità."
+  takeaway:
+    text: "I contributi raccolti vengono considerati insieme alle analisi tecniche e ambientali nelle scelte progettuali."
 
 partners:
   id: talea-partners
@@ -133,8 +162,8 @@ partners:
       role: "città di replica"
   funding:
     id: talea-partners-funding
-    text: "Cofinanziato dall'Unione Europea attraverso European Urban Initiative."
-    emblemLabel: "Bandiera dell'Unione Europea"
+    text: "Cofinanziato dall’Unione Europea attraverso European Urban Initiative."
+    emblemLabel: "Bandiera dell’Unione Europea"
     linkId: european-urban-initiative
 
 closing:
@@ -159,9 +188,9 @@ closing:
         description: "Dove Bologna scalda di più, e come è cambiato dal 2013 al 2025."
         linkId: history-suhi
       - id: sci
-        name: "Quanta ombra c'è nelle strade"
+        name: "Quanta ombra c’è nelle strade"
         tag: "SCI"
-        description: "Quanta ombra ricevono strade e piazze, ora per ora, in una giornata d'estate."
+        description: "Quanta ombra ricevono strade e piazze, ora per ora, in una giornata d’estate."
         linkId: shadow-focus-data
       - id: craf
         name: "I rifugi climatici e le fragilità"
@@ -191,8 +220,8 @@ footer:
         linkId: talea-atlas
   funding:
     id: talea-footer-funding
-    emblemAlt: "Cofinanziato dall'Unione Europea"
-    text: "Il progetto TALEA - Green cells leading the Green transition (EUI102-064) è cofinanziato dall'Unione Europea nell'ambito del programma European Urban Initiative - Innovative Actions (EUI-IA). Coinvolge il Comune di Bologna come Main Urban Authority, la Fondazione IU Rusconi Ghigi, l'Università di Bologna, la Fondazione Bruno Kessler, R2M Solutions, R3GIS e CINECA come partner italiani, e le città di Marsiglia, Riga e Cluj-Napoca come città di replica."
-    disclaimer: "Le opinioni espresse appartengono unicamente agli autori e non riflettono necessariamente quelle dell'Unione Europea o della European Urban Initiative (EUI). Né l'Unione Europea né la EUI possono esserne ritenute responsabili."
+    emblemAlt: "Cofinanziato dall’Unione Europea"
+    text: "Il progetto TALEA - Green cells leading the Green transition (EUI102-064) è cofinanziato dall’Unione Europea nell’ambito del programma European Urban Initiative - Innovative Actions (EUI-IA). Coinvolge il Comune di Bologna come Main Urban Authority, la Fondazione IU Rusconi Ghigi, l’Università di Bologna, la Fondazione Bruno Kessler, R2M Solutions, R3GIS e CINECA come partner italiani, e le città di Marsiglia, Riga e Cluj-Napoca come città di replica."
+    disclaimer: "Le opinioni espresse appartengono unicamente agli autori e non riflettono necessariamente quelle dell’Unione Europea o della European Urban Initiative (EUI). Né l’Unione Europea né la EUI possono esserne ritenute responsabili."
     euiLabel: "European Urban Initiative"
     linkId: european-urban-initiative

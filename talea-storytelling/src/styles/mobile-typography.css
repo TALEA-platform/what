@@ -46,6 +46,13 @@
     text-align: center;
   }
 
+  .talea-subtitle {
+    max-width: min(24ch, 100%);
+    margin-top: clamp(12px, 3.5vw, 16px);
+    font-size: clamp(1.3rem, 5.5vw, 1.5rem);
+    line-height: 1.25;
+  }
+
   .relief-intro-heading .relief-title {
     margin-inline: auto;
   }

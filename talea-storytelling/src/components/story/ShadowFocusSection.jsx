@@ -9,6 +9,8 @@ import {
 import { SequenceStepper } from "../ui/SequenceStepper";
 import { ScrollCue } from "../ui/ScrollCue";
 import { LocalStoryProgress } from "../ui/LocalStoryProgress";
+import { CountUp } from "../ui/CountUp";
+import { prefersReducedMotion, useCountUpRun } from "../../hooks/useCountUpRun";
 import {
   getShadowStageReadMs,
   shadowMetricLayout,
@@ -55,7 +57,6 @@ function getShadowMobileCameraPadding() {
 
 const COLOR_AFTER_MS = 560;
 
-const COUNT_MS = 900;
 const COUNT_STAGGER_MS = 250;
 
 const CENTRO_TONE = "#E0C24B";
@@ -67,13 +68,6 @@ const CENTRO_VEIL_OPACITY = 0.18;
 const CENTRO_VEIL_IN_MS = 600;
 const CENTRO_VEIL_HOLD_MS = 1500;
 const CENTRO_VEIL_OUT_MS = 1100;
-
-function prefersReducedMotion() {
-  return (
-    typeof window !== "undefined" &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches
-  );
-}
 
 function renderLines(text) {
   const chunks = Array.isArray(text) ? text : [text];
@@ -134,35 +128,6 @@ function ShadowScene() {
 }
 
 
-function CountUp({ target, delay, run }) {
-  const end = Number.parseFloat(target);
-  const reducedMotion = prefersReducedMotion();
-  const [shown, setShown] = useState(null);
-
-  useEffect(() => {
-    if (!run || !Number.isFinite(end)) return undefined;
-    if (reducedMotion) return undefined;
-    let frame = null;
-    const startTimer = window.setTimeout(() => {
-      const t0 = performance.now();
-      const tick = (now) => {
-        const t = Math.min(1, (now - t0) / COUNT_MS);
-        setShown(end * (1 - Math.pow(1 - t, 3)));
-        if (t < 1) frame = requestAnimationFrame(tick);
-      };
-      frame = requestAnimationFrame(tick);
-    }, delay);
-    return () => {
-      window.clearTimeout(startTimer);
-      if (frame) cancelAnimationFrame(frame);
-    };
-  }, [run, end, delay, reducedMotion]);
-
-  if (!Number.isFinite(end)) return <>{target}</>;
-  const display = reducedMotion ? end : (shown ?? (run ? 0 : end));
-  return <>{`${Math.round(display)}\u00a0%`}</>;
-}
-
 function MunicipalComparison({ value, label }) {
   if (!value?.bologna_fmt) return null;
   return (
@@ -187,24 +152,7 @@ function LeadCell({ metric, value, delay, run, municipalComparison }) {
 
 function ShadowTable({ values, table }) {
   const stripRef = useRef(null);
-  const [run, setRun] = useState(prefersReducedMotion);
-
-  useEffect(() => {
-    const el = stripRef.current;
-    if (!el || run) return undefined;
-    const io = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (!entry.isIntersecting) return;
-          io.unobserve(entry.target);
-          setRun(true);
-        });
-      },
-      { threshold: 0, rootMargin: "0px 0px -22% 0px" },
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, [run]);
+  const run = useCountUpRun(stripRef);
 
   const lead = table.metrics.filter((m) => m.tier === "lead");
   const support = table.metrics.filter((m) => m.tier === "support");

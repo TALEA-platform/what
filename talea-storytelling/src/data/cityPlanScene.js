@@ -1,6 +1,6 @@
 import { PLAN_ANCHORS } from "./cityPlan";
 
-export const planView = { at: [1180, 745], units: 2320 };
+export const planView = { at: [1180, 745], units: 2540 };
 
 // Camera targets used only below 1280px. `units` is the width of the plan,
 // expressed in SVG units, that fits inside the narrative band; lower values

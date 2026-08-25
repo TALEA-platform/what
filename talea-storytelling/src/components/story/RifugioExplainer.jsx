@@ -16,6 +16,10 @@ const SCROLL_NUDGE_COOLDOWN_MS = 650;
 const START_DELAY = 1500;
 const TAIL_MS = 900;
 const ENGAGE_SETTLE_MS = 640;
+const MOBILE_ENGAGE_SETTLE_MS = 900;
+const MOBILE_INTRO_ENTRANCE_MS = 1050;
+const MOBILE_INTRO_RETURN_MS = 200;
+const MOBILE_MODEL_INTRO_MS = 560;
 const VIGNETTE_DRAW_MS = 1500;
 
 export function RifugioExplainer({ onGlossary }) {
@@ -55,6 +59,11 @@ export function RifugioExplainer({ onGlossary }) {
   const [nearby, setNearby] = useState(false);
   const [settled, setSettled] = useState(false);
   const [figureInView, setFigureInView] = useState(false);
+  const [figureReached, setFigureReached] = useState(false);
+  const [introHasLiftRoom, setIntroHasLiftRoom] = useState(false);
+  const [introEntering, setIntroEntering] = useState(false);
+  const [introReturning, setIntroReturning] = useState(false);
+  const [modelIntroEntering, setModelIntroEntering] = useState(false);
   const [finalCueUnlocked, setFinalCueUnlocked] = useState(false);
 
   const explainerRef = useRef(null);
@@ -66,6 +75,9 @@ export function RifugioExplainer({ onGlossary }) {
   const activeIndexRef = useRef(0);
   const drawnKeysRef = useRef(new Set());
   const manualModeRef = useRef(false);
+  const enteredRef = useRef(false);
+  const engagedRef = useRef(false);
+  const modelIntroSeenRef = useRef(false);
 
   const {
     revealed,
@@ -153,8 +165,89 @@ export function RifugioExplainer({ onGlossary }) {
   }, [reliefExplainer.figure.svgAriaLabel]);
 
   useEffect(() => {
+    const explainer = explainerRef.current;
+    const inner = explainer?.querySelector(".relief-explainer-inner");
+    const heading = explainer?.querySelector(".relief-intro-heading");
+    const copy = explainer?.querySelector(".relief-intro-copy");
+    const figureStage = explainer?.querySelector(".relief-figure-stage");
+    const explainerText = explainer?.querySelector(".relief-explainer-text");
+    if (
+      !explainer ||
+      !inner ||
+      !heading ||
+      !copy ||
+      !figureStage ||
+      !explainerText
+    )
+      return undefined;
+
+    let frame = null;
+    let active = true;
+
+    const measure = () => {
+      frame = null;
+      if (
+        !window.matchMedia("(max-width: 1279px)").matches ||
+        explainer.classList.contains("relief-explainer--engaged")
+      )
+        return;
+
+      const innerStyle = window.getComputedStyle(inner);
+      const paddingTop = Number.parseFloat(innerStyle.paddingTop) || 0;
+      const paddingBottom = Number.parseFloat(innerStyle.paddingBottom) || 0;
+      const rowGap = Number.parseFloat(innerStyle.rowGap) || 0;
+      const items = [heading, copy, figureStage, explainerText].filter(
+        (node) => window.getComputedStyle(node).display !== "none",
+      );
+      const contentHeight = items.reduce((total, node) => {
+        const style = window.getComputedStyle(node);
+        const marginTop = Number.parseFloat(style.marginTop) || 0;
+        const marginBottom = Number.parseFloat(style.marginBottom) || 0;
+        return total + node.offsetHeight + marginTop + marginBottom;
+      }, 0);
+      const requiredHeight =
+        paddingTop +
+        paddingBottom +
+        contentHeight +
+        rowGap * Math.max(0, items.length - 1);
+
+      setIntroHasLiftRoom(inner.clientHeight - requiredHeight >= 36);
+    };
+
+    const queueMeasure = () => {
+      if (frame !== null) return;
+      frame = requestAnimationFrame(measure);
+    };
+
+    const resizeObserver =
+      typeof ResizeObserver === "function"
+        ? new ResizeObserver(queueMeasure)
+        : null;
+    [inner, heading, copy, figureStage, explainerText].forEach((node) =>
+      resizeObserver?.observe(node),
+    );
+    window.addEventListener("resize", queueMeasure);
+    window.visualViewport?.addEventListener("resize", queueMeasure);
+    document.fonts?.ready.then(() => {
+      if (active) queueMeasure();
+    });
+    queueMeasure();
+
+    return () => {
+      active = false;
+      if (frame !== null) cancelAnimationFrame(frame);
+      resizeObserver?.disconnect();
+      window.removeEventListener("resize", queueMeasure);
+      window.visualViewport?.removeEventListener("resize", queueMeasure);
+    };
+  }, [entered]);
+
+  useEffect(() => {
     if (!engaged) return undefined;
-    const timer = window.setTimeout(() => setSettled(true), ENGAGE_SETTLE_MS);
+    const settleDelay = window.matchMedia("(max-width: 1279px)").matches
+      ? MOBILE_ENGAGE_SETTLE_MS
+      : ENGAGE_SETTLE_MS;
+    const timer = window.setTimeout(() => setSettled(true), settleDelay);
     return () => {
       window.clearTimeout(timer);
       setSettled(false);
@@ -162,13 +255,48 @@ export function RifugioExplainer({ onGlossary }) {
   }, [engaged]);
 
   useEffect(() => {
+    if (!introEntering) return undefined;
+    const timer = window.setTimeout(
+      () => setIntroEntering(false),
+      MOBILE_INTRO_ENTRANCE_MS,
+    );
+    return () => window.clearTimeout(timer);
+  }, [introEntering]);
+
+  useEffect(() => {
+    if (!introReturning) return undefined;
+    const timer = window.setTimeout(
+      () => setIntroReturning(false),
+      MOBILE_INTRO_RETURN_MS,
+    );
+    return () => window.clearTimeout(timer);
+  }, [introReturning]);
+
+  useEffect(() => {
+    if (!modelIntroEntering) return undefined;
+    const timer = window.setTimeout(
+      () => setModelIntroEntering(false),
+      MOBILE_MODEL_INTRO_MS,
+    );
+    return () => window.clearTimeout(timer);
+  }, [modelIntroEntering]);
+
+  useEffect(() => {
     const fig = figureRef.current;
     if (!fig || typeof IntersectionObserver === "undefined") {
       setFigureInView(true);
+      setFigureReached(true);
       return undefined;
     }
     const io = new IntersectionObserver(
-      ([entry]) => setFigureInView(entry.isIntersecting),
+      ([entry]) => {
+        setFigureInView(entry.isIntersecting);
+        if (
+          entry.isIntersecting &&
+          window.matchMedia("(max-width: 1279px)").matches
+        )
+          setFigureReached(true);
+      },
       { rootMargin: "0px 0px 12% 0px" },
     );
     io.observe(fig);
@@ -281,8 +409,37 @@ export function RifugioExplainer({ onGlossary }) {
         const goneForGood = sectionRect.top > vh * 1.5 || sectionRect.bottom < -vh * .1;
         setNearby((mounted) => (mounted ? !goneForGood : arriving));
       }
-      setEngaged(nextEngaged);
-      if (nextEntered) setEntered(true);
+      if (nextEngaged !== engagedRef.current) {
+        if (mobileLayout) {
+          if (nextEngaged) {
+            setIntroEntering(false);
+            setIntroReturning(false);
+            if (!modelIntroSeenRef.current) {
+              modelIntroSeenRef.current = true;
+              if (
+                !window.matchMedia("(prefers-reduced-motion: reduce)").matches
+              )
+                setModelIntroEntering(true);
+            }
+          } else {
+            setIntroReturning(true);
+            setModelIntroEntering(false);
+          }
+        }
+        engagedRef.current = nextEngaged;
+        setEngaged(nextEngaged);
+      }
+
+      if (nextEntered && !enteredRef.current) {
+        enteredRef.current = true;
+        if (
+          mobileLayout &&
+          !nextEngaged &&
+          !window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        )
+          setIntroEntering(true);
+        setEntered(true);
+      }
     };
     const requestUpdate = () => {
       if (frame) return;
@@ -301,7 +458,7 @@ export function RifugioExplainer({ onGlossary }) {
   return (
     <div
       ref={explainerRef}
-      className={`relief-explainer${entered ? " relief-explainer--entered" : ""}${engaged ? " relief-explainer--engaged" : ""}`}
+      className={`relief-explainer${entered ? " relief-explainer--entered" : ""}${figureReached ? " relief-explainer--figure-reached" : ""}${introHasLiftRoom ? " relief-explainer--intro-has-lift-room" : ""}${introEntering ? " relief-explainer--intro-entering" : ""}${introReturning ? " relief-explainer--intro-returning" : ""}${modelIntroEntering ? " relief-explainer--model-intro-entering" : ""}${engaged ? " relief-explainer--engaged" : ""}`}
       data-step={step}
       data-manual={String(manualMode)}
     >

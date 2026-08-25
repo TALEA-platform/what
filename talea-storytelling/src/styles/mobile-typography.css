@@ -77,6 +77,10 @@
     white-space: normal;
   }
 
+  .hotspot-mobile-handoff {
+    font-size: calc(var(--type-card-title) + 0.125rem);
+  }
+
   .hotspot-intro-lead,
   .sf-pivot,
   .sf-strip-kicker,

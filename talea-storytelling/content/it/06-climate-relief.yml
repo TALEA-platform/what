@@ -24,7 +24,7 @@ explainer:
   id: climate-refuge-explainer
   figure:
     id: climate-refuge-figure
-    ariaLabel: "Una strada assolata di Bologna — sullo sfondo le Due Torri e i colli — si trasforma progressivamente in un rifugio climatico: compaiono ombra, strutture leggere, sedute, acqua, verde e suolo permeabile, una fermata dell’autobus a due passi. Il sole resta ma si fa più leggero, gli oggetti proiettano ombre e piccole etichette indicano la temperatura al sole e all’ombra. Le persone accaldate ritrovano il sorriso."
+    ariaLabel: "Una strada assolata di Bologna — sullo sfondo le Due Torri e i colli — si trasforma progressivamente in un rifugio climatico: compaiono ombra, strutture leggere, sedute, acqua, verde e suolo permeabile, una fermata dell’autobus a due passi. Il sole resta ma si fa più leggero, gli oggetti proiettano ombre e un indicatore racconta il passaggio da molto caldo al comfort termico. Le persone accaldate ritrovano il sorriso."
     svgAriaLabel: "Cos'e' un rifugio climatico"
   model:
     id: climate-refuge-model
@@ -32,7 +32,17 @@ explainer:
     description: "Una piazza minerale e assolata, circondata da due edifici bolognesi e attraversata da alcune persone. Il modello può essere ruotato a 360 gradi."
     temperature:
       id: climate-refuge-temperature
-      legend: "TEMPERATURA DELL’ARIA"
+      states:
+        - id: very-hot
+          text: "Molto caldo"
+        - id: hot
+          text: "Caldo"
+        - id: improving
+          text: "Miglioramento"
+        - id: greater-comfort
+          text: "Maggiore comfort"
+        - id: thermal-comfort
+          text: "Comfort termico"
       locations:
         - id: start
           text: "al sole"

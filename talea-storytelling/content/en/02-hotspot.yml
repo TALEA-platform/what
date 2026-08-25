@@ -153,3 +153,4 @@ map:
   handoff:
     id: hotspot-handoff
     question: "Why there in particular?"
+    hint: "Tap a hotspot to discover more details"

@@ -69,18 +69,18 @@ export const RIFUGIO_MODEL_MARKUP = String.raw`
   <g id="model" filter="url(#pencil)"><g id="model-a"></g><g id="model-b" visibility="hidden"></g></g>
 `;
 
-export const RIFUGIO_TEMPERATURES = [
-  { value: "36°", tint: "#8E3F25", label: "#7D3A25" },
-  { value: "34°", tint: "#8E3F25", label: "#7D3A25" },
-  { value: "33°", tint: "#87492B", label: "#7D3A25" },
-  { value: "33°", tint: "#87492B", label: "#7D3A25" },
-  { value: "32°", tint: "#6E5A34", label: "#5F4E2C" },
-  { value: "32°", tint: "#6E5A34", label: "#5F4E2C" },
-  { value: "31°", tint: "#3F6B3C", label: "#345A32" },
-  { value: "31°", tint: "#3F6B3C", label: "#345A32" },
+export const RIFUGIO_THERMAL_STATES = [
+  { state: "very-hot", tint: "#8E3F25", label: "#7D3A25" },
+  { state: "hot", tint: "#8E3F25", label: "#7D3A25" },
+  { state: "improving", tint: "#87492B", label: "#7D3A25" },
+  { state: "improving", tint: "#87492B", label: "#7D3A25" },
+  { state: "greater-comfort", tint: "#6E5A34", label: "#5F4E2C" },
+  { state: "greater-comfort", tint: "#6E5A34", label: "#5F4E2C" },
+  { state: "thermal-comfort", tint: "#3F6B3C", label: "#345A32" },
+  { state: "thermal-comfort", tint: "#3F6B3C", label: "#345A32" },
 ];
 
-export const RIFUGIO_STEP_COUNT = RIFUGIO_TEMPERATURES.length;
+export const RIFUGIO_STEP_COUNT = RIFUGIO_THERMAL_STATES.length;
 
 // Kept outside React: each frame replaces thousands of SVG polygons through two buffers.
 export function createRifugioModel(shell, options = {}) {

@@ -468,11 +468,19 @@
 @media (max-width: 700px) {
   .hotspot-intro-vg .tag,
   .hotspot-intro-vg .tag-word,
-  .hotspot-intro-vg .lab-year,
-  .hotspot-intro-vg .lab-count {
+  .hotspot-intro-vg .lab-year {
     transform-box: fill-box;
     transform-origin: center;
     transform: scale(1.32);
+  }
+
+  .hotspot-intro-vg--ricorrenza {
+    padding-bottom: clamp(6px, 1.8vw, 10px);
+  }
+
+  .hotspot-intro-vg--ricorrenza .lab-count {
+    font-size: 30px;
+    transform: none;
   }
 }
 
@@ -2290,6 +2298,10 @@
     animation: hotspot-ui-in var(--ui-in-ms) var(--ease-cine) both;
   }
 
+  .page-main--progress-open .hotspot-legend-toggle {
+    display: none;
+  }
+
   .hotspot-legend-toggle-icon {
     display: grid;
     place-items: center;
@@ -2664,6 +2676,15 @@
     letter-spacing: -0.025em;
   }
 
+  .hotspot-mobile-handoff-hint {
+    margin: 7px 0 0;
+    color: rgba(27, 58, 41, 0.62);
+    font-size: clamp(0.78rem, 1.8vw, 0.86rem);
+    font-weight: 500;
+    line-height: 1.4;
+    text-wrap: pretty;
+  }
+
   .hotspot-mobile-annotations {
     display: flex;
     gap: 8px;
@@ -2955,9 +2976,9 @@
   .hotspot-legend-toggle {
     position: absolute;
     top: max(76px, calc(env(safe-area-inset-top) + 66px));
-    right: max(14px, env(safe-area-inset-right));
+    right: auto;
     bottom: auto;
-    left: auto;
+    left: max(14px, env(safe-area-inset-left));
     z-index: 7;
     display: flex;
     align-items: center;
@@ -3121,7 +3142,8 @@
 
   .hotspot-legend-toggle {
     top: max(72px, calc(env(safe-area-inset-top) + 64px));
-    right: max(12px, env(safe-area-inset-right));
+    right: auto;
+    left: max(12px, env(safe-area-inset-left));
     max-width: calc(100% - 24px);
   }
 

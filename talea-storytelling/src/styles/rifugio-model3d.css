@@ -532,17 +532,21 @@
 }
 
 .rifugio-model3d-temp {
+  position: absolute;
+  z-index: 3;
+  left: clamp(4px, 1vw, 16px);
+  bottom: 8px;
   display: flex;
   align-items: baseline;
   gap: 10px;
   flex: none;
-  margin: 0 0 4px clamp(4px, 1vw, 16px);
   min-height: 46px;
+  margin: 0;
   pointer-events: none;
 }
 
 .rifugio-model3d-temp-value {
-  font-size: clamp(28px, 2.6vw, 40px);
+  font-size: clamp(23px, 2vw, 31px);
   font-weight: 750;
   line-height: 1;
   letter-spacing: -0.02em;
@@ -553,14 +557,6 @@
   display: flex;
   flex-direction: column;
   gap: 1px;
-}
-
-.rifugio-model3d-temp-legend {
-  color: #7d3a25;
-  font-size: 10px;
-  font-weight: 750;
-  letter-spacing: 0.15em;
-  opacity: 0.85;
 }
 
 .rifugio-model3d-temp-where {
@@ -643,6 +639,15 @@
 }
 
 @media (max-width: 1279px) {
+  .relief-explainer--engaged .relief-figure-frame .rifugio-model3d-holder {
+    animation: plastico-entra-mobile 220ms ease-out both;
+  }
+
+  @keyframes plastico-entra-mobile {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
   /* Mobile keeps the small static backdrop texture but skips scene-wide filters. */
   .rifugio-model3d #model,
   .rifugio-model3d #model-svg {
@@ -721,12 +726,7 @@
   }
 
   .rifugio-model3d-temp-value {
-    font-size: clamp(23px, 4vw, 30px);
-  }
-
-  .rifugio-model3d-temp-legend {
-    font-size: 8.5px;
-    letter-spacing: 0.11em;
+    font-size: clamp(19px, 3.25vw, 24px);
   }
 
   .rifugio-model3d-temp-where {

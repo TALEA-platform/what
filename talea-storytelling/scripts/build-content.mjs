@@ -434,6 +434,7 @@ function validateHotspot(document, location) {
         handoff: {
           id: requireString(handoff.id, `${location}.map.handoff.id`),
           question: requireString(handoff.question, `${location}.map.handoff.question`),
+          hint: requireString(handoff.hint, `${location}.map.handoff.hint`),
         },
       },
     },
@@ -883,6 +884,13 @@ const climateReliefStepIds = [
   "accessibility",
   "complete",
 ];
+const climateReliefThermalStateIds = [
+  "very-hot",
+  "hot",
+  "improving",
+  "greater-comfort",
+  "thermal-comfort",
+];
 const climateReliefPlanBeatIds = [
   "quartiere",
   "buco",
@@ -959,6 +967,11 @@ function validateClimateRelief(document, location) {
     temperature.locations,
     climateReliefStepIds,
     `${location}.explainer.model.temperature.locations`,
+  );
+  const temperatureStates = validateTextItems(
+    temperature.states,
+    climateReliefThermalStateIds,
+    `${location}.explainer.model.temperature.states`,
   );
 
   const steps = requireOrderedIds(
@@ -1104,10 +1117,7 @@ function validateClimateRelief(document, location) {
               temperature.id,
               `${location}.explainer.model.temperature.id`,
             ),
-            legend: requireString(
-              temperature.legend,
-              `${location}.explainer.model.temperature.legend`,
-            ),
+            states: temperatureStates,
             locations: temperatureLocations,
           },
           controls: {

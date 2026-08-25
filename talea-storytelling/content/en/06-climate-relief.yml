@@ -24,7 +24,7 @@ explainer:
   id: climate-refuge-explainer
   figure:
     id: climate-refuge-figure
-    ariaLabel: "A sun-baked street in Bologna — with the Two Towers and the hills in the background — gradually becomes a climate refuge: shade, lightweight structures, seating, water, greenery and permeable ground appear, with a bus stop just a short walk away. The sun remains but feels gentler, objects cast shadows and small labels show the temperature in the sun and in the shade. The overheated people begin to smile again."
+    ariaLabel: "A sun-baked street in Bologna — with the Two Towers and the hills in the background — gradually becomes a climate refuge: shade, lightweight structures, seating, water, greenery and permeable ground appear, with a bus stop just a short walk away. The sun remains but feels gentler, objects cast shadows and an indicator shows the shift from very hot conditions to thermal comfort. The overheated people begin to smile again."
     svgAriaLabel: "What is a climate refuge?"
   model:
     id: climate-refuge-model
@@ -32,7 +32,17 @@ explainer:
     description: "A paved, sun-baked square surrounded by two Bolognese buildings and crossed by several people. The model can be rotated through 360 degrees."
     temperature:
       id: climate-refuge-temperature
-      legend: "AIR TEMPERATURE"
+      states:
+        - id: very-hot
+          text: "Very hot"
+        - id: hot
+          text: "Hot"
+        - id: improving
+          text: "Improving"
+        - id: greater-comfort
+          text: "Greater comfort"
+        - id: thermal-comfort
+          text: "Thermal comfort"
       locations:
         - id: start
           text: "in the sun"

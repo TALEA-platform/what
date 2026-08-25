@@ -1513,9 +1513,9 @@ export function PhysicalDriversSection() {
       const inCompareBeat = activeStageId === "compare" || activeTextStageId === "compare";
       if (mobileLayout) {
         const vh = window.innerHeight || 768;
-        const panelRect = comparePanel?.getBoundingClientRect();
+        const sceneRect = sceneRef.current?.getBoundingClientRect();
         const exiting =
-          inCompareBeat && Boolean(panelRect) && panelRect.bottom <= vh * 1.02;
+          inCompareBeat && Boolean(sceneRect) && sceneRect.bottom <= vh * 1.02;
         setCompareMapVisible(inCompareBeat);
         setCompareExiting(exiting);
         return;

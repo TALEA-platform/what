@@ -55,6 +55,7 @@ const REVEAL_AT = 0.18;
 const EXIT_FROM = 0.94;
 const EXIT_TO = 0.28;
 const MOBILE_MAP_QUERY = "(max-width: 1279px)";
+const MOBILE_GESTURE_HINT_MS = 4800;
 
 function closeMobileAttribution(container) {
   const attribution = container?.querySelector(".maplibregl-ctrl-attrib");
@@ -164,6 +165,7 @@ export function RifugiMapScene() {
   const mobileSearchCameraRef = useRef(null);
   const mapGestureActiveRef = useRef(false);
   const mapGestureGraceUntilRef = useRef(0);
+  const mobileGestureHintShownRef = useRef(false);
   const pointSelectionTimerRef = useRef(null);
 
   const [revealed, setRevealed] = useState(false);
@@ -177,6 +179,7 @@ export function RifugiMapScene() {
   const [messageKey, setMessageKey] = useState(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
+  const [mobileGestureHintVisible, setMobileGestureHintVisible] = useState(false);
   const message = messageKey ? reliefMapContent.search[messageKey] : "";
 
   useEffect(() => {
@@ -210,6 +213,34 @@ export function RifugiMapScene() {
     reliefCardsRef.current = reliefCards;
     localeRef.current = locale;
   }, [locale, reliefCards]);
+
+  useEffect(() => {
+    const mapElement = containerRef.current;
+    if (
+      !controlsReady ||
+      !engaged ||
+      !mobileMapRef.current ||
+      !mapElement ||
+      mobileGestureHintShownRef.current
+    ) {
+      return undefined;
+    }
+
+    mobileGestureHintShownRef.current = true;
+    setMobileGestureHintVisible(true);
+    const dismissHint = () => setMobileGestureHintVisible(false);
+    const timer = window.setTimeout(dismissHint, MOBILE_GESTURE_HINT_MS);
+    mapElement.addEventListener("touchstart", dismissHint, {
+      passive: true,
+      once: true,
+    });
+
+    return () => {
+      window.clearTimeout(timer);
+      mapElement.removeEventListener("touchstart", dismissHint);
+      setMobileGestureHintVisible(false);
+    };
+  }, [controlsReady, engaged]);
 
   useEffect(() => {
     const detailHtml = detailRefreshRef.current?.();
@@ -678,32 +709,34 @@ export function RifugiMapScene() {
         minZoom: EXPLORE_ZOOM_LIMITS.minZoom,
         maxZoom: EXPLORE_ZOOM_LIMITS.maxZoom,
         attributionControl: false,
+        cooperativeGestures: mobileMap,
         locale: mapLibreLocaleRef.current,
       });
       mapRef.current = map;
       lockCamera(map);
       if (mobileMap) {
+        map.dragPan.enable();
         map.touchZoomRotate.enable();
         map.touchZoomRotate.disableRotation();
-        map.doubleClickZoom.enable();
       }
       const markCameraTouched = (event) => {
         if (event?.originalEvent) cameraTouchedRef.current = true;
       };
-      const markZoomGesture = (event) => {
+      const markMapGesture = (event) => {
         markCameraTouched(event);
         if (!mobileMap || !event?.originalEvent) return;
         mapGestureActiveRef.current = true;
         mapGestureGraceUntilRef.current = Number.POSITIVE_INFINITY;
       };
-      const finishZoomGesture = () => {
+      const finishMapGesture = () => {
         if (!mapGestureActiveRef.current) return;
         mapGestureActiveRef.current = false;
         mapGestureGraceUntilRef.current = performance.now() + 650;
       };
-      map.on("dragstart", markCameraTouched);
-      map.on("zoomstart", markZoomGesture);
-      map.on("zoomend", finishZoomGesture);
+      map.on("dragstart", markMapGesture);
+      map.on("dragend", finishMapGesture);
+      map.on("zoomstart", markMapGesture);
+      map.on("zoomend", finishMapGesture);
 
       map.on("load", async () => {
         addOrthophoto(map, { damped: true });
@@ -860,18 +893,6 @@ export function RifugiMapScene() {
             if (pin) return focusUfficiale(pin);
             const f = rifugioAt(e.point);
             if (f) return focusRifugio(f);
-            if (mobileMap && searchResultFocusRef.current) {
-              if (pointSelectionTimerRef.current) {
-                cancelPendingPointSelection();
-                return undefined;
-              }
-              const point = [e.lngLat.lng, e.lngLat.lat];
-              pointSelectionTimerRef.current = window.setTimeout(() => {
-                pointSelectionTimerRef.current = null;
-                zoomIntoPoint(point);
-              }, 280);
-              return undefined;
-            }
             return zoomIntoPoint([e.lngLat.lng, e.lngLat.lat]);
           });
           map.on("dblclick", cancelPendingPointSelection);
@@ -1101,11 +1122,26 @@ export function RifugiMapScene() {
               setInfoOpen(true);
             }}
             aria-expanded={infoOpen}
-            aria-label={`${rifugiCounts.official} ${reliefMapContent.counts.officialLabel}, ${rifugiCounts.compatible} ${reliefMapContent.counts.compatibleLabel}`}
+            aria-label={uiContent.map.legend}
           >
-            <span aria-hidden="true">i</span>
+            <span className="relief-map-info-toggle-icon" aria-hidden="true">i</span>
+            <span>{uiContent.map.legend}</span>
           </button>
         )}
+
+        {controlsReady &&
+          mobileGestureHintVisible &&
+          !infoOpen &&
+          !searchOpen &&
+          !controlsGone && (
+            <div
+              className="relief-map-mobile-gesture-hint"
+              role="status"
+              aria-live="polite"
+            >
+              <span>{uiContent.map.cooperativeGestures.mobile}</span>
+            </div>
+          )}
 
         {controlsReady && (
           <div ref={dockRef} className={`relief-map-dock relief-map-dock--ready${

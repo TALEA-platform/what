@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import {
   createRifugioModel,
-  RIFUGIO_TEMPERATURES,
+  RIFUGIO_THERMAL_STATES,
 } from "../../lib/rifugioModel3d";
 
 const Chevron = () => (
@@ -144,35 +144,35 @@ export function RifugioModel3D({
   };
   const PAN_STEP = 120;
 
-  const temperatureIndex = Math.max(
+  const thermalStateIndex = Math.max(
     0,
-    Math.min(RIFUGIO_TEMPERATURES.length - 1, step),
+    Math.min(RIFUGIO_THERMAL_STATES.length - 1, step),
   );
-  const temp = RIFUGIO_TEMPERATURES[temperatureIndex];
-  const tempLocation = content.temperature.locations[temperatureIndex];
+  const thermalState = RIFUGIO_THERMAL_STATES[thermalStateIndex];
+  const thermalStateContent = content.temperature.states.find(
+    (state) => state.id === thermalState.state,
+  );
+  const tempLocation = content.temperature.locations[thermalStateIndex];
 
   return (
     <div className="rifugio-model3d-holder">
       <div className="rifugio-model3d-temp" data-step={step}>
         <span
           className="rifugio-model3d-temp-value"
-          style={{ color: temp.tint }}
+          style={{ color: thermalState.tint }}
         >
-          {temp.value}
+          {thermalStateContent.text}
         </span>
-        <span className="rifugio-model3d-temp-side">
-          {step === 0 ? (
-            <span className="rifugio-model3d-temp-legend">
-              {content.temperature.legend}
+        {step === 0 || step === RIFUGIO_THERMAL_STATES.length - 1 ? (
+          <span className="rifugio-model3d-temp-side">
+            <span
+              className="rifugio-model3d-temp-where"
+              style={{ color: thermalState.label }}
+            >
+              {tempLocation.text}
             </span>
-          ) : null}
-          <span
-            className="rifugio-model3d-temp-where"
-            style={{ color: temp.label }}
-          >
-            {tempLocation.text}
           </span>
-        </span>
+        ) : null}
       </div>
 
       <div

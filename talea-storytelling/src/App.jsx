@@ -50,7 +50,9 @@ function App() {
         onVisibilityChange={setShellHidden}
       />
       <MobileExperienceNotice />
-      <main className="page-main">
+      <main
+        className={`page-main${mobileProgressOpen ? " page-main--progress-open" : ""}`}
+      >
         <Hero />
         <SummerTrendSection />
         <HotspotIntro onGlossary={setGlossaryId} />

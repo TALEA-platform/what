@@ -1078,6 +1078,9 @@ export function HotspotMapScene() {
             <h3 className="hotspot-mobile-handoff">
               {hotspotMapCopy.handoff.question}
             </h3>
+            <p className="hotspot-mobile-handoff-hint">
+              {hotspotMapCopy.handoff.hint}
+            </p>
           </div>
           <div
             className="hotspot-mobile-context-cue hotspot-mobile-context-cue--handoff"

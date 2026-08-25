@@ -3730,8 +3730,12 @@
     height: clamp(520px, 70dvh, 740px);
   }
 
+  .sf-mobile-beat--closing {
+    height: clamp(460px, 60dvh, 640px);
+  }
+
   .sf-mobile-track-tail {
-    height: clamp(120px, 16.5dvh, 190px);
+    height: clamp(44px, 6.5dvh, 76px);
   }
 
   .sf-mobile-story {

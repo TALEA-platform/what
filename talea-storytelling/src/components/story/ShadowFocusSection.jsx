@@ -1199,7 +1199,7 @@ export function ShadowFocusSection() {
               {stages.map((stage, index) => (
                 <div
                   key={stage.id}
-                  className="sf-mobile-beat"
+                  className={`sf-mobile-beat${index === stages.length - 1 ? " sf-mobile-beat--closing" : ""}`}
                   data-mobile-step={index}
                 />
               ))}

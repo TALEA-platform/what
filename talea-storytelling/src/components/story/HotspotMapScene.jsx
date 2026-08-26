@@ -15,6 +15,7 @@ import {
 } from "../../lib/motion";
 import { applyPaperBasemap } from "../../lib/basemapPaper";
 import { getHotspotPersistenceColor } from "../../data/hotspotPalette";
+import { useIOSFarOffscreenMount } from "../../hooks/useIOSFarOffscreenMount";
 import {
   buildHotspotSteps,
   hotspotStepSpecs,
@@ -156,7 +157,13 @@ export function HotspotMapScene() {
   const mobileGestureHintShownRef = useRef(false);
   const mobileProgressRef = useRef(null);
   const lastZoomRef = useRef(null);
+  const mobileCameraSnapshotRef = useRef(null);
   const scrollAccelerationUnlockAtRef = useRef(Infinity);
+  const mapMaterialized = useIOSFarOffscreenMount(sceneRef, {
+    name: "Hotspot",
+    prewarmViewports: 1.5,
+    releaseViewports: 3.5,
+  });
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -245,6 +252,25 @@ export function HotspotMapScene() {
   const onMapReady = useCallback((m) => {
     applyPaperBasemap(m);
     setMap(m);
+  }, []);
+
+  const onMapRemoved = useCallback((removedMap) => {
+    if (mobileCameraTouchedRef.current) {
+      const center = removedMap.getCenter?.();
+      mobileCameraSnapshotRef.current = center
+        ? {
+            center: [center.lng, center.lat],
+            zoom: removedMap.getZoom(),
+            bearing: removedMap.getBearing(),
+            pitch: removedMap.getPitch(),
+          }
+        : null;
+    }
+    if (mobileCameraConfigRef.current?.map === removedMap) {
+      mobileCameraConfigRef.current = null;
+    }
+    lastZoomRef.current = null;
+    setMap((current) => (current === removedMap ? null : current));
   }, []);
 
   const sceneReady = mapEngaged && Boolean(map);
@@ -625,6 +651,7 @@ export function HotspotMapScene() {
   ]);
 
   const zoomShift = narrowFrame ? NARROW_ZOOM_SHIFT : 0;
+  const renderedMap = mapMaterialized ? map : null;
 
   useEffect(() => {
     if (!map) return;
@@ -651,8 +678,16 @@ export function HotspotMapScene() {
         originalMaxZoom,
         originalMaxBounds,
       };
-      mobileCameraTouchedRef.current = false;
-      lastZoomRef.current = "mobile-bologna";
+      const cameraSnapshot = mobileCameraSnapshotRef.current;
+      if (cameraSnapshot) {
+        map.jumpTo(cameraSnapshot);
+        mobileCameraSnapshotRef.current = null;
+        mobileCameraTouchedRef.current = true;
+        lastZoomRef.current = "mobile-manual";
+      } else {
+        mobileCameraTouchedRef.current = false;
+        lastZoomRef.current = "mobile-bologna";
+      }
       return;
     }
 
@@ -668,6 +703,10 @@ export function HotspotMapScene() {
     if (engagedRef.current) return;
     map.jumpTo({ center: BOLOGNA_CENTER, zoom: BOLOGNA_ZOOM_INTRO + zoomShift });
   }, [map, mobileLayout, zoomShift]);
+
+  useEffect(() => {
+    if (map && !mapEngaged) map.stop();
+  }, [map, mapEngaged]);
 
   useEffect(() => {
     if (!map || !mobileLayout) return undefined;
@@ -1163,21 +1202,24 @@ export function HotspotMapScene() {
         ref={mapBoxRef}
         className={`hotspot-scene-map${mapEngaged ? " hotspot-scene-map--engaged" : ""}`}
       >
-        <MapLibreCanvas
-          onMapReady={onMapReady}
-          mapName="Hotspot"
-          className="hotspot-canvas"
-          zoom={BOLOGNA_ZOOM_INTRO}
-          maxZoom={mobileLayout ? MOBILE_MAX_ZOOM : 16}
-          interactive={mobileLayout}
-          cooperativeGestures={mobileLayout}
-          locale={mapLibreLocale}
-          collapseAttribution={mobileLayout}
-          hideLabels
-        />
+        {mapMaterialized ? (
+          <MapLibreCanvas
+            onMapReady={onMapReady}
+            onMapRemoved={onMapRemoved}
+            mapName="Hotspot"
+            className="hotspot-canvas"
+            zoom={BOLOGNA_ZOOM_INTRO}
+            maxZoom={mobileLayout ? MOBILE_MAX_ZOOM : 16}
+            interactive={mobileLayout}
+            cooperativeGestures={mobileLayout}
+            locale={mapLibreLocale}
+            collapseAttribution={mobileLayout}
+            hideLabels
+          />
+        ) : null}
 
         <HotspotLayer
-          map={map}
+          map={renderedMap}
           id="narrative"
           minYears={narrativeMinYears}
           opacity={narrativeOpacity}
@@ -1185,7 +1227,7 @@ export function HotspotMapScene() {
           transitionMs={1100 / playbackRate}
         />
 
-        <BolognaBoundaryLayer map={map} visible={bordersReady} />
+        <BolognaBoundaryLayer map={renderedMap} visible={bordersReady} />
 
         <div className={`hotspot-map-veil${veilLifted ? " hotspot-map-veil--hidden" : ""}`} aria-hidden="true" />
 
@@ -1220,12 +1262,14 @@ export function HotspotMapScene() {
         )}
 
         <AnnotationLayer
-          map={map}
+          map={renderedMap}
           active={mapEngaged && showAnnotations}
           showNarrative={
             mapEngaged &&
             showAnnotations &&
-            (mobileLayout ? !mobileLabelsSuppressed : !sliderTouched)
+            (mobileLayout
+              ? !mobileLabelsSuppressed
+              : exitActive || !sliderTouched)
           }
           ariaLabel={hotspotMapCopy.annotations.ariaLabel}
           mobile={mobileLayout}

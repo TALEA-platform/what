@@ -27,6 +27,7 @@ import { vicoloSvg } from "../../data/shadowVignette";
 import { assetUrl } from "../../lib/assetUrl";
 import { editorialLinks, useContent } from "../../content";
 import { isMapSizeSynchronized } from "../../lib/mapResize";
+import { useIOSFarOffscreenMount } from "../../hooks/useIOSFarOffscreenMount";
 
 const bolognaBoundaryUrl = assetUrl("/data/vectors/bologna_boundary_outline.geojson");
 
@@ -315,7 +316,14 @@ const darkOpenfreemapStyle = {
   ],
 };
 
-function SceneDarkMap({ cameraKey, engaged, playbackRate, mobileLayout, locale }) {
+function SceneDarkMap({
+  cameraKey,
+  engaged,
+  playbackRate,
+  mobileLayout,
+  locale,
+  materialized,
+}) {
   const [map, setMap] = useState(null);
   const handleReady = useCallback((m) => setMap(m), []);
 
@@ -327,6 +335,27 @@ function SceneDarkMap({ cameraKey, engaged, playbackRate, mobileLayout, locale }
   const mobileRefitPendingRef = useRef(false);
   const mobileRefitFrameRef = useRef(null);
   const mobileRefitCameraKeyRef = useRef(null);
+  const mobileCameraSnapshotRef = useRef(null);
+
+  const handleRemoved = useCallback((removedMap) => {
+    if (mobileCameraTouchedRef.current) {
+      const center = removedMap.getCenter?.();
+      mobileCameraSnapshotRef.current = center
+        ? {
+            center: [center.lng, center.lat],
+            zoom: removedMap.getZoom(),
+            bearing: removedMap.getBearing(),
+            pitch: removedMap.getPitch(),
+          }
+        : null;
+    } else {
+      mobileCameraKeyRef.current = null;
+    }
+    if (mobileCameraLimitsRef.current?.map === removedMap) {
+      mobileCameraLimitsRef.current = null;
+    }
+    setMap((current) => (current === removedMap ? null : current));
+  }, []);
   useEffect(() => {
     playbackRateRef.current = playbackRate;
   }, [playbackRate]);
@@ -474,6 +503,12 @@ function SceneDarkMap({ cameraKey, engaged, playbackRate, mobileLayout, locale }
         originalMinZoom,
         originalMaxBounds,
       };
+      const cameraSnapshot = mobileCameraSnapshotRef.current;
+      if (cameraSnapshot) {
+        map.jumpTo(cameraSnapshot);
+        mobileCameraSnapshotRef.current = null;
+        mobileCameraTouchedRef.current = true;
+      }
       return;
     }
 
@@ -483,6 +518,10 @@ function SceneDarkMap({ cameraKey, engaged, playbackRate, mobileLayout, locale }
     map.setMinZoom(mobileLimits.originalMinZoom);
     mobileCameraLimitsRef.current = null;
   }, [map, mobileLayout]);
+
+  useEffect(() => {
+    if (map && !engaged) map.stop();
+  }, [map, engaged]);
 
   useEffect(() => {
     if (!map) return;
@@ -622,9 +661,10 @@ function SceneDarkMap({ cameraKey, engaged, playbackRate, mobileLayout, locale }
     return () => window.clearTimeout(veilOut);
   }, [map, centroProminent]);
 
-  return (
+  return materialized ? (
     <MapLibreCanvas
       onMapReady={handleReady}
+      onMapRemoved={handleRemoved}
       mapName="Ombra"
       className="sf-scene-canvas"
       mapStyle={darkOpenfreemapStyle}
@@ -637,7 +677,7 @@ function SceneDarkMap({ cameraKey, engaged, playbackRate, mobileLayout, locale }
       locale={locale}
       collapseAttribution={mobileLayout}
     />
-  );
+  ) : null;
 }
 
 
@@ -700,6 +740,11 @@ export function ShadowFocusSection() {
   const mobileScrollCueShownRef = useRef(false);
   const mobileGestureHintShownRef = useRef(false);
   const scrollAccelerationUnlockAtRef = useRef(Infinity);
+  const mapMaterialized = useIOSFarOffscreenMount(sceneRef, {
+    name: "Ombra",
+    prewarmViewports: 1.5,
+    releaseViewports: 3,
+  });
 
   const stages = shadowScene.stages;
   const mobileStepReadMs = useMemo(
@@ -1031,6 +1076,7 @@ export function ShadowFocusSection() {
             playbackRate={playbackRate}
             mobileLayout={mobileLayout}
             locale={mapLibreLocale}
+            materialized={mapMaterialized}
           />
           <div className="sf-scene-frame" aria-hidden="true" />
           <div className="sf-scene-exit-veil" aria-hidden="true" />

@@ -589,7 +589,9 @@
   }
 }
 
-.relief-explainer--engaged .relief-figure-frame .rifugio-model3d-holder {
+.relief-explainer--engaged.relief-explainer--model-ready
+  .relief-figure-frame
+  .rifugio-model3d-holder {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
@@ -608,11 +610,17 @@
   transition: transform 0.5s var(--ease-cine, cubic-bezier(0.22, 1, 0.36, 1));
 }
 
-.relief-explainer--engaged .relief-figure {
+@keyframes rifugio-intro-model-handoff {
+  from { visibility: visible; }
+  to { visibility: hidden; }
+}
+
+.relief-explainer--engaged.relief-explainer--model-ready .relief-figure {
   visibility: hidden;
   pointer-events: none;
   transform: scale(0.985);
   transition: none;
+  animation: rifugio-intro-model-handoff 0.62s step-end both;
 }
 
 .relief-explainer--engaged .relief-figure-frame {
@@ -639,8 +647,14 @@
 }
 
 @media (max-width: 1279px) {
-  .relief-explainer--engaged .relief-figure-frame .rifugio-model3d-holder {
+  .relief-explainer--engaged.relief-explainer--model-ready
+    .relief-figure-frame
+    .rifugio-model3d-holder {
     animation: plastico-entra-mobile 220ms ease-out both;
+  }
+
+  .relief-explainer--engaged.relief-explainer--model-ready .relief-figure {
+    animation-duration: 220ms;
   }
 
   @keyframes plastico-entra-mobile {

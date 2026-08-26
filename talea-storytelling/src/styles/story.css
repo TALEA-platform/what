@@ -1491,6 +1491,10 @@
   transition: clip-path 100ms linear;
 }
 
+.causes-static-raster-clip.is-dragging {
+  transition: none;
+}
+
 .causes-static-hotspots {
   z-index: 3;
   width: 100%;
@@ -1932,6 +1936,7 @@
   padding: 0;
   cursor: ew-resize;
   pointer-events: auto;
+  touch-action: none;
   display: flex;
   align-items: center;
   justify-content: center;

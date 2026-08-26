@@ -649,7 +649,10 @@
         poster.onload = poster.onerror = function () {
           ready("poster");
         };
-        poster.src = "/data/hero/bologna-poster.jpg";
+        poster.src = new URL(
+          "data/hero/bologna-poster.jpg",
+          document.baseURI
+        ).href;
       })();
     </script>
     <script type="module" src="/src/main.jsx"></script>

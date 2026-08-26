@@ -2,13 +2,17 @@ import { useEffect, useRef } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { BOLOGNA_CENTER, BOLOGNA_ZOOM } from "../../data/hotspotSteps";
-import { registerMapPerformance } from "../../lib/mapPerformance";
+import {
+  logPerformanceEvent,
+  registerMapPerformance,
+} from "../../lib/mapPerformance";
 import { runtimeProfile } from "../../lib/runtimeProfile";
 
 const DEFAULT_OPENFREEMAP_STYLE = "https://tiles.openfreemap.org/styles/positron";
 
 export function MapLibreCanvas({
   onMapReady,
+  onMapRemoved,
   className = "",
   mapStyle = DEFAULT_OPENFREEMAP_STYLE,
   center = BOLOGNA_CENTER,
@@ -28,6 +32,7 @@ export function MapLibreCanvas({
   useEffect(() => {
     if (mapRef.current || !containerRef.current) return;
 
+    logPerformanceEvent("map:constructor", { mapName });
     const map = new maplibregl.Map({
       container: containerRef.current,
       style: mapStyle,
@@ -51,6 +56,7 @@ export function MapLibreCanvas({
     mapRef.current = map;
 
     map.on("load", () => {
+      logPerformanceEvent("map:load", { mapName });
       if (collapseAttribution) {
         containerRef.current
           ?.querySelector(".maplibregl-ctrl-attrib")
@@ -64,12 +70,20 @@ export function MapLibreCanvas({
         });
       }
       onMapReady?.(map);
+      logPerformanceEvent("map:ready", { mapName });
     });
 
     return () => {
       mapRef.current = null;
-      unregisterPerformance();
-      map.remove();
+      map.stop();
+      onMapRemoved?.(map);
+      // React layer siblings receive the parent's cleared map state during the
+      // same passive-effect flush. Let those cleanups finish before destroying
+      // the MapLibre style they still reference.
+      requestAnimationFrame(() => {
+        unregisterPerformance();
+        map.remove();
+      });
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

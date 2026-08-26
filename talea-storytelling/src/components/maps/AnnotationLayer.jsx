@@ -121,6 +121,10 @@ export function AnnotationLayer({
   const hoverZone = hoverIdx >= 0 ? hotspotAnnotations[hoverIdx] : null;
   const hoverPos = hoverIdx >= 0 ? positions[hoverIdx] : null;
   const narrativeShown = narrativeIn && showNarrative;
+  const priorityAnnotationsVisible =
+    narrativeShown && (!mobile || !hoverId);
+  const hoverAlreadyShown =
+    !mobile && narrativeShown && Boolean(hoverZone?.narrative);
   const canvas = map?.getCanvas();
   const canvasWidth = canvas?.clientWidth ?? 0;
   const canvasHeight = canvas?.clientHeight ?? 0;
@@ -185,7 +189,7 @@ export function AnnotationLayer({
     <div className="annotation-layer" aria-label={ariaLabel}>
       <svg className="annotation-lines">
         {priorityDisplayZones.map(({ zone, position }, i) => {
-          const visible = narrativeShown && !hoverId;
+          const visible = priorityAnnotationsVisible;
           return (
             <path
               key={zone.id}
@@ -198,7 +202,7 @@ export function AnnotationLayer({
       </svg>
 
       {priorityDisplayZones.map(({ zone, position }, i) => {
-        const visible = narrativeShown && !hoverId;
+        const visible = priorityAnnotationsVisible;
         return (
           <div
             key={zone.id}
@@ -227,7 +231,7 @@ export function AnnotationLayer({
       })}
 
       {priorityDisplayZones.map(({ zone, position }, i) => {
-        const visible = narrativeShown && !hoverId;
+        const visible = priorityAnnotationsVisible;
         return (
           <div
             key={`dot-${zone.id}`}
@@ -241,7 +245,7 @@ export function AnnotationLayer({
         );
       })}
 
-      {hoverZone && hoverDisplayPos && (
+      {hoverZone && hoverDisplayPos && !hoverAlreadyShown && (
         <div className="annotation-hover" key={`hover-${hoverZone.id}`}>
           <svg className="annotation-lines">
             <path

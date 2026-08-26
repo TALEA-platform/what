@@ -9,7 +9,10 @@ import {
   createMapResizeController,
   isMapSizeSynchronized,
 } from "../../lib/mapResize";
-import { registerMapPerformance } from "../../lib/mapPerformance";
+import {
+  logPerformanceEvent,
+  registerMapPerformance,
+} from "../../lib/mapPerformance";
 import { runtimeProfile } from "../../lib/runtimeProfile";
 import {
   ADDRESS_ZOOM,
@@ -712,6 +715,8 @@ export function RifugiMapScene() {
       const mobileMap = window.matchMedia(MOBILE_MAP_QUERY).matches;
       mobileMapRef.current = mobileMap;
       cameraTouchedRef.current = false;
+      logPerformanceEvent("rifugi:init-start", { section: "Mappa Rifugi" });
+      logPerformanceEvent("map:constructor", { mapName: "Rifugi" });
       const map = new maplibregl.Map({
         container: containerRef.current,
         style: BASEMAP_STYLE,
@@ -755,6 +760,7 @@ export function RifugiMapScene() {
       map.on("zoomend", finishMapGesture);
 
       map.on("load", async () => {
+        logPerformanceEvent("rifugi:map-load", { section: "Mappa Rifugi" });
         addOrthophoto(map, { damped: true });
         map.addControl(
           new maplibregl.AttributionControl({ compact: true }),
@@ -831,6 +837,9 @@ export function RifugiMapScene() {
           readyWaiters.forEach((resolve) => resolve(true));
           readyWaiters.clear();
           startNetworkReveal();
+          logPerformanceEvent("rifugi:map-ready", {
+            section: "Mappa Rifugi",
+          });
 
           const clearHover = () => {
             if (hoverKeyRef.current == null) return;
@@ -929,6 +938,9 @@ export function RifugiMapScene() {
       (entries) => {
         entries.forEach((e) => {
           if (e.isIntersecting) {
+            logPerformanceEvent("rifugi:proximity-trigger", {
+              section: "Mappa Rifugi",
+            });
             init();
             if (entryResizeTimerRef.current !== null) {
               window.clearTimeout(entryResizeTimerRef.current);

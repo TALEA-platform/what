@@ -3,6 +3,7 @@ import {
   createRifugioModel,
   RIFUGIO_THERMAL_STATES,
 } from "../../lib/rifugioModel3d";
+import { logPerformanceEvent } from "../../lib/mapPerformance";
 
 const Chevron = () => (
   <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -47,15 +48,24 @@ export function RifugioModel3D({
   content,
   idle = false,
   gestureHint,
+  onPreparing,
+  onReady,
 }) {
   const shellRef = useRef(null);
   const modelRef = useRef(null);
   const gestureHintId = useId();
+  const onPreparingRef = useRef(onPreparing);
+  const onReadyRef = useRef(onReady);
   const [zoom, setZoom] = useState(1);
   const [touched, setTouched] = useState(false);
   const [mobileMode, setMobileMode] = useState(
     () => typeof window !== "undefined" && window.innerWidth < 1280,
   );
+
+  useEffect(() => {
+    onPreparingRef.current = onPreparing;
+    onReadyRef.current = onReady;
+  }, [onPreparing, onReady]);
 
   useEffect(() => {
     const media = window.matchMedia("(max-width: 1279px)");
@@ -68,7 +78,10 @@ export function RifugioModel3D({
     const shell = shellRef.current;
     if (!shell) return undefined;
 
+    onPreparingRef.current?.();
     setZoom(1);
+    logPerformanceEvent("rifugio:model-mount", { section: "Rifugio" });
+    let readyNotified = false;
     const model = createRifugioModel(shell, {
       mobile: mobileMode,
       onZoom: (nextZoom) => {
@@ -86,6 +99,12 @@ export function RifugioModel3D({
       },
       title: content.title,
       description: content.description,
+      onFrame: () => {
+        if (readyNotified) return;
+        readyNotified = true;
+        logPerformanceEvent("rifugio:model-ready", { section: "Rifugio" });
+        onReadyRef.current?.();
+      },
     });
     modelRef.current = model;
     if (import.meta.env?.DEV) window.__rifugio = model;
@@ -122,6 +141,7 @@ export function RifugioModel3D({
       window.clearTimeout(settle);
       shell.removeEventListener("pointerdown", markTouched);
       model.destroy();
+      logPerformanceEvent("rifugio:model-destroy", { section: "Rifugio" });
       modelRef.current = null;
       if (import.meta.env?.DEV && window.__rifugio === model)
         delete window.__rifugio;

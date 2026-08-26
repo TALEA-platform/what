@@ -21,6 +21,7 @@ import { cameraEasing } from "../../lib/motion";
 import { createMapResizeController } from "../../lib/mapResize";
 import { registerMapPerformance } from "../../lib/mapPerformance";
 import { runtimeProfile } from "../../lib/runtimeProfile";
+import { useIOSFarOffscreenMount } from "../../hooks/useIOSFarOffscreenMount";
 
 // Overlay maps own only data layers; a second basemap would flicker while loading.
 const transparentCauseMapStyle = {
@@ -96,7 +97,12 @@ function staticHotspotPath(geometry) {
   return "";
 }
 
-function CausesStaticRaster({ lens, compare = false, sliderValue = 50 }) {
+function CausesStaticRaster({
+  lens,
+  compare = false,
+  sliderValue = 50,
+  dragging = false,
+}) {
   const [hotspotPath, setHotspotPath] = useState("");
 
   useEffect(() => {
@@ -139,7 +145,7 @@ function CausesStaticRaster({ lens, compare = false, sliderValue = 50 }) {
       </div>
       {compare ? (
         <div
-          className="causes-static-raster-clip"
+          className={`causes-static-raster-clip${dragging ? " is-dragging" : ""}`}
           style={{ clipPath: `inset(0 0 0 ${sliderValue}%)` }}
           aria-hidden="true"
         >
@@ -673,10 +679,12 @@ function CausesCompareMap({
   comparisonAriaLabel,
   handleHint,
   mobile = false,
+  materialized = true,
 }) {
   const [baseMap, setBaseMap] = useState(null);
   const [overlayReady, setOverlayReady] = useState(false);
   const [baseDrawn, setBaseDrawn] = useState(false);
+  const [sliderDragging, setSliderDragging] = useState(false);
   if (mobile) {
     const reveal = visible && !exiting;
     const transform = exiting
@@ -695,7 +703,13 @@ function CausesCompareMap({
           pointerEvents: reveal ? "auto" : "none",
         }}
       >
-        <CausesStaticRaster compare sliderValue={sliderValue} />
+        {materialized ? (
+          <CausesStaticRaster
+            compare
+            sliderValue={sliderValue}
+            dragging={sliderDragging}
+          />
+        ) : null}
         {active && reveal && (
           <CompareSlider
             value={sliderValue}
@@ -704,6 +718,7 @@ function CausesCompareMap({
             onDemoEnd={onDemoEnd}
             ariaLabel={comparisonAriaLabel}
             hint={handleHint}
+            onDraggingChange={setSliderDragging}
           />
         )}
         {active && reveal && (
@@ -1102,10 +1117,20 @@ export function PhysicalDriversSection() {
     "compare-green": false,
     "compare-materials": false,
   });
+  const heavyVisualsMounted = useIOSFarOffscreenMount(sceneRef, {
+    name: "Cause raster",
+    prewarmViewports: 2,
+    releaseViewports: 5,
+    initiallyMounted: true,
+    retainUntilFirstApproach: true,
+  });
 
   const markCompareDemoPlayed = useCallback(() => setCompareDemoPlayed(true), []);
 
-  useEffect(() => preloadCompareAssets(), []);
+  useEffect(
+    () => (heavyVisualsMounted ? preloadCompareAssets() : undefined),
+    [heavyVisualsMounted],
+  );
 
   useEffect(() => {
     const query = window.matchMedia(MOBILE_LAYOUT_QUERY);
@@ -1759,7 +1784,9 @@ export function PhysicalDriversSection() {
             <div className="causes-crop-wash" aria-hidden="true" />
 
             {mobileLayout ? (
-              <CausesStaticRaster lens={visualStage.lens} />
+              heavyVisualsMounted ? (
+                <CausesStaticRaster lens={visualStage.lens} />
+              ) : null
             ) : (
               <CausesCropMap
                 lens={visualStage.lens}
@@ -1833,6 +1860,7 @@ export function PhysicalDriversSection() {
                 comparisonAriaLabel={comparisonAriaLabel}
                 handleHint={handleHint}
                 mobile
+                materialized={heavyVisualsMounted}
               />
             </div>
           )}
@@ -1917,12 +1945,26 @@ function demoValueAt(elapsed) {
   return DEMO_STOPS[leg] + (DEMO_STOPS[leg + 1] - DEMO_STOPS[leg]) * t;
 }
 
-function CompareSlider({ value, onChange, autoDemo, onDemoEnd, ariaLabel, hint }) {
+function CompareSlider({
+  value,
+  onChange,
+  autoDemo,
+  onDemoEnd,
+  onDraggingChange,
+  ariaLabel,
+  hint,
+}) {
   const trackRef = useRef(null);
   const [dragging, setDragging] = useState(false);
   const [hintOn, setHintOn] = useState(() => !autoDemo || prefersReducedMotion());
   const [demoing, setDemoing] = useState(false);
   const demoCancelRef = useRef(null);
+  const pointerRef = useRef({
+    id: null,
+    rect: null,
+    latestX: null,
+    frame: null,
+  });
 
   const endDemo = useCallback(() => {
     demoCancelRef.current?.();
@@ -1956,12 +1998,11 @@ function CompareSlider({ value, onChange, autoDemo, onDemoEnd, ariaLabel, hint }
     return cancel;
   }, [autoDemo, onChange, onDemoEnd, endDemo]);
 
-  const updateFromEvent = useCallback(
-    (event) => {
-      const track = trackRef.current;
-      if (!track) return;
-      const rect = track.getBoundingClientRect();
-      const x = (event.touches?.[0]?.clientX ?? event.clientX) - rect.left;
+  const updateFromClientX = useCallback(
+    (clientX) => {
+      const rect = pointerRef.current.rect;
+      if (!rect?.width) return;
+      const x = clientX - rect.left;
       const pct = Math.max(2, Math.min(98, (x / rect.width) * 100));
       onChange(pct);
     },
@@ -1970,24 +2011,64 @@ function CompareSlider({ value, onChange, autoDemo, onDemoEnd, ariaLabel, hint }
 
   useEffect(() => {
     if (!dragging) return;
-    const handleMove = (event) => updateFromEvent(event);
-    const handleUp = () => setDragging(false);
-    window.addEventListener("mousemove", handleMove);
-    window.addEventListener("touchmove", handleMove, { passive: true });
-    window.addEventListener("mouseup", handleUp);
-    window.addEventListener("touchend", handleUp);
-    return () => {
-      window.removeEventListener("mousemove", handleMove);
-      window.removeEventListener("touchmove", handleMove);
-      window.removeEventListener("mouseup", handleUp);
-      window.removeEventListener("touchend", handleUp);
+    const updateRect = () => {
+      pointerRef.current.rect = trackRef.current?.getBoundingClientRect() ?? null;
     };
-  }, [dragging, updateFromEvent]);
+    window.addEventListener("resize", updateRect);
+    return () => {
+      window.removeEventListener("resize", updateRect);
+    };
+  }, [dragging]);
+
+  useEffect(
+    () => () => {
+      if (pointerRef.current.frame !== null) {
+        cancelAnimationFrame(pointerRef.current.frame);
+      }
+      onDraggingChange?.(false);
+    },
+    [onDraggingChange],
+  );
 
   const startDrag = (event) => {
-    event.preventDefault();
+    if (event.pointerType === "mouse" && event.button !== 0) return;
     endDemo();
+    pointerRef.current.id = event.pointerId;
+    pointerRef.current.rect = trackRef.current?.getBoundingClientRect() ?? null;
+    pointerRef.current.latestX = null;
+    event.currentTarget.setPointerCapture?.(event.pointerId);
     setDragging(true);
+    onDraggingChange?.(true);
+  };
+
+  const moveDrag = (event) => {
+    if (pointerRef.current.id !== event.pointerId) return;
+    pointerRef.current.latestX = event.clientX;
+    if (pointerRef.current.frame !== null) return;
+    pointerRef.current.frame = requestAnimationFrame(() => {
+      pointerRef.current.frame = null;
+      if (pointerRef.current.latestX == null) return;
+      updateFromClientX(pointerRef.current.latestX);
+    });
+  };
+
+  const endDrag = (event) => {
+    if (pointerRef.current.id !== event.pointerId) return;
+    if (pointerRef.current.frame !== null) {
+      cancelAnimationFrame(pointerRef.current.frame);
+      pointerRef.current.frame = null;
+      if (pointerRef.current.latestX != null) {
+        updateFromClientX(pointerRef.current.latestX);
+      }
+    }
+    if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    pointerRef.current.id = null;
+    pointerRef.current.rect = null;
+    pointerRef.current.latestX = null;
+    setDragging(false);
+    onDraggingChange?.(false);
   };
 
   const onKeyDown = (event) => {
@@ -2014,8 +2095,11 @@ function CompareSlider({ value, onChange, autoDemo, onDemoEnd, ariaLabel, hint }
         type="button"
         className={`causes-compare-handle${demoing ? " causes-compare-handle--demo" : ""}`}
         style={{ left: `${value}%` }}
-        onMouseDown={startDrag}
-        onTouchStart={startDrag}
+        onPointerDown={startDrag}
+        onPointerMove={moveDrag}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        onLostPointerCapture={endDrag}
         onKeyDown={onKeyDown}
         role="slider"
         tabIndex={0}

@@ -466,11 +466,15 @@
 }
 
 @media (max-width: 700px) {
-  .hotspot-intro-vg .tag,
-  .hotspot-intro-vg .tag-word {
+  .hotspot-intro-vg .tag {
     transform-box: fill-box;
     transform-origin: center;
     transform: scale(1.32);
+  }
+
+  .hotspot-intro-vg--superficie .tag-word {
+    font-size: 25px;
+    transform: none;
   }
 
   .hotspot-intro-vg--ricorrenza {

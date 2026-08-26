@@ -10,8 +10,13 @@ import {
   lockCamera,
 } from "../../data/reliefMaps";
 import { createMapResizeController } from "../../lib/mapResize";
-import { registerMapPerformance } from "../../lib/mapPerformance";
+import {
+  logPerformanceEvent,
+  registerMapPerformance,
+} from "../../lib/mapPerformance";
 import { runtimeProfile } from "../../lib/runtimeProfile";
+import { useIOSFarOffscreenMount } from "../../hooks/useIOSFarOffscreenMount";
+import { requestIOSHeavyOffscreenRelease } from "../../lib/iosMemoryLifecycle";
 
 const ZONES = zonesMap.zones;
 const STAGE_COUNT = ZONES.length + 1;
@@ -185,6 +190,11 @@ export function ZonesMapScene() {
   const entryResizeTimerRef = useRef(null);
   const resizeControllerRef = useRef(null);
   const unregisterPerformanceRef = useRef(null);
+  const mapMaterialized = useIOSFarOffscreenMount(sectionRef, {
+    name: "Zones",
+    prewarmViewports: 0.25,
+    releaseViewports: 4,
+  });
 
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -310,10 +320,13 @@ export function ZonesMapScene() {
 
   useEffect(() => {
     const section = sectionRef.current;
-    if (!section) return undefined;
+    if (!section || !mapMaterialized) return undefined;
 
+    let initFrame = null;
     const init = () => {
       if (mapRef.current || !containerRef.current) return;
+      logPerformanceEvent("zones:init-start", { section: "Zones" });
+      logPerformanceEvent("map:constructor", { mapName: "Zones" });
       const map = new maplibregl.Map({
         container: containerRef.current,
         style: BASEMAP_STYLE,
@@ -335,6 +348,7 @@ export function ZonesMapScene() {
       });
 
       map.on("load", () => {
+        logPerformanceEvent("zones:map-load", { section: "Zones" });
         try {
           addOrthophoto(map);
           map.addControl(
@@ -373,12 +387,16 @@ export function ZonesMapScene() {
           });
           warmOpeningCamera(map);
           setReady(true);
+          logPerformanceEvent("zones:map-ready", { section: "Zones" });
         } catch (err) {
           console.warn(err);
           setFailed(true);
         }
       });
     };
+
+    requestIOSHeavyOffscreenRelease("zones-context-create");
+    initFrame = requestAnimationFrame(init);
 
     const io = new IntersectionObserver(
       (entries) => {
@@ -407,6 +425,7 @@ export function ZonesMapScene() {
     io.observe(section);
     return () => {
       io.disconnect();
+      if (initFrame !== null) cancelAnimationFrame(initFrame);
       if (entryResizeTimerRef.current !== null) {
         window.clearTimeout(entryResizeTimerRef.current);
         entryResizeTimerRef.current = null;
@@ -418,8 +437,9 @@ export function ZonesMapScene() {
       unregisterPerformanceRef.current = null;
       mapRef.current?.remove();
       mapRef.current = null;
+      setReady(false);
     };
-  }, []);
+  }, [mapMaterialized]);
 
   useEffect(() => {
     if (!ready) return;
@@ -432,7 +452,10 @@ export function ZonesMapScene() {
       return;
     }
 
-    if (!engaged && flownRef.current) return;
+    if (!engaged && flownRef.current) {
+      applyStage(stage, false);
+      return;
+    }
     applyStage(stage, flownRef.current);
     flownRef.current = true;
   }, [stage, ready, engaged, applyStage]);

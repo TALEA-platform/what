@@ -26,6 +26,9 @@ import { CopySegments } from "./CopySegments";
 import { editorialLinks, useContent } from "../../content";
 import { assetUrl } from "../../lib/assetUrl";
 import { cityPlanMobileRasters } from "../../generated/cityPlanMobileRasters";
+import { logPerformanceEvent } from "../../lib/mapPerformance";
+import { runtimeProfile } from "../../lib/runtimeProfile";
+import { onIOSHeavyOffscreenRelease } from "../../lib/iosMemoryLifecycle";
 
 // Stable objects stop React reinjecting SVG innerHTML and erasing animation classes.
 const PLAN_HTML = { __html: cityPlanSvg };
@@ -619,6 +622,45 @@ export function CityPlanScene() {
       (mobileCameraActive && note.id === "corridor" && synchronizedMapBeat === 5),
   );
 
+  useEffect(() => {
+    if (!mobileCameraActive) return;
+    const activeLayerCount = mobilePlanLayersForBeat(beat).length;
+    const requestedLayerCount = new Set([
+      ...mobilePlanLayersForBeat(beat),
+      ...mobilePlanLayersForBeat(requestedBeat),
+      ...(beat === 2 ? mobilePlanLayersForBeat(1) : []),
+    ].map(({ name }) => name)).size;
+    logPerformanceEvent("cityplan:beat", {
+      section: "CityPlan",
+      cityPlanBeat: beat,
+      requestedBeat,
+      mountedRasterLayerCount: mobileVignettesMounted
+        ? 1 + requestedLayerCount
+        : 0,
+      visibleRasterLayerCount: mobileVignettesMounted
+        ? 1 + activeLayerCount
+        : 0,
+    });
+  }, [beat, mobileCameraActive, mobileVignettesMounted, requestedBeat]);
+
+  useEffect(
+    () =>
+      onIOSHeavyOffscreenRelease((reason) => {
+        const rect = rootRef.current?.getBoundingClientRect();
+        if (!rect || (rect.bottom > 0 && rect.top < window.innerHeight)) return;
+        setMobileVignettesMounted((mounted) => {
+          if (!mounted) return mounted;
+          logPerformanceEvent("cityplan:rasters-release", {
+            section: "CityPlan",
+            cityPlanBeat: mobileCommittedBeatRef.current,
+            reason,
+          });
+          return false;
+        });
+      }),
+    [],
+  );
+
   const measureMobileOverlayLayout = useCallback(() => {
     const band = bandRef.current;
     const nodes = mobileVignetteNodesRef.current;
@@ -1174,6 +1216,7 @@ export function CityPlanScene() {
     }
 
     let syncFrame = null;
+    let retentionObserver = null;
     const viewportHeight = window.innerHeight || 768;
     const rect = root.getBoundingClientRect();
     mobileNearbyRef.current =
@@ -1198,6 +1241,24 @@ export function CityPlanScene() {
       { rootMargin: "1500px 0px 1500px 0px", threshold: 0 },
     );
     observer.observe(root);
+    if (runtimeProfile.isIOSWebKit) {
+      const releaseMargin = Math.round((window.innerHeight || 768) * 4);
+      retentionObserver = new IntersectionObserver(
+        ([entry]) => {
+          if (entry.isIntersecting) return;
+          setMobileVignettesMounted((mounted) => {
+            if (!mounted) return mounted;
+            logPerformanceEvent("cityplan:rasters-release", {
+              section: "CityPlan",
+              cityPlanBeat: mobileCommittedBeatRef.current,
+            });
+            return false;
+          });
+        },
+        { rootMargin: `${releaseMargin}px 0px`, threshold: 0 },
+      );
+      retentionObserver.observe(root);
+    }
     syncFrame = requestAnimationFrame(() => {
       syncFrame = null;
       if (mobileNearbyRef.current) {
@@ -1207,6 +1268,7 @@ export function CityPlanScene() {
     });
     return () => {
       observer.disconnect();
+      retentionObserver?.disconnect();
       if (syncFrame) cancelAnimationFrame(syncFrame);
       delete root.dataset.mobileNearby;
     };

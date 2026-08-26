@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Header } from "./components/layout/Header";
 import { Footer } from "./components/layout/Footer";
 import { ScrollStem } from "./components/layout/ScrollStem";
@@ -20,6 +20,7 @@ import { ClosingSection } from "./components/story/ClosingSection";
 import { GlossaryDrawer, GlossaryTrailProvider } from "./components/ui/GlossaryDrawer";
 import { MethodDrawer } from "./components/ui/MethodDrawer";
 import { MobileExperienceNotice } from "./components/ui/MobileExperienceNotice";
+import { observeStoryPerformanceSections } from "./lib/mapPerformance";
 
 function App() {
   const [glossaryId, setGlossaryId] = useState(null);
@@ -33,6 +34,8 @@ function App() {
     setMobileScrubbing(active);
   }, []);
   const openMethod = () => setMethodOpen(true);
+
+  useEffect(() => observeStoryPerformanceSections(), []);
 
   return (
     <GlossaryTrailProvider>

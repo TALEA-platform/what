@@ -8,8 +8,10 @@ import { GlossaryTerm } from "../ui/GlossaryDrawer";
 import { useTimedSequence } from "../../hooks/useTimedSequence";
 import { SCROLL_ACCELERATION_GRACE_MS } from "../../lib/motion";
 import { useContent } from "../../content";
+import { logPerformanceEvent } from "../../lib/mapPerformance";
 
 const RIFUGIO_HTML = { __html: rifugioSvg };
+const EMPTY_HTML = { __html: "" };
 
 const wordsOf = (step) => step.paragraphs.join(" ").trim().split(/\s+/).length;
 const SCROLL_NUDGE_COOLDOWN_MS = 650;
@@ -64,6 +66,7 @@ export function RifugioExplainer({ onGlossary }) {
   const [introEntering, setIntroEntering] = useState(false);
   const [introReturning, setIntroReturning] = useState(false);
   const [modelIntroEntering, setModelIntroEntering] = useState(false);
+  const [modelReady, setModelReady] = useState(false);
   const [finalCueUnlocked, setFinalCueUnlocked] = useState(false);
 
   const explainerRef = useRef(null);
@@ -77,6 +80,7 @@ export function RifugioExplainer({ onGlossary }) {
   const manualModeRef = useRef(false);
   const enteredRef = useRef(false);
   const engagedRef = useRef(false);
+  const nearbyRef = useRef(false);
   const modelIntroSeenRef = useRef(false);
 
   const {
@@ -162,7 +166,7 @@ export function RifugioExplainer({ onGlossary }) {
     figureRef.current
       ?.querySelector("svg")
       ?.setAttribute("aria-label", reliefExplainer.figure.svgAriaLabel);
-  }, [reliefExplainer.figure.svgAriaLabel]);
+  }, [nearby, reliefExplainer.figure.svgAriaLabel]);
 
   useEffect(() => {
     const explainer = explainerRef.current;
@@ -357,7 +361,7 @@ export function RifugioExplainer({ onGlossary }) {
       window.clearTimeout(timer);
       fig.classList.remove("is-building");
     };
-  }, [entered, engaged, figureInView, step]);
+  }, [entered, engaged, figureInView, nearby, step]);
 
   useEffect(() => {
     let frame = null;
@@ -407,9 +411,22 @@ export function RifugioExplainer({ onGlossary }) {
       if (sectionRect) {
         const arriving = sectionRect.top < vh * 1.2 && sectionRect.bottom > vh * .1;
         const goneForGood = sectionRect.top > vh * 1.5 || sectionRect.bottom < -vh * .1;
-        setNearby((mounted) => (mounted ? !goneForGood : arriving));
+        const nextNearby = nearbyRef.current ? !goneForGood : arriving;
+        if (nextNearby !== nearbyRef.current) {
+          nearbyRef.current = nextNearby;
+          if (!nextNearby) setModelReady(false);
+          setNearby(nextNearby);
+        }
       }
       if (nextEngaged !== engagedRef.current) {
+        logPerformanceEvent(
+          nextEngaged ? "rifugio:sticky-engaged" : "rifugio:sticky-disengaged",
+          { section: "Rifugio" },
+        );
+        logPerformanceEvent(
+          nextEngaged ? "rifugio:intro-exit" : "rifugio:intro-reenter",
+          { section: "Rifugio" },
+        );
         if (mobileLayout) {
           if (nextEngaged) {
             setIntroEntering(false);
@@ -432,6 +449,7 @@ export function RifugioExplainer({ onGlossary }) {
 
       if (nextEntered && !enteredRef.current) {
         enteredRef.current = true;
+        logPerformanceEvent("rifugio:intro-enter", { section: "Rifugio" });
         if (
           mobileLayout &&
           !nextEngaged &&
@@ -458,7 +476,7 @@ export function RifugioExplainer({ onGlossary }) {
   return (
     <div
       ref={explainerRef}
-      className={`relief-explainer${entered ? " relief-explainer--entered" : ""}${figureReached ? " relief-explainer--figure-reached" : ""}${introHasLiftRoom ? " relief-explainer--intro-has-lift-room" : ""}${introEntering ? " relief-explainer--intro-entering" : ""}${introReturning ? " relief-explainer--intro-returning" : ""}${modelIntroEntering ? " relief-explainer--model-intro-entering" : ""}${engaged ? " relief-explainer--engaged" : ""}`}
+      className={`relief-explainer${entered ? " relief-explainer--entered" : ""}${figureReached ? " relief-explainer--figure-reached" : ""}${introHasLiftRoom ? " relief-explainer--intro-has-lift-room" : ""}${introEntering ? " relief-explainer--intro-entering" : ""}${introReturning ? " relief-explainer--intro-returning" : ""}${modelIntroEntering ? " relief-explainer--model-intro-entering" : ""}${modelReady ? " relief-explainer--model-ready" : ""}${engaged ? " relief-explainer--engaged" : ""}`}
       data-step={step}
       data-manual={String(manualMode)}
     >
@@ -500,7 +518,7 @@ export function RifugioExplainer({ onGlossary }) {
                 data-motion="story"
                 aria-hidden={engaged ? "true" : undefined}
                 aria-label={engaged ? undefined : reliefExplainer.figure.ariaLabel}
-                dangerouslySetInnerHTML={RIFUGIO_HTML}
+                dangerouslySetInnerHTML={nearby ? RIFUGIO_HTML : EMPTY_HTML}
               />
               {nearby ? (
                 <RifugioModel3D
@@ -509,6 +527,8 @@ export function RifugioExplainer({ onGlossary }) {
                   content={reliefExplainer.model}
                   idle={!engaged || !settled}
                   gestureHint={uiContent.localStory.modelGesture}
+                  onPreparing={() => setModelReady(false)}
+                  onReady={() => setModelReady(true)}
                 />
               ) : null}
             </div>

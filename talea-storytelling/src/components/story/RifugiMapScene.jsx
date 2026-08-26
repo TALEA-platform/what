@@ -6,6 +6,12 @@ import { loadReliefSources } from "../../data/reliefData";
 import { editorialLinks, useContent } from "../../content";
 import { SearchSuggest } from "../ui/SearchSuggest";
 import {
+  createMapResizeController,
+  isMapSizeSynchronized,
+} from "../../lib/mapResize";
+import { registerMapPerformance } from "../../lib/mapPerformance";
+import { runtimeProfile } from "../../lib/runtimeProfile";
+import {
   ADDRESS_ZOOM,
   BASEMAP_STYLE,
   EXPLORE_ZOOM_LIMITS,
@@ -167,6 +173,12 @@ export function RifugiMapScene() {
   const mapGestureGraceUntilRef = useRef(0);
   const mobileGestureHintShownRef = useRef(false);
   const pointSelectionTimerRef = useRef(null);
+  const entryResizeTimerRef = useRef(null);
+  const resizeControllerRef = useRef(null);
+  const unregisterPerformanceRef = useRef(null);
+  const cameraResizePendingRef = useRef(false);
+  const requestMapResizeUpdateRef = useRef(null);
+  const readyWaitersRef = useRef(new Set());
 
   const [revealed, setRevealed] = useState(false);
   const [engaged, setEngaged] = useState(false);
@@ -616,12 +628,10 @@ export function RifugiMapScene() {
   );
 
   const waitForReady = useCallback(
-    () =>
-      new Promise((resolve) => {
-        if (readyRef.current) return resolve();
-        const tick = () => (readyRef.current ? resolve() : window.setTimeout(tick, 120));
-        tick();
-      }),
+    () => {
+      if (readyRef.current) return Promise.resolve(true);
+      return new Promise((resolve) => readyWaitersRef.current.add(resolve));
+    },
     [],
   );
 
@@ -634,7 +644,7 @@ export function RifugiMapScene() {
       const q = String(rawQuery || "").trim();
       if (!q) return;
       scrollSceneIntoView();
-      await waitForReady();
+      if (!(await waitForReady())) return;
       setMessageKey("searching");
       try {
         const hit = await geocodeBologna(q);
@@ -654,7 +664,7 @@ export function RifugiMapScene() {
     async (item) => {
       if (!item?.pt) return;
       scrollSceneIntoView();
-      await waitForReady();
+      if (!(await waitForReady())) return;
       await focusPoint(item.pt, item.label);
     },
     [focusPoint, scrollSceneIntoView, waitForReady],
@@ -695,6 +705,7 @@ export function RifugiMapScene() {
   useEffect(() => {
     const section = sectionRef.current;
     if (!section) return undefined;
+    const readyWaiters = readyWaitersRef.current;
 
     const init = () => {
       if (mapRef.current || !containerRef.current) return;
@@ -711,9 +722,14 @@ export function RifugiMapScene() {
         attributionControl: false,
         cooperativeGestures: mobileMap,
         locale: mapLibreLocaleRef.current,
+        ...runtimeProfile.mapPixelRatioOptions,
       });
+      const resizeController = createMapResizeController(map);
+      resizeControllerRef.current = resizeController;
+      unregisterPerformanceRef.current = registerMapPerformance(map, "Rifugi");
       mapRef.current = map;
       lockCamera(map);
+      map.on("resize", () => requestMapResizeUpdateRef.current?.());
       if (mobileMap) {
         map.dragPan.enable();
         map.touchZoomRotate.enable();
@@ -811,6 +827,9 @@ export function RifugiMapScene() {
             map.setMaxBounds(initialBounds);
           }
           readyRef.current = true;
+          cameraResizePendingRef.current = false;
+          readyWaiters.forEach((resolve) => resolve(true));
+          readyWaiters.clear();
           startNetworkReveal();
 
           const clearHover = () => {
@@ -898,6 +917,8 @@ export function RifugiMapScene() {
           map.on("dblclick", cancelPendingPointSelection);
         } catch (err) {
           console.warn(err);
+          readyWaiters.forEach((resolve) => resolve(false));
+          readyWaiters.clear();
           setFailed(true);
           setControlsReady(true);
         }
@@ -909,8 +930,21 @@ export function RifugiMapScene() {
         entries.forEach((e) => {
           if (e.isIntersecting) {
             init();
-            window.setTimeout(() => mapRef.current?.resize(), 250);
-          } else if (focusedRef.current) {
+            if (entryResizeTimerRef.current !== null) {
+              window.clearTimeout(entryResizeTimerRef.current);
+            }
+            entryResizeTimerRef.current = window.setTimeout(() => {
+              entryResizeTimerRef.current = null;
+              resizeControllerRef.current?.request("rifugi-entry");
+            }, 250);
+          } else {
+            if (entryResizeTimerRef.current !== null) {
+              window.clearTimeout(entryResizeTimerRef.current);
+              entryResizeTimerRef.current = null;
+            }
+            resizeControllerRef.current?.cancelPending();
+            mapRef.current?.stop();
+            if (!focusedRef.current) return;
             routeAbortRef.current?.abort();
             routeAbortRef.current = null;
             focusedRef.current = false;
@@ -950,6 +984,10 @@ export function RifugiMapScene() {
     io.observe(section);
     return () => {
       io.disconnect();
+      if (entryResizeTimerRef.current !== null) {
+        window.clearTimeout(entryResizeTimerRef.current);
+        entryResizeTimerRef.current = null;
+      }
       cancelPendingPointSelection();
       cancelMobileCamera();
       cancelWaveRef.current?.();
@@ -959,9 +997,15 @@ export function RifugiMapScene() {
       routeAbortRef.current = null;
       markerRef.current?.remove();
       markerRef.current = null;
+      resizeControllerRef.current?.destroy();
+      resizeControllerRef.current = null;
+      unregisterPerformanceRef.current?.();
+      unregisterPerformanceRef.current = null;
       mapRef.current?.remove();
       mapRef.current = null;
       readyRef.current = false;
+      readyWaiters.forEach((resolve) => resolve(false));
+      readyWaiters.clear();
       revealTargetsRef.current = null;
     };
   }, [
@@ -1000,6 +1044,21 @@ export function RifugiMapScene() {
       setExiting(nextExiting);
       if (nextEngaged) startNetworkReveal();
 
+      const map = mapRef.current;
+      if (
+        cameraResizePendingRef.current &&
+        nextEngaged &&
+        readyRef.current &&
+        map &&
+        isMapSizeSynchronized(map)
+      ) {
+        cameraResizePendingRef.current = false;
+        if (mobileMapRef.current && !cameraTouchedRef.current) {
+          map._reliefPad = mobileOverviewPadding();
+          frameOverview(map, 0, { resetPadding: true });
+        }
+      }
+
       const y = window.scrollY;
       const now = performance.now();
       if (scrollResetUntilRef.current > now) {
@@ -1029,25 +1088,19 @@ export function RifugiMapScene() {
       frame = requestAnimationFrame(update);
     };
     const handleResize = () => {
+      cameraResizePendingRef.current = true;
       requestUpdate();
-      const map = mapRef.current;
-      if (!map) return;
-      map.resize();
-      if (
-        readyRef.current &&
-        mobileMapRef.current &&
-        !cameraTouchedRef.current
-      ) {
-        map._reliefPad = mobileOverviewPadding();
-        frameOverview(map, 0, { resetPadding: true });
-      }
     };
+    requestMapResizeUpdateRef.current = requestUpdate;
     lastScrollRef.current = window.scrollY;
     update();
     window.addEventListener("scroll", requestUpdate, { passive: true });
     window.addEventListener("resize", handleResize);
     return () => {
       if (frame) cancelAnimationFrame(frame);
+      if (requestMapResizeUpdateRef.current === requestUpdate) {
+        requestMapResizeUpdateRef.current = null;
+      }
       window.removeEventListener("scroll", requestUpdate);
       window.removeEventListener("resize", handleResize);
     };

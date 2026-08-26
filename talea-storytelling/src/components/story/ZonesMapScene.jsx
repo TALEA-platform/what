@@ -9,6 +9,9 @@ import {
   addOrthophoto,
   lockCamera,
 } from "../../data/reliefMaps";
+import { createMapResizeController } from "../../lib/mapResize";
+import { registerMapPerformance } from "../../lib/mapPerformance";
+import { runtimeProfile } from "../../lib/runtimeProfile";
 
 const ZONES = zonesMap.zones;
 const STAGE_COUNT = ZONES.length + 1;
@@ -179,6 +182,9 @@ export function ZonesMapScene() {
   const activeZoneRef = useRef(null);
   const openStartRef = useRef(0);
   const mapLibreLocaleRef = useRef({});
+  const entryResizeTimerRef = useRef(null);
+  const resizeControllerRef = useRef(null);
+  const unregisterPerformanceRef = useRef(null);
 
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -317,7 +323,10 @@ export function ZonesMapScene() {
         maxZoom: EXPLORE_ZOOM_LIMITS.maxZoom,
         attributionControl: false,
         locale: mapLibreLocaleRef.current,
+        ...runtimeProfile.mapPixelRatioOptions,
       });
+      resizeControllerRef.current = createMapResizeController(map);
+      unregisterPerformanceRef.current = registerMapPerformance(map, "Zones");
       mapRef.current = map;
       lockCamera(map);
       const mobileMap = window.matchMedia(MOBILE_LAYOUT_QUERY).matches;
@@ -376,7 +385,20 @@ export function ZonesMapScene() {
         entries.forEach((e) => {
           if (e.isIntersecting) {
             init();
-            window.setTimeout(() => mapRef.current?.resize(), 250);
+            if (entryResizeTimerRef.current !== null) {
+              window.clearTimeout(entryResizeTimerRef.current);
+            }
+            entryResizeTimerRef.current = window.setTimeout(() => {
+              entryResizeTimerRef.current = null;
+              resizeControllerRef.current?.request("zones-entry");
+            }, 250);
+          } else {
+            if (entryResizeTimerRef.current !== null) {
+              window.clearTimeout(entryResizeTimerRef.current);
+              entryResizeTimerRef.current = null;
+            }
+            resizeControllerRef.current?.cancelPending();
+            mapRef.current?.stop();
           }
         });
       },
@@ -385,7 +407,15 @@ export function ZonesMapScene() {
     io.observe(section);
     return () => {
       io.disconnect();
+      if (entryResizeTimerRef.current !== null) {
+        window.clearTimeout(entryResizeTimerRef.current);
+        entryResizeTimerRef.current = null;
+      }
       mapRef.current?.stop();
+      resizeControllerRef.current?.destroy();
+      resizeControllerRef.current = null;
+      unregisterPerformanceRef.current?.();
+      unregisterPerformanceRef.current = null;
       mapRef.current?.remove();
       mapRef.current = null;
     };

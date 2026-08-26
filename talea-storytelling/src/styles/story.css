@@ -11009,15 +11009,16 @@
 
 .talea-participation-showcase {
   display: grid;
-  grid-template-columns: minmax(0, 1.18fr) minmax(280px, 0.82fr);
+  grid-template-columns: minmax(0, 1.3fr) minmax(270px, 0.7fr);
   align-items: center;
-  gap: clamp(34px, 5vw, 72px);
+  gap: clamp(30px, 4vw, 58px);
   width: 100%;
   margin: clamp(34px, 4vw, 50px) 0 0;
 }
 
 .talea-participation-vignette {
   min-width: 0;
+  filter: drop-shadow(0 20px 24px rgba(36, 67, 44, 0.035));
 }
 
 .talea-participation-vignette-svg {
@@ -11028,7 +11029,11 @@
 }
 
 .talea-participation-vignette-svg .tpv-wash {
-  fill: rgba(33, 168, 74, 0.08);
+  fill: rgba(89, 154, 92, 0.105);
+}
+
+.talea-participation-vignette-svg .tpv-wash-accent {
+  fill: rgba(246, 205, 111, 0.075);
 }
 
 .talea-participation-vignette-svg .tpv-paper {
@@ -11036,7 +11041,7 @@
 }
 
 .talea-participation-vignette-svg .tpv-paper-shadow {
-  fill: rgba(58, 53, 42, 0.1);
+  fill: rgba(42, 66, 47, 0.13);
 }
 
 .talea-participation-vignette-svg .tpv-paper-texture {
@@ -11050,29 +11055,34 @@
 }
 
 .talea-participation-vignette-svg .tpv-fold {
-  fill: #ded6c2;
+  fill: #ded8c8;
 }
 
 .talea-participation-vignette-svg .tpv-block {
-  fill: #e4ddca;
+  fill: #e7dfcd;
 }
 
 .talea-participation-vignette-svg .tpv-park {
-  fill: #c6d9b8;
+  fill: #bfd5b1;
 }
 
-.talea-participation-vignette-svg .tpv-route {
-  fill: none;
-  stroke: #73977a;
-  stroke-width: 9;
-  stroke-linecap: round;
-  stroke-dasharray: 5 12;
-  opacity: 0.48;
+.talea-participation-vignette-svg .tpv-pilot-area {
+  stroke-width: 1.5;
+}
+
+.talea-participation-vignette-svg .tpv-pilot-area--one {
+  fill: rgba(33, 168, 74, 0.15);
+  stroke: rgba(0, 77, 25, 0.22);
+}
+
+.talea-participation-vignette-svg .tpv-pilot-area--two {
+  fill: rgba(18, 114, 183, 0.11);
+  stroke: rgba(18, 114, 183, 0.2);
 }
 
 .talea-participation-vignette-svg .tpv-street {
   fill: none;
-  stroke: #d6cebb;
+  stroke: #d1c8b4;
   stroke-width: 2.2;
   stroke-linecap: round;
   stroke-dasharray: 2 7;
@@ -11091,13 +11101,7 @@
   stroke: #8e8672;
   stroke-width: 3;
   stroke-linecap: round;
-  opacity: 0.46;
-}
-
-.talea-participation-vignette-svg .tpv-symbol-plate {
-  fill: rgba(251, 250, 244, 0.82);
-  stroke: rgba(109, 118, 95, 0.2);
-  stroke-width: 1.4;
+  opacity: 0.4;
 }
 
 .talea-participation-vignette-svg .tpv-tree path {
@@ -11138,11 +11142,60 @@
 }
 
 .talea-participation-vignette-svg .tpv-sleeve {
-  fill: #91aa8e;
+  fill: #8fa78d;
 }
 
 .talea-participation-vignette-svg .tpv-sleeve-alt {
-  fill: #c3b18a;
+  fill: #bea982;
+}
+
+.talea-participation-vignette-svg .tpv-sleeve-bottom {
+  fill: #6f9292;
+}
+
+.talea-participation-vignette-svg .tpv-cuff {
+  fill: #d9c9a8;
+}
+
+.talea-participation-vignette-svg .tpv-cuff-alt {
+  fill: #8a7153;
+}
+
+.talea-participation-vignette-svg .tpv-cuff-bottom {
+  fill: #d7c59e;
+}
+
+.talea-participation-vignette-svg .tpv-point-finger {
+  fill: #e9c39d;
+}
+
+.talea-participation-vignette-svg .tpv-pin-held {
+  fill: var(--talea-green);
+  stroke: #fbfaf4;
+  stroke-width: 2;
+}
+
+.talea-participation-vignette-svg .tpv-pin-held-dot {
+  fill: #fff;
+}
+
+.talea-participation-vignette-svg .tpv-note-shadow {
+  fill: rgba(58, 53, 42, 0.12);
+}
+
+.talea-participation-vignette-svg .tpv-note-paper {
+  fill: #f2dc91;
+}
+
+.talea-participation-vignette-svg .tpv-note-fold {
+  fill: #d9c16f;
+}
+
+.talea-participation-vignette-svg .tpv-note-line {
+  fill: none;
+  stroke: #6c624c;
+  stroke-width: 1.8;
+  stroke-linecap: round;
 }
 
 .talea-participation-vignette-svg .tpv-pencil {
@@ -11161,7 +11214,7 @@
 .talea-participation-vignette-svg .tpv-hand-ink path {
   fill: none;
   stroke: #3a352a;
-  stroke-width: 1.9;
+  stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
 }

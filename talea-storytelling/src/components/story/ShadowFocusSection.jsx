@@ -1,4 +1,11 @@
-import { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import {
+  useEffect,
+  useState,
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+} from "react";
 import { MapLibreCanvas } from "../maps/MapLibreCanvas";
 import { useTimedSequence } from "../../hooks/useTimedSequence";
 import {
@@ -19,6 +26,7 @@ import {
 import { vicoloSvg } from "../../data/shadowVignette";
 import { assetUrl } from "../../lib/assetUrl";
 import { editorialLinks, useContent } from "../../content";
+import { isMapSizeSynchronized } from "../../lib/mapResize";
 
 const bolognaBoundaryUrl = assetUrl("/data/vectors/bologna_boundary_outline.geojson");
 
@@ -53,6 +61,13 @@ function getShadowMobileCameraPadding() {
     bottom: width < 600 ? 218 : width < 900 ? 224 : 232,
     left: edge,
   };
+}
+
+function refitShadowMobileCamera(map, cameraKey) {
+  map.fitBounds(
+    cameraKey === "centro" ? MOBILE_CENTRO_BOUNDS : MOBILE_BOLOGNA_BOUNDS,
+    { padding: getShadowMobileCameraPadding(), duration: 0 },
+  );
 }
 
 const COLOR_AFTER_MS = 560;
@@ -309,6 +324,9 @@ function SceneDarkMap({ cameraKey, engaged, playbackRate, mobileLayout, locale }
   const mobileCameraTouchedRef = useRef(false);
   const mobileCameraKeyRef = useRef(null);
   const mobileCameraLimitsRef = useRef(null);
+  const mobileRefitPendingRef = useRef(false);
+  const mobileRefitFrameRef = useRef(null);
+  const mobileRefitCameraKeyRef = useRef(null);
   useEffect(() => {
     playbackRateRef.current = playbackRate;
   }, [playbackRate]);
@@ -517,22 +535,66 @@ function SceneDarkMap({ cameraKey, engaged, playbackRate, mobileLayout, locale }
       if (event.originalEvent) mobileCameraTouchedRef.current = true;
     };
     const refitUntouchedCamera = () => {
+      mobileRefitFrameRef.current = null;
+      if (
+        !mobileRefitPendingRef.current ||
+        !engaged ||
+        !isMapSizeSynchronized(map)
+      ) {
+        return;
+      }
+      mobileRefitPendingRef.current = false;
+      const pendingCameraKey = mobileRefitCameraKeyRef.current ?? cameraKey;
+      mobileRefitCameraKeyRef.current = null;
       if (mobileCameraTouchedRef.current) return;
-      map.fitBounds(
-        cameraKey === "centro" ? MOBILE_CENTRO_BOUNDS : MOBILE_BOLOGNA_BOUNDS,
-        { padding: getShadowMobileCameraPadding(), duration: 0 },
-      );
+      refitShadowMobileCamera(map, pendingCameraKey);
+    };
+    const requestRefit = () => {
+      if (mobileRefitFrameRef.current !== null) return;
+      mobileRefitFrameRef.current = requestAnimationFrame(refitUntouchedCamera);
+    };
+    const noteViewportResize = () => {
+      mobileRefitPendingRef.current = true;
+      mobileRefitCameraKeyRef.current = cameraKey;
+      if (engaged) requestRefit();
+    };
+    const handleMapResize = () => {
+      if (mobileRefitPendingRef.current && engaged) requestRefit();
     };
 
     map.on("zoomstart", markCameraTouched);
     map.on("dragstart", markCameraTouched);
-    window.addEventListener("resize", refitUntouchedCamera);
+    map.on("resize", handleMapResize);
+    window.addEventListener("resize", noteViewportResize);
+    if (mobileRefitPendingRef.current && engaged) requestRefit();
     return () => {
+      if (mobileRefitFrameRef.current !== null) {
+        cancelAnimationFrame(mobileRefitFrameRef.current);
+        mobileRefitFrameRef.current = null;
+      }
       map.off("zoomstart", markCameraTouched);
       map.off("dragstart", markCameraTouched);
-      window.removeEventListener("resize", refitUntouchedCamera);
+      map.off("resize", handleMapResize);
+      window.removeEventListener("resize", noteViewportResize);
     };
-  }, [map, mobileLayout, cameraKey]);
+  }, [map, mobileLayout, cameraKey, engaged]);
+
+  useLayoutEffect(() => {
+    if (
+      !map ||
+      !mobileLayout ||
+      !engaged ||
+      !mobileRefitPendingRef.current ||
+      !isMapSizeSynchronized(map)
+    ) {
+      return;
+    }
+    mobileRefitPendingRef.current = false;
+    const pendingCameraKey = mobileRefitCameraKeyRef.current ?? cameraKey;
+    mobileRefitCameraKeyRef.current = null;
+    if (mobileCameraTouchedRef.current) return;
+    refitShadowMobileCamera(map, pendingCameraKey);
+  }, [map, mobileLayout, cameraKey, engaged]);
 
   useEffect(() => {
     if (!map || !map.getLayer("scene-centro-fill")) return undefined;
@@ -563,6 +625,7 @@ function SceneDarkMap({ cameraKey, engaged, playbackRate, mobileLayout, locale }
   return (
     <MapLibreCanvas
       onMapReady={handleReady}
+      mapName="Ombra"
       className="sf-scene-canvas"
       mapStyle={darkOpenfreemapStyle}
       center={shadowSceneTechnical.opening.center}

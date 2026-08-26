@@ -8,9 +8,11 @@ import './styles/maps.css'
 import './styles/mobile-typography.css'
 import App from './App.jsx'
 import { ContentProvider } from './content'
+import { initializeMapPerformanceTelemetry } from './lib/mapPerformance'
 
 // index.html sets these gates before the bundle loads; avoid mounting hidden maps.
 if (!window.__taleaMobileGate && !window.__taleaViewportFrameShell) {
+  initializeMapPerformanceTelemetry()
   createRoot(document.getElementById('root')).render(
     <StrictMode>
       <ContentProvider>

@@ -1165,6 +1165,7 @@ export function HotspotMapScene() {
       >
         <MapLibreCanvas
           onMapReady={onMapReady}
+          mapName="Hotspot"
           className="hotspot-canvas"
           zoom={BOLOGNA_ZOOM_INTRO}
           maxZoom={mobileLayout ? MOBILE_MAX_ZOOM : 16}

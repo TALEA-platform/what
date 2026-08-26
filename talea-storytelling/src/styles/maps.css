@@ -467,8 +467,7 @@
 
 @media (max-width: 700px) {
   .hotspot-intro-vg .tag,
-  .hotspot-intro-vg .tag-word,
-  .hotspot-intro-vg .lab-year {
+  .hotspot-intro-vg .tag-word {
     transform-box: fill-box;
     transform-origin: center;
     transform: scale(1.32);
@@ -480,6 +479,11 @@
 
   .hotspot-intro-vg--ricorrenza .lab-count {
     font-size: 30px;
+    transform: none;
+  }
+
+  .hotspot-intro-vg--ricorrenza .lab-year {
+    font-size: 25px;
     transform: none;
   }
 }

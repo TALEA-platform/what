@@ -2,6 +2,8 @@ import { useEffect, useRef } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { BOLOGNA_CENTER, BOLOGNA_ZOOM } from "../../data/hotspotSteps";
+import { registerMapPerformance } from "../../lib/mapPerformance";
+import { runtimeProfile } from "../../lib/runtimeProfile";
 
 const DEFAULT_OPENFREEMAP_STYLE = "https://tiles.openfreemap.org/styles/positron";
 
@@ -18,6 +20,7 @@ export function MapLibreCanvas({
   locale,
   collapseAttribution = false,
   hideLabels = false,
+  mapName = "MapLibre",
 }) {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
@@ -36,7 +39,9 @@ export function MapLibreCanvas({
       interactive,
       cooperativeGestures,
       locale,
+      ...runtimeProfile.mapPixelRatioOptions,
     });
+    const unregisterPerformance = registerMapPerformance(map, mapName);
 
     map.addControl(
       new maplibregl.AttributionControl({ compact: true }),
@@ -63,6 +68,7 @@ export function MapLibreCanvas({
 
     return () => {
       mapRef.current = null;
+      unregisterPerformance();
       map.remove();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

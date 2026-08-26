@@ -555,8 +555,10 @@
           var lastScale = 0;
           var lastHeight = 0;
           var lastWidth = 0;
+          var resizeFrame = 0;
+          var settledSync = 0;
 
-          function fitFrame() {
+          function applyFrameSize() {
             var physicalWidth = window.innerWidth;
             var isMobile = physicalWidth < (config.mobileBreakpoint || 1280);
             var frameWidth = isMobile ? physicalWidth : virtualWidth;
@@ -566,33 +568,53 @@
             // senza questo confronto si riscriverebbero gli stessi tre valori a
             // ogni evento, cioè un re-layout della cornice — e una nuova
             // rasterizzazione del testo — per nulla.
-            if (
-              frameWidth === lastWidth &&
-              scale === lastScale &&
-              virtualHeight === lastHeight
-            ) return;
-            lastWidth = frameWidth;
-            lastScale = scale;
-            lastHeight = virtualHeight;
-            frame.style.width = frameWidth + "px";
-            frame.style.height = virtualHeight + "px";
-            frame.style.transform = "scale(" + scale + ")";
+            if (frameWidth !== lastWidth) {
+              lastWidth = frameWidth;
+              frame.style.width = frameWidth + "px";
+            }
+            if (virtualHeight !== lastHeight) {
+              lastHeight = virtualHeight;
+              frame.style.height = virtualHeight + "px";
+            }
+            if (scale !== lastScale) {
+              lastScale = scale;
+              frame.style.transform = "scale(" + scale + ")";
+            }
+          }
+
+          function fitFrame() {
+            if (resizeFrame) return;
+            resizeFrame = window.requestAnimationFrame(function () {
+              resizeFrame = 0;
+              applyFrameSize();
+            });
+          }
+
+          function scheduleSettledSync() {
+            window.clearTimeout(settledSync);
+            settledSync = window.setTimeout(fitFrame, 120);
+          }
+
+          function handleResize() {
+            fitFrame();
+            scheduleSettledSync();
           }
 
           frame.addEventListener("load", function () {
             fitFrame();
             leave();
           });
-          window.addEventListener("resize", fitFrame, { passive: true });
+          window.addEventListener("resize", handleResize, { passive: true });
           // Su telefono la rotazione non sempre emette `resize` in tempo utile:
           // l'altezza va ricalcolata anche qui, o la cornice resta col formato
           // di prima e sotto avanza una fascia vuota.
           window.addEventListener("orientationchange", function () {
-            window.setTimeout(fitFrame, 120);
+            fitFrame();
+            scheduleSettledSync();
           }, { passive: true });
           shell.appendChild(frame);
           document.body.appendChild(shell);
-          fitFrame();
+          applyFrameSize();
         }
 
         window.__taleaBoot = { ready: ready, skip: leave };

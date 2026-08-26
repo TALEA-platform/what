@@ -1,4 +1,12 @@
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import maplibregl from "maplibre-gl";
 import { MapLibreCanvas } from "../maps/MapLibreCanvas";
 import { SectionDivider } from "./SectionDivider";
@@ -10,6 +18,9 @@ import {
 } from "../../data/causesScene";
 import { getHotspotGeojsonUrl } from "../../data/hotspotData";
 import { cameraEasing } from "../../lib/motion";
+import { createMapResizeController } from "../../lib/mapResize";
+import { registerMapPerformance } from "../../lib/mapPerformance";
+import { runtimeProfile } from "../../lib/runtimeProfile";
 
 // Overlay maps own only data layers; a second basemap would flicker while loading.
 const transparentCauseMapStyle = {
@@ -304,7 +315,7 @@ function preloadCompareAssets() {
 function CausesCropMap({ lens, expanded, showHotspots, onBaseMapReady, onDrawnChange }) {
   const [map, setMap] = useState(null);
   const [manifest, setManifest] = useState(null);
-  const wrapRef = useRef(null);
+  const resizeControllerRef = useRef(null);
 
   const handleReady = useCallback(
     (m) => {
@@ -313,6 +324,18 @@ function CausesCropMap({ lens, expanded, showHotspots, onBaseMapReady, onDrawnCh
     },
     [onBaseMapReady],
   );
+
+  useEffect(() => {
+    if (!map) return undefined;
+    const controller = createMapResizeController(map);
+    resizeControllerRef.current = controller;
+    return () => {
+      controller.destroy();
+      if (resizeControllerRef.current === controller) {
+        resizeControllerRef.current = null;
+      }
+    };
+  }, [map]);
 
   useEffect(() => {
     let ignore = false;
@@ -377,7 +400,7 @@ function CausesCropMap({ lens, expanded, showHotspots, onBaseMapReady, onDrawnCh
     const reduce = prefersReducedMotion();
     const zoom = expanded ? CAUSES_ZOOM_CLOSE : CAUSES_ZOOM;
     map.stop();
-    map.resize();
+    resizeControllerRef.current?.resizeNow("cause-crop-state");
     map.jumpTo({ center: CAUSES_CENTER, bearing: 0, pitch: 0 });
 
     if (Math.abs(map.getZoom() - zoom) > 0.01) {
@@ -392,35 +415,18 @@ function CausesCropMap({ lens, expanded, showHotspots, onBaseMapReady, onDrawnCh
 
     const settleId = setTimeout(() => {
       map.stop();
-      map.resize();
+      resizeControllerRef.current?.resizeNow("cause-crop-settled");
       map.jumpTo({ center: CAUSES_CENTER, zoom, bearing: 0, pitch: 0 });
     }, reduce ? 0 : CROP_SETTLE_MS);
 
     return () => clearTimeout(settleId);
   }, [map, expanded]);
 
-  useEffect(() => {
-    if (!map || !wrapRef.current) return;
-    let frame = null;
-    const resize = () => {
-      if (frame) return;
-      frame = requestAnimationFrame(() => {
-        frame = null;
-        map.resize();
-      });
-    };
-    const ro = new ResizeObserver(resize);
-    ro.observe(wrapRef.current);
-    return () => {
-      if (frame) cancelAnimationFrame(frame);
-      ro.disconnect();
-    };
-  }, [map]);
-
   return (
-    <div ref={wrapRef} className="causes-crop-map">
+    <div className="causes-crop-map">
       <MapLibreCanvas
         onMapReady={handleReady}
+        mapName="Cause crop"
         className="causes-crop-canvas"
         mapStyle={transparentCauseMapStyle}
         center={CAUSES_CENTER}
@@ -432,8 +438,9 @@ function CausesCropMap({ lens, expanded, showHotspots, onBaseMapReady, onDrawnCh
   );
 }
 
-function CausesCompareOverlay({ baseMap, sliderValue, onReadyChange }) {
+function CausesCompareOverlay({ baseMap, sliderValue, onReadyChange, engaged }) {
   const containerRef = useRef(null);
+  const resizeControllerRef = useRef(null);
   const [overlayMap, setOverlayMap] = useState(null);
   const [manifest, setManifest] = useState(null);
   const [ready, setReady] = useState(false);
@@ -452,10 +459,20 @@ function CausesCompareOverlay({ baseMap, sliderValue, onReadyChange }) {
       fadeDuration: 0,
       trackResize: false,
       canvasContextAttributes: { alpha: true, antialias: true },
+      ...runtimeProfile.mapPixelRatioOptions,
     });
+    const resizeController = createMapResizeController(map);
+    const unregisterPerformance = registerMapPerformance(
+      map,
+      "Cause compare overlay",
+    );
+    resizeControllerRef.current = resizeController;
     map.on("load", () => setOverlayMap(map));
     return () => {
       setOverlayMap(null);
+      resizeController.destroy();
+      resizeControllerRef.current = null;
+      unregisterPerformance();
       map.remove();
     };
   }, []);
@@ -498,22 +515,24 @@ function CausesCompareOverlay({ baseMap, sliderValue, onReadyChange }) {
     ensureHotspotLayers(overlayMap);
     setHotspotVisible(overlayMap, true);
 
+    let readyFrame = null;
     const markReady = () => {
-      overlayMap.resize();
+      readyFrame = null;
       setReady(true);
       onReadyChange?.(true);
     };
-    if (overlayMap.loaded()) requestAnimationFrame(markReady);
+    if (overlayMap.loaded()) readyFrame = requestAnimationFrame(markReady);
     else overlayMap.once("idle", markReady);
 
     return () => {
+      if (readyFrame !== null) cancelAnimationFrame(readyFrame);
       overlayMap.off("idle", markReady);
       onReadyChange?.(false);
     };
   }, [overlayMap, manifest, onReadyChange]);
 
   useEffect(() => {
-    if (!overlayMap || !baseMap) return;
+    if (!overlayMap || !baseMap || !engaged) return;
     let frame = null;
     const syncToBase = () => {
       if (frame) return;
@@ -522,7 +541,6 @@ function CausesCompareOverlay({ baseMap, sliderValue, onReadyChange }) {
         overlayMap.jumpTo(cameraFromMap(baseMap));
       });
     };
-    syncToBase();
     // `render` also fires during tile fades and would repeatedly reset this camera.
     baseMap.on("move", syncToBase);
     baseMap.on("moveend", syncToBase);
@@ -531,16 +549,25 @@ function CausesCompareOverlay({ baseMap, sliderValue, onReadyChange }) {
       baseMap.off("move", syncToBase);
       baseMap.off("moveend", syncToBase);
     };
-  }, [overlayMap, baseMap]);
+  }, [overlayMap, baseMap, engaged]);
+
+  useLayoutEffect(() => {
+    if (!overlayMap || !engaged) return;
+    resizeControllerRef.current?.resizeNow("cause-compare-entry");
+    if (baseMap) overlayMap.jumpTo(cameraFromMap(baseMap));
+  }, [overlayMap, baseMap, engaged]);
 
   useEffect(() => {
-    if (!overlayMap || !containerRef.current) return;
+    if (!overlayMap || !containerRef.current || !engaged) {
+      resizeControllerRef.current?.cancelPending();
+      return;
+    }
     let frame = null;
     const syncSize = () => {
       if (frame) return;
       frame = requestAnimationFrame(() => {
         frame = null;
-        overlayMap.resize();
+        resizeControllerRef.current?.resizeNow("cause-compare-overlay");
         if (baseMap) {
           overlayMap.jumpTo(cameraFromMap(baseMap));
         }
@@ -548,12 +575,11 @@ function CausesCompareOverlay({ baseMap, sliderValue, onReadyChange }) {
     };
     const ro = new ResizeObserver(syncSize);
     ro.observe(containerRef.current);
-    requestAnimationFrame(syncSize);
     return () => {
       if (frame) cancelAnimationFrame(frame);
       ro.disconnect();
     };
-  }, [overlayMap, baseMap]);
+  }, [overlayMap, baseMap, engaged]);
 
   return (
     <div
@@ -568,7 +594,6 @@ function CausesCompareOverlay({ baseMap, sliderValue, onReadyChange }) {
 function CausesCompareBaseMap({ onBaseMapReady, onDrawnChange }) {
   const [map, setMap] = useState(null);
   const [manifest, setManifest] = useState(null);
-  const wrapRef = useRef(null);
 
   const handleReady = useCallback(
     (m) => {
@@ -619,30 +644,11 @@ function CausesCompareBaseMap({ onBaseMapReady, onDrawnChange }) {
     };
   }, [map, manifest, onDrawnChange]);
 
-  useEffect(() => {
-    if (!map || !wrapRef.current) return;
-    let frame = null;
-    const resize = () => {
-      if (frame) return;
-      frame = requestAnimationFrame(() => {
-        frame = null;
-        map.resize();
-        map.jumpTo({ center: CAUSES_CENTER, zoom: CAUSES_ZOOM_CLOSE, bearing: 0, pitch: 0 });
-      });
-    };
-    const ro = new ResizeObserver(resize);
-    ro.observe(wrapRef.current);
-    requestAnimationFrame(resize);
-    return () => {
-      if (frame) cancelAnimationFrame(frame);
-      ro.disconnect();
-    };
-  }, [map]);
-
   return (
-    <div ref={wrapRef} className="causes-compare-base-map">
+    <div className="causes-compare-base-map">
       <MapLibreCanvas
         onMapReady={handleReady}
+        mapName="Cause compare base"
         className="causes-compare-base-canvas"
         mapStyle={transparentCauseMapStyle}
         center={CAUSES_CENTER}
@@ -743,6 +749,7 @@ function CausesCompareMap({
         baseMap={baseMap}
         sliderValue={sliderValue}
         onReadyChange={setOverlayReady}
+        engaged={visible && !exiting}
       />
 
       {active && reveal && (

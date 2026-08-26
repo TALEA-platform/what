@@ -14,7 +14,6 @@ import {
   logPerformanceEvent,
   registerMapPerformance,
 } from "../../lib/mapPerformance";
-import { runtimeProfile } from "../../lib/runtimeProfile";
 import { useIOSFarOffscreenMount } from "../../hooks/useIOSFarOffscreenMount";
 import { requestIOSHeavyOffscreenRelease } from "../../lib/iosMemoryLifecycle";
 
@@ -336,7 +335,6 @@ export function ZonesMapScene() {
         maxZoom: EXPLORE_ZOOM_LIMITS.maxZoom,
         attributionControl: false,
         locale: mapLibreLocaleRef.current,
-        ...runtimeProfile.mapPixelRatioOptions,
       });
       resizeControllerRef.current = createMapResizeController(map);
       unregisterPerformanceRef.current = registerMapPerformance(map, "Zones");

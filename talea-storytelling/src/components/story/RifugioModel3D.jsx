@@ -3,7 +3,10 @@ import {
   createRifugioModel,
   RIFUGIO_THERMAL_STATES,
 } from "../../lib/rifugioModel3d";
-import { logPerformanceEvent } from "../../lib/mapPerformance";
+import {
+  logPerformanceEvent,
+  updateMemoryDebugState,
+} from "../../lib/mapPerformance";
 
 const Chevron = () => (
   <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -80,8 +83,14 @@ export function RifugioModel3D({
 
     onPreparingRef.current?.();
     setZoom(1);
+    updateMemoryDebugState({
+      heavyScene: { name: "Rifugio model", mounted: true },
+    });
     logPerformanceEvent("rifugio:model-mount", { section: "Rifugio" });
     let readyNotified = false;
+    let paintBarrierStarted = false;
+    let paintFrame = null;
+    let compositorFrame = null;
     const model = createRifugioModel(shell, {
       mobile: mobileMode,
       onZoom: (nextZoom) => {
@@ -100,10 +109,30 @@ export function RifugioModel3D({
       title: content.title,
       description: content.description,
       onFrame: () => {
-        if (readyNotified) return;
-        readyNotified = true;
-        logPerformanceEvent("rifugio:model-ready", { section: "Rifugio" });
-        onReadyRef.current?.();
+        if (readyNotified || paintBarrierStarted) return;
+        paintBarrierStarted = true;
+        // The renderer has swapped its complete SVG buffer, but WebKit may not
+        // have painted or composited it yet. Keep the intro visible through two
+        // rendering opportunities before announcing readiness.
+        void shell.getBoundingClientRect();
+        logPerformanceEvent("rifugio:model-dom-ready", { section: "Rifugio" });
+        paintFrame = requestAnimationFrame(() => {
+          paintFrame = null;
+          void shell.querySelector("#model-svg")?.getBoundingClientRect();
+          compositorFrame = requestAnimationFrame(() => {
+            compositorFrame = null;
+            if (readyNotified) return;
+            readyNotified = true;
+            updateMemoryDebugState({
+              rifugioMountedNodeCount:
+                shell.querySelectorAll(".rifugio-model3d *").length,
+            });
+            logPerformanceEvent("rifugio:model-paint-ready", {
+              section: "Rifugio",
+            });
+            onReadyRef.current?.();
+          });
+        });
       },
     });
     modelRef.current = model;
@@ -139,8 +168,14 @@ export function RifugioModel3D({
     return () => {
       observer?.disconnect();
       window.clearTimeout(settle);
+      if (paintFrame !== null) cancelAnimationFrame(paintFrame);
+      if (compositorFrame !== null) cancelAnimationFrame(compositorFrame);
       shell.removeEventListener("pointerdown", markTouched);
       model.destroy();
+      updateMemoryDebugState({
+        rifugioMountedNodeCount: 0,
+        heavyScene: { name: "Rifugio model", mounted: false },
+      });
       logPerformanceEvent("rifugio:model-destroy", { section: "Rifugio" });
       modelRef.current = null;
       if (import.meta.env?.DEV && window.__rifugio === model)

@@ -13,16 +13,8 @@ const isDesktopClassIPad = platform === "MacIntel" && maxTouchPoints > 1;
 const isAppleWebKit = /AppleWebKit/i.test(userAgent);
 const isIOSWebKit =
   forceIOSProfile || ((isIOSDevice || isDesktopClassIPad) && isAppleWebKit);
-const devicePixelRatio = hasBrowserRuntime ? window.devicePixelRatio || 1 : 1;
-const maxMapPixelRatio = isIOSWebKit ? 2 : null;
 
 export const runtimeProfile = Object.freeze({
   isIOSWebKit,
-  maxMapPixelRatio,
   forceIOSProfile,
-  mapPixelRatioOptions: Object.freeze(
-    isIOSWebKit
-      ? { pixelRatio: Math.min(devicePixelRatio, maxMapPixelRatio) }
-      : {},
-  ),
 });

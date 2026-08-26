@@ -1380,7 +1380,13 @@ export function suggestRifugi(query, limit = 3) {
     const key = s.name.toLowerCase();
     if (seen.has(key)) continue;
     seen.add(key);
-    out.push({ type: "rifugio", label: prettyName(s.name), subId: "greenSpace", pt: featureCenter(s.f) });
+    out.push({
+      type: "rifugio",
+      label: prettyName(s.name),
+      subId: "greenSpace",
+      pt: featureCenter(s.f),
+      feature: s.f,
+    });
     if (out.length >= limit) break;
   }
   return out;
@@ -1400,5 +1406,6 @@ export function suggestUfficiali(query, limit = 3) {
       label: prettyName(f.properties?.nome || ""),
       subId: "municipalRefuge",
       pt: f.geometry.coordinates,
+      feature: f,
     }));
 }

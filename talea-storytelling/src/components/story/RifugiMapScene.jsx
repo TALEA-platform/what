@@ -13,7 +13,6 @@ import {
   logPerformanceEvent,
   registerMapPerformance,
 } from "../../lib/mapPerformance";
-import { runtimeProfile } from "../../lib/runtimeProfile";
 import {
   ADDRESS_ZOOM,
   BASEMAP_STYLE,
@@ -668,9 +667,23 @@ export function RifugiMapScene() {
       if (!item?.pt) return;
       scrollSceneIntoView();
       if (!(await waitForReady())) return;
+      if (item.type === "ufficiale" && item.feature) {
+        focusUfficiale(item.feature);
+        return;
+      }
+      if (item.type === "rifugio" && item.feature) {
+        focusRifugio(item.feature);
+        return;
+      }
       await focusPoint(item.pt, item.label);
     },
-    [focusPoint, scrollSceneIntoView, waitForReady],
+    [
+      focusPoint,
+      focusRifugio,
+      focusUfficiale,
+      scrollSceneIntoView,
+      waitForReady,
+    ],
   );
 
   const startNetworkReveal = useCallback(() => {
@@ -727,7 +740,6 @@ export function RifugiMapScene() {
         attributionControl: false,
         cooperativeGestures: mobileMap,
         locale: mapLibreLocaleRef.current,
-        ...runtimeProfile.mapPixelRatioOptions,
       });
       const resizeController = createMapResizeController(map);
       resizeControllerRef.current = resizeController;

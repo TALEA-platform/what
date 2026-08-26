@@ -3,6 +3,11 @@ import { HeroBridgeSection } from "./HeroBridgeSection";
 import { CopySegments } from "./CopySegments";
 import { useContent } from "../../content";
 import { assetUrl } from "../../lib/assetUrl";
+import { runtimeProfile } from "../../lib/runtimeProfile";
+import {
+  logPerformanceEvent,
+  updateMemoryDebugState,
+} from "../../lib/mapPerformance";
 
 const heroVideo = assetUrl("/data/hero/bologna.mp4");
 const heroPoster = assetUrl("/data/hero/bologna-poster.jpg");
@@ -51,7 +56,10 @@ export function Hero() {
   const mobileHeroPastRef = useRef(false);
   const heroEndScrollRef = useRef(Infinity);
   const syncHeroScrollRef = useRef(null);
+  const heroMediaAttachedRef = useRef(true);
+  const mediaLifecycleInitializedRef = useRef(false);
   const [videoReady, setVideoReady] = useState(false);
+  const [heroMediaAttached, setHeroMediaAttached] = useState(true);
   const [posterVisible, setPosterVisible] = useState(false);
   const [mobileMode, setMobileMode] = useState(
     () => typeof window !== "undefined" && window.innerWidth < 1280,
@@ -82,7 +90,9 @@ export function Hero() {
     if (video.readyState >= 2) setVideoReady(true);
 
     const resume = () => {
+      if (!heroMediaAttachedRef.current) return;
       video.play().catch(() => {});
+      updateMemoryDebugState({ heroMediaState: "active" });
     };
     if (typeof IntersectionObserver !== "function") {
       resume();
@@ -90,12 +100,20 @@ export function Hero() {
     }
 
     const observer = new IntersectionObserver(
-      ([entry]) => (entry.isIntersecting ? resume() : video.pause()),
+      ([entry]) => {
+        if (entry.isIntersecting) resume();
+        else {
+          video.pause();
+          if (heroMediaAttachedRef.current) {
+            updateMemoryDebugState({ heroMediaState: "paused" });
+          }
+        }
+      },
       { threshold: 0 },
     );
     observer.observe(mobileMode ? wrapperRef.current ?? video : video);
     return () => observer.disconnect();
-  }, [mobileMode]);
+  }, [heroMediaAttached, mobileMode]);
 
   useEffect(() => {
     if (videoReady) window.__taleaBoot?.ready("hero");
@@ -142,6 +160,81 @@ export function Hero() {
       if (syncFrame) cancelAnimationFrame(syncFrame);
     };
   }, [mobileMode]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !runtimeProfile.isIOSWebKit) return undefined;
+
+    if (!mediaLifecycleInitializedRef.current) {
+      mediaLifecycleInitializedRef.current = true;
+      updateMemoryDebugState({
+        heroMediaState: "attached",
+        heavyScene: { name: "Hero media", mounted: true },
+      });
+      return undefined;
+    }
+
+    if (heroMediaAttached) {
+      if (!video.getAttribute("src")) video.src = heroVideo;
+      video.load();
+      updateMemoryDebugState({
+        heroMediaState: "prewarming",
+        heavyScene: { name: "Hero media", mounted: true },
+      });
+      logPerformanceEvent("hero:media-restore", { section: "Hero" });
+      return undefined;
+    }
+
+    video.pause();
+    video.removeAttribute("src");
+    video.load();
+    updateMemoryDebugState({
+      heroMediaState: "released",
+      heavyScene: { name: "Hero media", mounted: false },
+    });
+    logPerformanceEvent("hero:media-release", { section: "Hero" });
+    return undefined;
+  }, [heroMediaAttached]);
+
+  useEffect(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper || !runtimeProfile.isIOSWebKit) return undefined;
+
+    let frame = null;
+    const updateMediaRetention = () => {
+      frame = null;
+      const viewportHeight = window.innerHeight || 768;
+      const bottom = wrapper.getBoundingClientRect().bottom;
+      const shouldRelease = bottom < -viewportHeight * 8;
+      const shouldRestore = bottom >= -viewportHeight * 4;
+
+      if (shouldRelease && heroMediaAttachedRef.current) {
+        heroMediaAttachedRef.current = false;
+        setVideoReady(false);
+        setHeroMediaAttached(false);
+      } else if (shouldRestore && !heroMediaAttachedRef.current) {
+        heroMediaAttachedRef.current = true;
+        setHeroMediaAttached(true);
+      }
+    };
+    const requestRetentionUpdate = () => {
+      if (frame !== null) return;
+      frame = requestAnimationFrame(updateMediaRetention);
+    };
+
+    updateMediaRetention();
+    window.addEventListener("scroll", requestRetentionUpdate, { passive: true });
+    window.addEventListener("resize", requestRetentionUpdate, { passive: true });
+    window.addEventListener("orientationchange", requestRetentionUpdate, {
+      passive: true,
+    });
+    return () => {
+      if (frame !== null) cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", requestRetentionUpdate);
+      window.removeEventListener("resize", requestRetentionUpdate);
+      window.removeEventListener("orientationchange", requestRetentionUpdate);
+    };
+  }, []);
 
   useEffect(() => {
     const wrapper = wrapperRef.current;
@@ -309,15 +402,23 @@ export function Hero() {
           <video
             ref={videoRef}
             className="hero-bg-video"
-            src={heroVideo}
+            src={heroMediaAttached ? heroVideo : undefined}
             poster={heroPoster}
             autoPlay
             muted
             loop
             playsInline
             preload="auto"
-            onLoadedData={() => setVideoReady(true)}
-            onCanPlay={() => setVideoReady(true)}
+            onLoadedData={() => {
+              if (!heroMediaAttachedRef.current) return;
+              setVideoReady(true);
+              updateMemoryDebugState({ heroMediaState: "ready" });
+            }}
+            onCanPlay={() => {
+              if (!heroMediaAttachedRef.current) return;
+              setVideoReady(true);
+              updateMemoryDebugState({ heroMediaState: "ready" });
+            }}
             onError={() => {
               setPosterVisible(true);
               window.__taleaBoot?.ready("hero");

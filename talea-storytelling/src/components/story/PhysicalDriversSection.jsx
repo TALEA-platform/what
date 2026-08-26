@@ -19,8 +19,10 @@ import {
 import { getHotspotGeojsonUrl } from "../../data/hotspotData";
 import { cameraEasing } from "../../lib/motion";
 import { createMapResizeController } from "../../lib/mapResize";
-import { registerMapPerformance } from "../../lib/mapPerformance";
-import { runtimeProfile } from "../../lib/runtimeProfile";
+import {
+  registerMapPerformance,
+  updateMemoryDebugState,
+} from "../../lib/mapPerformance";
 import { useIOSFarOffscreenMount } from "../../hooks/useIOSFarOffscreenMount";
 
 // Overlay maps own only data layers; a second basemap would flicker while loading.
@@ -421,7 +423,9 @@ function CausesCropMap({ lens, expanded, showHotspots, onBaseMapReady, onDrawnCh
 
     const settleId = setTimeout(() => {
       map.stop();
-      resizeControllerRef.current?.resizeNow("cause-crop-settled");
+      resizeControllerRef.current?.resizeNow("cause-crop-settled", {
+        force: true,
+      });
       map.jumpTo({ center: CAUSES_CENTER, zoom, bearing: 0, pitch: 0 });
     }, reduce ? 0 : CROP_SETTLE_MS);
 
@@ -465,7 +469,6 @@ function CausesCompareOverlay({ baseMap, sliderValue, onReadyChange, engaged }) 
       fadeDuration: 0,
       trackResize: false,
       canvasContextAttributes: { alpha: true, antialias: true },
-      ...runtimeProfile.mapPixelRatioOptions,
     });
     const resizeController = createMapResizeController(map);
     const unregisterPerformance = registerMapPerformance(
@@ -1124,6 +1127,16 @@ export function PhysicalDriversSection() {
     initiallyMounted: true,
     retainUntilFirstApproach: true,
   });
+
+  useEffect(() => {
+    updateMemoryDebugState({
+      causeRasterState: heavyVisualsMounted ? "mounted" : "released",
+      heavyScene: {
+        name: "Cause raster",
+        mounted: heavyVisualsMounted,
+      },
+    });
+  }, [heavyVisualsMounted]);
 
   const markCompareDemoPlayed = useCallback(() => setCompareDemoPlayed(true), []);
 

@@ -9,6 +9,18 @@ let nextMapId = 1;
 let telemetryInitialized = false;
 let bootCount = 1;
 let currentStorySection = "boot";
+const mountedHeavySceneTrees = new Set();
+const memoryDebugState = {
+  journeyMode: "unknown",
+  heroMediaState: "attached",
+  causeRasterState: "mounted",
+  cityPlanRasterCount: 0,
+  rifugioMountedNodeCount: 0,
+  lastMapInit: null,
+  lastMapRelease: null,
+  lastCleanupEvent: null,
+  lastLifecycleEvent: "boot",
+};
 
 const BREADCRUMB_KEY = "talea:perf:last-event";
 const BOOT_COUNT_KEY = "talea:perf:boot-count";
@@ -21,9 +33,72 @@ function readBreadcrumb() {
   }
 }
 
+function countMounted(selector) {
+  if (typeof document === "undefined") return 0;
+  return document.querySelectorAll(selector).length;
+}
+
+function refreshMeasuredMemoryState() {
+  if (typeof document === "undefined") return;
+  memoryDebugState.cityPlanRasterCount = countMounted(
+    ".plan-scene img[src], .plan-scene image[href]",
+  );
+  memoryDebugState.rifugioMountedNodeCount = countMounted(
+    ".rifugio-model3d-holder *",
+  );
+}
+
+export function getMemoryDebugSummary() {
+  refreshMeasuredMemoryState();
+  return {
+    mapsAlive: liveMaps.size,
+    heavyImagesMounted: countMounted(
+      ".causes-static-raster-image, .plan-scene img[src], .plan-scene image[href]",
+    ),
+    rifugioMounted: memoryDebugState.rifugioMountedNodeCount > 0,
+    rifugioMountedNodeCount: memoryDebugState.rifugioMountedNodeCount,
+    cityPlanRasterCount: memoryDebugState.cityPlanRasterCount,
+    heroMediaState: memoryDebugState.heroMediaState,
+    causeRasterState: memoryDebugState.causeRasterState,
+    activeSection: currentStorySection,
+    journeyMode: memoryDebugState.journeyMode,
+    currentlyMountedHeavySceneTrees: [...mountedHeavySceneTrees],
+    lastMapInit: memoryDebugState.lastMapInit,
+    lastMapRelease: memoryDebugState.lastMapRelease,
+    lastCleanupEvent: memoryDebugState.lastCleanupEvent,
+    lastLifecycleEvent: memoryDebugState.lastLifecycleEvent,
+  };
+}
+
+export function updateMemoryDebugState(patch = {}) {
+  if (patch.heavyScene) {
+    const { name, mounted } = patch.heavyScene;
+    if (name) {
+      if (mounted) mountedHeavySceneTrees.add(name);
+      else mountedHeavySceneTrees.delete(name);
+    }
+  }
+  Object.entries(patch).forEach(([key, value]) => {
+    if (key !== "heavyScene" && key in memoryDebugState) {
+      memoryDebugState[key] = value;
+    }
+  });
+}
+
+export function markJourneyMode(mode) {
+  if (!debugPerf || !mode) return;
+  if (
+    memoryDebugState.journeyMode === "backtrack" &&
+    mode !== "direct"
+  )
+    return;
+  memoryDebugState.journeyMode = mode;
+}
+
 function writeBreadcrumb(event, details = {}) {
   try {
     const previous = readBreadcrumb() || {};
+    const summary = getMemoryDebugSummary();
     const breadcrumb = {
       bootCount,
       timestamp: Date.now(),
@@ -32,6 +107,15 @@ function writeBreadcrumb(event, details = {}) {
       mapCount: liveMaps.size,
       contextCount: liveMaps.size,
       lastLifecycleEvent: event,
+      journeyMode: summary.journeyMode,
+      mountedHeavySceneTrees: summary.currentlyMountedHeavySceneTrees,
+      lastMapInit: summary.lastMapInit,
+      lastMapRelease: summary.lastMapRelease,
+      rifugioMountedNodeCount: summary.rifugioMountedNodeCount,
+      cityPlanRasterCount: summary.cityPlanRasterCount,
+      heroMediaState: summary.heroMediaState,
+      causeRasterState: summary.causeRasterState,
+      lastCleanupEvent: summary.lastCleanupEvent,
     };
     sessionStorage.setItem(BREADCRUMB_KEY, JSON.stringify(breadcrumb));
   } catch {
@@ -83,6 +167,7 @@ export function initializeMapPerformanceTelemetry() {
 
   writeBreadcrumb("boot");
   if (debugPerf) {
+    window.__taleaMemorySummary = getMemoryDebugSummary;
     console.debug("[talea:perf] boot", {
       bootCount,
       previousBreadcrumb,
@@ -97,7 +182,21 @@ export function initializeMapPerformanceTelemetry() {
 
 export function logPerformanceEvent(event, details = {}) {
   initializeMapPerformanceTelemetry();
-  if (details.section) currentStorySection = details.section;
+  if (event === "story:section" && details.section) {
+    currentStorySection = details.section;
+  }
+  memoryDebugState.lastLifecycleEvent = event;
+  if (/release|remove|destroy|cleanup/i.test(event)) {
+    memoryDebugState.lastCleanupEvent = event;
+  }
+  if (event === "renderer:prewarm" && details.renderer) {
+    mountedHeavySceneTrees.add(details.renderer);
+    if (/cause/i.test(details.renderer)) memoryDebugState.causeRasterState = "mounted";
+  }
+  if (event === "renderer:release" && details.renderer) {
+    mountedHeavySceneTrees.delete(details.renderer);
+    if (/cause/i.test(details.renderer)) memoryDebugState.causeRasterState = "released";
+  }
   writeBreadcrumb(event, details);
   if (debugPerf) {
     console.debug(`[talea:perf] ${event}`, {
@@ -130,6 +229,7 @@ export function observeStoryPerformanceSections() {
 
   let frame = null;
   let lastSection = null;
+  let lastSectionAt = performance.now();
   const update = () => {
     frame = null;
     const readingLine = (window.innerHeight || 768) * 0.5;
@@ -146,6 +246,18 @@ export function observeStoryPerformanceSections() {
     });
     if (!best || best === lastSection) return;
     const previousSection = lastSection;
+    const previousIndex = sections.findIndex(([name]) => name === previousSection);
+    const nextIndex = sections.findIndex(([name]) => name === best);
+    const now = performance.now();
+    if (previousIndex >= 0) {
+      const distance = nextIndex - previousIndex;
+      if (distance < 0) markJourneyMode("backtrack");
+      else if (distance > 1) markJourneyMode("direct");
+      else if (distance === 1) {
+        markJourneyMode(now - lastSectionAt < 1500 ? "fast" : "slow");
+      }
+    }
+    lastSectionAt = now;
     lastSection = best;
     logPerformanceEvent("story:section", {
       section: best,
@@ -172,6 +284,8 @@ export function registerMapPerformance(map, name) {
   const id = nextMapId++;
   const record = { id, name, createdAt: performance.now() };
   liveMaps.set(map, record);
+  memoryDebugState.lastMapInit = name;
+  mountedHeavySceneTrees.add(`MapLibre:${name}`);
   const canvas = map.getCanvas();
 
   const logContextEvent = (event) => {
@@ -219,6 +333,8 @@ export function registerMapPerformance(map, name) {
     canvas.removeEventListener("webglcontextrestored", logContextEvent);
     map.off("resize", logResize);
     liveMaps.delete(map);
+    memoryDebugState.lastMapRelease = name;
+    mountedHeavySceneTrees.delete(`MapLibre:${name}`);
     const removeDetails = {
       id,
       name,

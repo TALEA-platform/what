@@ -26,7 +26,10 @@ import { CopySegments } from "./CopySegments";
 import { editorialLinks, useContent } from "../../content";
 import { assetUrl } from "../../lib/assetUrl";
 import { cityPlanMobileRasters } from "../../generated/cityPlanMobileRasters";
-import { logPerformanceEvent } from "../../lib/mapPerformance";
+import {
+  logPerformanceEvent,
+  updateMemoryDebugState,
+} from "../../lib/mapPerformance";
 import { runtimeProfile } from "../../lib/runtimeProfile";
 import { onIOSHeavyOffscreenRelease } from "../../lib/iosMemoryLifecycle";
 
@@ -130,14 +133,22 @@ function decodeMobileImage(src) {
     const image = new Image();
     image.decoding = "async";
     image.fetchPriority = "high";
+    const clearHandlers = () => {
+      image.onload = null;
+      image.onerror = null;
+    };
     image.onload = () => {
+      clearHandlers();
       if (typeof image.decode !== "function") {
         resolve();
         return;
       }
       image.decode().then(resolve, resolve);
     };
-    image.onerror = () => reject(new Error(`Unable to decode ${src}`));
+    image.onerror = () => {
+      clearHandlers();
+      reject(new Error(`Unable to decode ${src}`));
+    };
     image.src = src;
   });
   const cachedPromise = promise.catch((error) => {
@@ -592,6 +603,20 @@ export function CityPlanScene() {
   const [vignetteMount, setVignetteMount] = useState(0);
   const [vignetteNode, setVignetteNode] = useState(null);
   const [link, setLink] = useState(null);
+
+  useLayoutEffect(() => {
+    if (!mobileCameraActive) return;
+    const rasterCount = rootRef.current?.querySelectorAll(
+      "img[src], image[href]",
+    ).length ?? 0;
+    updateMemoryDebugState({
+      cityPlanRasterCount: rasterCount,
+      heavyScene: {
+        name: "CityPlan rasters",
+        mounted: mobileVignettesMounted && rasterCount > 0,
+      },
+    });
+  }, [mobileCameraActive, mobileVignettesMounted, mobileScene.committedBeat]);
   const beat = mobileCameraActive ? mobileScene.committedBeat : scrollBeat;
   const requestedBeat = mobileCameraActive
     ? mobileScene.requestedBeat

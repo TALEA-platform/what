@@ -6,7 +6,6 @@ import {
   logPerformanceEvent,
   registerMapPerformance,
 } from "../../lib/mapPerformance";
-import { runtimeProfile } from "../../lib/runtimeProfile";
 
 const DEFAULT_OPENFREEMAP_STYLE = "https://tiles.openfreemap.org/styles/positron";
 
@@ -44,7 +43,6 @@ export function MapLibreCanvas({
       interactive,
       cooperativeGestures,
       locale,
-      ...runtimeProfile.mapPixelRatioOptions,
     });
     const unregisterPerformance = registerMapPerformance(map, mapName);
 

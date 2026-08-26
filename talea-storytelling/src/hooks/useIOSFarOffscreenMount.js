@@ -42,6 +42,8 @@ export function useIOSFarOffscreenMount(
     let prewarmObserver = null;
     let releaseObserver = null;
     let orientationTimer = null;
+    let scrollFrame = null;
+    let releaseMargin = 0;
 
     const updateMounted = (next, reason) => {
       setMounted((current) => {
@@ -60,7 +62,7 @@ export function useIOSFarOffscreenMount(
 
       const viewportHeight = window.innerHeight || 768;
       const prewarmMargin = Math.round(viewportHeight * prewarmViewports);
-      const releaseMargin = Math.round(
+      releaseMargin = Math.round(
         viewportHeight * Math.max(prewarmViewports + 1, releaseViewports),
       );
       const rect = target.getBoundingClientRect();
@@ -106,19 +108,43 @@ export function useIOSFarOffscreenMount(
       releaseObserver.observe(target);
     };
 
+    // IntersectionObserver does not notify when an instant progress-bar jump
+    // moves a never-intersecting target from far below to far above the root.
+    // Cover that false -> false transition until the scene has first been
+    // approached, without turning this into a permanent scroll measurement.
+    const checkSkippedApproach = () => {
+      scrollFrame = null;
+      if (!retainUntilFirstApproach || approachedRef.current) return;
+      const rect = target.getBoundingClientRect();
+      if (rect.bottom < -releaseMargin) {
+        updateMounted(false, "skipped-past-scene");
+      }
+    };
+    const requestSkippedApproachCheck = () => {
+      if (scrollFrame !== null) return;
+      scrollFrame = requestAnimationFrame(checkSkippedApproach);
+    };
+
     const reconnectAfterOrientation = () => {
       window.clearTimeout(orientationTimer);
       orientationTimer = window.setTimeout(connect, 180);
     };
 
     connect();
+    if (retainUntilFirstApproach) {
+      window.addEventListener("scroll", requestSkippedApproachCheck, {
+        passive: true,
+      });
+    }
     window.addEventListener("orientationchange", reconnectAfterOrientation, {
       passive: true,
     });
     return () => {
       window.clearTimeout(orientationTimer);
+      if (scrollFrame !== null) cancelAnimationFrame(scrollFrame);
       prewarmObserver?.disconnect();
       releaseObserver?.disconnect();
+      window.removeEventListener("scroll", requestSkippedApproachCheck);
       window.removeEventListener(
         "orientationchange",
         reconnectAfterOrientation,

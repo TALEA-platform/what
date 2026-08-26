@@ -598,6 +598,17 @@
   animation: plastico-entra 0.62s var(--ease-cine, cubic-bezier(0.22, 1, 0.36, 1)) both;
 }
 
+/* During reverse handoff the intro is already visible underneath. Keep the
+   last painted model frame as a two-frame WebKit compositor safety cover. */
+.relief-explainer--reverse-paint-cover.relief-explainer--model-ready
+  .relief-figure-frame
+  .rifugio-model3d-holder {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: none;
+  animation: none;
+}
+
 .relief-figure-frame .rifugio-model3d {
   flex: 1;
   min-height: 0;

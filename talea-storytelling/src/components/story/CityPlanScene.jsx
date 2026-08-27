@@ -45,14 +45,18 @@ const VIGNETTE_HTML = Object.fromEntries(
 );
 
 const READING_LINE = 0.56;
+const CITY_BUILD_TEST =
+  typeof window !== "undefined"
+    ? new URLSearchParams(window.location.search).get("cityBuildTest")
+    : null;
 const CITY_BUILD_DIAGNOSTIC_MODE =
-  typeof window !== "undefined" &&
-  new URLSearchParams(window.location.search).get("cityBuildTest") ===
-    "minimal"
-    ? "minimal"
+  CITY_BUILD_TEST === "rasters" || CITY_BUILD_TEST === "vignettes"
+    ? CITY_BUILD_TEST
     : "normal";
-const CITY_BUILD_MINIMAL_DIAGNOSTIC =
-  CITY_BUILD_DIAGNOSTIC_MODE === "minimal";
+const CITY_PLAN_RASTER_ASSETS_ENABLED =
+  CITY_BUILD_DIAGNOSTIC_MODE !== "vignettes";
+const CITY_PLAN_VIGNETTES_ENABLED =
+  CITY_BUILD_DIAGNOSTIC_MODE !== "rasters";
 
 // Coupled to generated vignette steps and their CSS draw duration.
 const VIGNETTE_STEP_MS = 420;
@@ -176,13 +180,17 @@ function mobilePlanLayersForBeat(beat) {
 }
 
 function mobileAssetsForBeat(beat) {
-  const assets = [
-    MOBILE_PLAN_BASE_ASSET,
-    ...mobilePlanLayersForBeat(beat).map(({ src }) => src),
-  ];
-  const name = planBeatSpecs[beat]?.vignette;
-  const vignetteAssets = name ? MOBILE_VIGNETTE_ASSETS[name] : null;
-  if (vignetteAssets) assets.push(...vignetteAssets.map(({ src }) => src));
+  const assets = CITY_PLAN_RASTER_ASSETS_ENABLED
+    ? [
+        MOBILE_PLAN_BASE_ASSET,
+        ...mobilePlanLayersForBeat(beat).map(({ src }) => src),
+      ]
+    : [];
+  if (CITY_PLAN_VIGNETTES_ENABLED) {
+    const name = planBeatSpecs[beat]?.vignette;
+    const vignetteAssets = name ? MOBILE_VIGNETTE_ASSETS[name] : null;
+    if (vignetteAssets) assets.push(...vignetteAssets.map(({ src }) => src));
+  }
   return [...new Set(assets.filter(Boolean))];
 }
 
@@ -617,9 +625,9 @@ export function CityPlanScene() {
 
   useLayoutEffect(() => {
     if (!mobileCameraActive) return;
-    const rasterCount = rootRef.current?.querySelectorAll(
-      "img[src], image[href]",
-    ).length ?? 0;
+    const rasterCount = CITY_PLAN_RASTER_ASSETS_ENABLED
+      ? rootRef.current?.querySelectorAll("img[src], image[href]").length ?? 0
+      : 0;
     updateMemoryDebugState({
       cityPlanRasterCount: rasterCount,
       heavyScene: {
@@ -660,20 +668,26 @@ export function CityPlanScene() {
 
   useEffect(() => {
     if (!mobileCameraActive) return;
-    const activeLayerCount = mobilePlanLayersForBeat(beat).length;
-    const requestedLayerCount = new Set([
-      ...mobilePlanLayersForBeat(beat),
-      ...mobilePlanLayersForBeat(requestedBeat),
-      ...(beat === 2 ? mobilePlanLayersForBeat(1) : []),
-    ].map(({ name }) => name)).size;
+    const activeLayerCount = CITY_PLAN_RASTER_ASSETS_ENABLED
+      ? mobilePlanLayersForBeat(beat).length
+      : 0;
+    const requestedLayerCount = CITY_PLAN_RASTER_ASSETS_ENABLED
+      ? new Set([
+          ...mobilePlanLayersForBeat(beat),
+          ...mobilePlanLayersForBeat(requestedBeat),
+          ...(beat === 2 ? mobilePlanLayersForBeat(1) : []),
+        ].map(({ name }) => name)).size
+      : 0;
     logPerformanceEvent("cityplan:beat", {
       section: "CityPlan",
       cityPlanBeat: beat,
       requestedBeat,
-      mountedRasterLayerCount: mobileVignettesMounted
+      mountedRasterLayerCount:
+        CITY_PLAN_RASTER_ASSETS_ENABLED && mobileVignettesMounted
         ? 1 + requestedLayerCount
         : 0,
-      visibleRasterLayerCount: mobileVignettesMounted
+      visibleRasterLayerCount:
+        CITY_PLAN_RASTER_ASSETS_ENABLED && mobileVignettesMounted
         ? 1 + activeLayerCount
         : 0,
     });
@@ -697,6 +711,8 @@ export function CityPlanScene() {
         storyBeat: beat,
         requestedBeat,
         cityBuildDiagnosticMode: CITY_BUILD_DIAGNOSTIC_MODE,
+        cityplanRasterAssetsEnabled: CITY_PLAN_RASTER_ASSETS_ENABLED,
+        cityplanVignettesEnabled: CITY_PLAN_VIGNETTES_ENABLED,
       });
     });
     return () => cancelAnimationFrame(frame);
@@ -726,6 +742,8 @@ export function CityPlanScene() {
           storyBeat: mobileCommittedBeatRef.current,
           requestedBeat: mobileRequestedBeatRef.current,
           cityBuildDiagnosticMode: CITY_BUILD_DIAGNOSTIC_MODE,
+          cityplanRasterAssetsEnabled: CITY_PLAN_RASTER_ASSETS_ENABLED,
+          cityplanVignettesEnabled: CITY_PLAN_VIGNETTES_ENABLED,
         },
       );
     });
@@ -733,22 +751,23 @@ export function CityPlanScene() {
     return () => observer.disconnect();
   }, [mobileCameraActive]);
 
-  useEffect(() => {
-    if (CITY_BUILD_MINIMAL_DIAGNOSTIC) return undefined;
-    return onIOSHeavyOffscreenRelease((reason) => {
-      const rect = rootRef.current?.getBoundingClientRect();
-      if (!rect || (rect.bottom > 0 && rect.top < window.innerHeight)) return;
-      setMobileVignettesMounted((mounted) => {
-        if (!mounted) return mounted;
-        logPerformanceEvent("cityplan:rasters-release", {
-          section: "CityPlan",
-          cityPlanBeat: mobileCommittedBeatRef.current,
-          reason,
+  useEffect(
+    () =>
+      onIOSHeavyOffscreenRelease((reason) => {
+        const rect = rootRef.current?.getBoundingClientRect();
+        if (!rect || (rect.bottom > 0 && rect.top < window.innerHeight)) return;
+        setMobileVignettesMounted((mounted) => {
+          if (!mounted) return mounted;
+          logPerformanceEvent("cityplan:rasters-release", {
+            section: "CityPlan",
+            cityPlanBeat: mobileCommittedBeatRef.current,
+            reason,
+          });
+          return false;
         });
-        return false;
-      });
-    });
-  }, []);
+      }),
+    [],
+  );
 
   const measureMobileOverlayLayout = useCallback(() => {
     const band = bandRef.current;
@@ -820,7 +839,6 @@ export function CityPlanScene() {
 
   const syncMobileOverlayGeometry = useCallback(
     (activeBeat, frameOverride = null) => {
-      if (CITY_BUILD_MINIMAL_DIAGNOSTIC) return;
       const band = bandRef.current;
       const frame = frameOverride ?? cameraFrameRef.current;
       if (!band || !frame) return;
@@ -834,6 +852,7 @@ export function CityPlanScene() {
         band.style.setProperty(`--annotation-${note.id}-y`, `${y.toFixed(2)}px`);
       });
 
+      if (!CITY_PLAN_VIGNETTES_ENABLED) return;
       const name = planBeatSpecs[activeBeat]?.vignette;
       if (!name) return;
       const geometry = geometryForMobileVignette(name, frame);
@@ -844,7 +863,7 @@ export function CityPlanScene() {
 
   const syncOverlayGeometry = useCallback(
     (commitLink = false, frameOverride = null) => {
-      if (CITY_BUILD_MINIMAL_DIAGNOSTIC || mobileCameraActive) return;
+      if (mobileCameraActive) return;
       const band = bandRef.current;
       const box = vignetteNodeRef.current;
       const frame = frameOverride ?? cameraFrameRef.current;
@@ -857,7 +876,12 @@ export function CityPlanScene() {
       }));
 
       let geometry = null;
-      if (vignetteName && box && box.dataset.vignette === vignetteName) {
+      if (
+        CITY_PLAN_VIGNETTES_ENABLED &&
+        vignetteName &&
+        box &&
+        box.dataset.vignette === vignetteName
+      ) {
         const anchor = PLAN_ANCHORS[planVignetteMeta[vignetteName]?.anchor];
         if (anchor) {
           // Keep all layout reads before CSS/SVG writes in this frame.
@@ -910,10 +934,14 @@ export function CityPlanScene() {
   }, [syncMobileOverlayGeometry, syncOverlayGeometry]);
 
   useLayoutEffect(() => {
-    if (CITY_BUILD_MINIMAL_DIAGNOSTIC) return;
-    const planDescription = figRef.current?.querySelector("desc");
-    if (planDescription) planDescription.textContent = cityPlanContent.scene.svgDescription;
+    if (CITY_PLAN_RASTER_ASSETS_ENABLED) {
+      const planDescription = figRef.current?.querySelector("desc");
+      if (planDescription) {
+        planDescription.textContent = cityPlanContent.scene.svgDescription;
+      }
+    }
     if (mobileCameraActive) return;
+    if (!CITY_PLAN_VIGNETTES_ENABLED) return;
     if (!vignetteName) return;
     const vignetteDescription = bandRef.current?.querySelector(
       `[data-vignette="${vignetteName}"] .plan-vignette-art desc`,
@@ -931,7 +959,7 @@ export function CityPlanScene() {
 
   useLayoutEffect(() => {
     if (
-      CITY_BUILD_MINIMAL_DIAGNOSTIC ||
+      !CITY_PLAN_VIGNETTES_ENABLED ||
       !mobileCameraActive ||
       !mobileVignettesMounted
     ) {
@@ -988,28 +1016,24 @@ export function CityPlanScene() {
 
   const prewarmMobileBeat = useCallback(
     (targetBeat) => {
-      if (CITY_BUILD_MINIMAL_DIAGNOSTIC) {
-        mobilePrewarmedBeatRef.current = targetBeat;
-        mobilePreparedGeometryRef.current = {
-          beat: targetBeat,
-          geometry: null,
-        };
-        return true;
-      }
       if (!mobileDecodedBeatsRef.current.has(targetBeat)) return false;
-      const planImages = [
-        camRef.current?.querySelector(".plan-mobile-map-base"),
-        ...mobilePlanLayersForBeat(targetBeat).map(({ name }) =>
-          camRef.current?.querySelector(`[data-mobile-map-layer="${name}"]`),
-        ),
-      ];
-      if (
-        planImages.some((image) => !image?.complete || !image.naturalWidth)
-      ) {
-        return false;
+      if (CITY_PLAN_RASTER_ASSETS_ENABLED) {
+        const planImages = [
+          camRef.current?.querySelector(".plan-mobile-map-base"),
+          ...mobilePlanLayersForBeat(targetBeat).map(({ name }) =>
+            camRef.current?.querySelector(`[data-mobile-map-layer="${name}"]`),
+          ),
+        ];
+        if (
+          planImages.some((image) => !image?.complete || !image.naturalWidth)
+        ) {
+          return false;
+        }
       }
 
-      const name = planBeatSpecs[targetBeat]?.vignette;
+      const name = CITY_PLAN_VIGNETTES_ENABLED
+        ? planBeatSpecs[targetBeat]?.vignette
+        : null;
       if (!name) {
         mobilePrewarmedBeatRef.current = targetBeat;
         return true;
@@ -1076,7 +1100,6 @@ export function CityPlanScene() {
   );
 
   useEffect(() => {
-    if (CITY_BUILD_MINIMAL_DIAGNOSTIC) return undefined;
     if (!mobileCameraActive || !mobileVignettesMounted) return undefined;
     const targetBeat = mobileScene.requestedBeat;
     const generation = mobileScene.generation;
@@ -1138,9 +1161,9 @@ export function CityPlanScene() {
       return undefined;
     }
 
-    const name = CITY_BUILD_MINIMAL_DIAGNOSTIC
-      ? null
-      : planBeatSpecs[targetBeat]?.vignette;
+    const name = CITY_PLAN_VIGNETTES_ENABLED
+      ? planBeatSpecs[targetBeat]?.vignette
+      : null;
     const wasPrewarmed = mobilePrewarmedBeatRef.current === targetBeat;
     if (!prewarmMobileBeat(targetBeat)) return undefined;
 
@@ -1334,9 +1357,7 @@ export function CityPlanScene() {
         const nextNearby = entry.isIntersecting;
         if (nextNearby === mobileNearbyRef.current) return;
         mobileNearbyRef.current = nextNearby;
-        if (nextNearby && !CITY_BUILD_MINIMAL_DIAGNOSTIC) {
-          setMobileVignettesMounted(true);
-        }
+        if (nextNearby) setMobileVignettesMounted(true);
         root.dataset.mobileNearby = String(nextNearby);
         if (!nextNearby) return;
         if (syncFrame) cancelAnimationFrame(syncFrame);
@@ -1349,7 +1370,7 @@ export function CityPlanScene() {
       { rootMargin: "1500px 0px 1500px 0px", threshold: 0 },
     );
     observer.observe(root);
-    if (!CITY_BUILD_MINIMAL_DIAGNOSTIC && runtimeProfile.isIOSWebKit) {
+    if (runtimeProfile.isIOSWebKit) {
       const releaseMargin = Math.round((window.innerHeight || 768) * 4);
       retentionObserver = new IntersectionObserver(
         ([entry]) => {
@@ -1370,9 +1391,7 @@ export function CityPlanScene() {
     syncFrame = requestAnimationFrame(() => {
       syncFrame = null;
       if (mobileNearbyRef.current) {
-        if (!CITY_BUILD_MINIMAL_DIAGNOSTIC) {
-          setMobileVignettesMounted(true);
-        }
+        setMobileVignettesMounted(true);
         syncScrollStateRef.current?.();
       }
     });
@@ -1427,7 +1446,7 @@ export function CityPlanScene() {
         viewportHeight: vh,
       };
       if (
-        !CITY_BUILD_MINIMAL_DIAGNOSTIC &&
+        CITY_PLAN_VIGNETTES_ENABLED &&
         window.innerWidth <= planMobileCameraSettings.maxWidth
       ) {
         const overlayLayout = measureMobileOverlayLayout();
@@ -1549,78 +1568,76 @@ export function CityPlanScene() {
       const cam = camRef.current;
       if (stage && band && cam) {
         const localProgress = physicalBeatProgress(y, marks, next);
-        if (!CITY_BUILD_MINIMAL_DIAGNOSTIC) {
-          const viewport = viewportMetricsRef.current;
-          const viewportWidth =
-            viewport?.viewportWidth ?? window.innerWidth ?? 1280;
-          if (mobileViewport) {
-            const layerProgress = mobileLayerProgressForBeat(
-              next,
-              localProgress,
-              reduceMotion,
-            );
-            rootRef.current?.style.setProperty(
-              "--plan-mobile-gap-opacity",
-              layerProgress.gap.toFixed(4),
-            );
-            rootRef.current?.style.setProperty(
-              "--plan-mobile-relief-sites-opacity",
-              layerProgress.reliefSites.toFixed(4),
-            );
-            rootRef.current?.style.setProperty(
-              "--plan-mobile-parking-opacity",
-              layerProgress.parking.toFixed(4),
-            );
-            rootRef.current?.style.setProperty(
-              "--plan-mobile-first-refuge-opacity",
-              layerProgress.firstRefuge.toFixed(4),
-            );
-            rootRef.current?.style.setProperty(
-              "--plan-mobile-extra-refuges-opacity",
-              layerProgress.extraRefuges.toFixed(4),
-            );
-            const revealAfterCamera = MOBILE_CAMERA_THEN_REVEAL_BEATS.has(next);
-            const revealAt =
-              planMobileCamera[next]?.entryFraction ??
-              planMobileCameraSettings.entryFraction;
-            stage.dataset.mobileReveal =
-              reduceMotion || !revealAfterCamera || localProgress >= revealAt
-                ? "ready"
-                : "holding";
-          }
-          const camera =
-            viewportWidth <= planMobileCameraSettings.maxWidth
-              ? cameraForBeat(next, localProgress, viewportWidth, reduceMotion)
-              : { at: planView.at, units: planView.units, screen: [0.5, 0.5] };
-          const bandWidth = viewport?.bandWidth ?? 1;
-          const stageHeight = viewport?.stageHeight ?? vh;
-          const zc = bandWidth / camera.units;
-          const sx = (camera.screen[0] - 0.5) * bandWidth;
-          const sy = (camera.screen[1] - 0.5) * stageHeight;
-          const nextFrame = {
-            bandWidth,
-            stageHeight,
-            cx: camera.at[0],
-            cy: camera.at[1],
-            zc,
-            sx,
-            sy,
-          };
-          cameraFrameRef.current = nextFrame;
-          if (mobileViewport) {
-            syncMobileOverlayGeometryRef.current?.(
-              mobileCommittedBeatRef.current,
-              nextFrame,
-            );
-          } else {
-            syncOverlayGeometryRef.current?.(false, nextFrame);
-          }
-          cam.style.setProperty("--cx", camera.at[0].toFixed(2));
-          cam.style.setProperty("--cy", camera.at[1].toFixed(2));
-          cam.style.setProperty("--zc", zc.toFixed(5));
-          cam.style.setProperty("--sx", `${sx.toFixed(2)}px`);
-          cam.style.setProperty("--sy", `${sy.toFixed(2)}px`);
+        const viewport = viewportMetricsRef.current;
+        const viewportWidth =
+          viewport?.viewportWidth ?? window.innerWidth ?? 1280;
+        if (mobileViewport && CITY_PLAN_RASTER_ASSETS_ENABLED) {
+          const layerProgress = mobileLayerProgressForBeat(
+            next,
+            localProgress,
+            reduceMotion,
+          );
+          rootRef.current?.style.setProperty(
+            "--plan-mobile-gap-opacity",
+            layerProgress.gap.toFixed(4),
+          );
+          rootRef.current?.style.setProperty(
+            "--plan-mobile-relief-sites-opacity",
+            layerProgress.reliefSites.toFixed(4),
+          );
+          rootRef.current?.style.setProperty(
+            "--plan-mobile-parking-opacity",
+            layerProgress.parking.toFixed(4),
+          );
+          rootRef.current?.style.setProperty(
+            "--plan-mobile-first-refuge-opacity",
+            layerProgress.firstRefuge.toFixed(4),
+          );
+          rootRef.current?.style.setProperty(
+            "--plan-mobile-extra-refuges-opacity",
+            layerProgress.extraRefuges.toFixed(4),
+          );
+          const revealAfterCamera = MOBILE_CAMERA_THEN_REVEAL_BEATS.has(next);
+          const revealAt =
+            planMobileCamera[next]?.entryFraction ??
+            planMobileCameraSettings.entryFraction;
+          stage.dataset.mobileReveal =
+            reduceMotion || !revealAfterCamera || localProgress >= revealAt
+              ? "ready"
+              : "holding";
         }
+        const camera =
+          viewportWidth <= planMobileCameraSettings.maxWidth
+            ? cameraForBeat(next, localProgress, viewportWidth, reduceMotion)
+            : { at: planView.at, units: planView.units, screen: [0.5, 0.5] };
+        const bandWidth = viewport?.bandWidth ?? 1;
+        const stageHeight = viewport?.stageHeight ?? vh;
+        const zc = bandWidth / camera.units;
+        const sx = (camera.screen[0] - 0.5) * bandWidth;
+        const sy = (camera.screen[1] - 0.5) * stageHeight;
+        const nextFrame = {
+          bandWidth,
+          stageHeight,
+          cx: camera.at[0],
+          cy: camera.at[1],
+          zc,
+          sx,
+          sy,
+        };
+        cameraFrameRef.current = nextFrame;
+        if (mobileViewport) {
+          syncMobileOverlayGeometryRef.current?.(
+            mobileCommittedBeatRef.current,
+            nextFrame,
+          );
+        } else {
+          syncOverlayGeometryRef.current?.(false, nextFrame);
+        }
+        cam.style.setProperty("--cx", camera.at[0].toFixed(2));
+        cam.style.setProperty("--cy", camera.at[1].toFixed(2));
+        cam.style.setProperty("--zc", zc.toFixed(5));
+        cam.style.setProperty("--sx", `${sx.toFixed(2)}px`);
+        cam.style.setProperty("--sy", `${sy.toFixed(2)}px`);
         rootRef.current?.style.setProperty(
           "--plan-camera-step-progress",
           (mobileViewport && next !== mobileCommittedBeatRef.current
@@ -1806,7 +1823,7 @@ export function CityPlanScene() {
   ]);
 
   const paintMapBeat = useCallback((activeBeat, mobileDelta = false) => {
-    if (CITY_BUILD_MINIMAL_DIAGNOSTIC) return;
+    if (!CITY_PLAN_RASTER_ASSETS_ENABLED) return;
     const fig = figRef.current;
     if (!fig || !entered) return;
     if (!itemsRef.current) {
@@ -1947,10 +1964,10 @@ export function CityPlanScene() {
             className="plan-camera"
             style={{ width: `${PLAN_W}px`, height: `${PLAN_H}px` }}
           >
-            {CITY_BUILD_MINIMAL_DIAGNOSTIC ? (
+            {!CITY_PLAN_RASTER_ASSETS_ENABLED ? (
               <figure
                 ref={figRef}
-                className="plan-figure plan-figure--minimal-diagnostic"
+                className="plan-figure"
                 aria-hidden="true"
               />
             ) : mobileCameraActive ? (
@@ -1991,7 +2008,7 @@ export function CityPlanScene() {
         <div className="plan-curtain plan-curtain--exit" aria-hidden="true" />
 
         <div ref={bandRef} className="plan-band">
-          {!CITY_BUILD_MINIMAL_DIAGNOSTIC && (mobileCameraActive ? (
+          {mobileCameraActive ? (
             entered && planAnnotations.map((annotation) => {
               const active = activeAnnotations.some(
                 (activeAnnotation) => activeAnnotation.id === annotation.id,
@@ -2088,9 +2105,9 @@ export function CityPlanScene() {
                 </motion.div>
               ))}
             </AnimatePresence>
-          ))}
+          )}
 
-          {!CITY_BUILD_MINIMAL_DIAGNOSTIC && (mobileCameraActive ? (
+          {CITY_PLAN_VIGNETTES_ENABLED && (mobileCameraActive ? (
             mobileVignettesMounted ? (
               <MobilePersistentLink
                 name={vignetteLive ? vignetteName : null}
@@ -2155,7 +2172,7 @@ export function CityPlanScene() {
             </AnimatePresence>
           ))}
 
-          {!CITY_BUILD_MINIMAL_DIAGNOSTIC && (mobileCameraActive ? (
+          {CITY_PLAN_VIGNETTES_ENABLED && (mobileCameraActive ? (
             mobileVignettesMounted ? (
               <MobilePersistentVignettes
                 activeName={vignetteLive ? vignetteName : null}

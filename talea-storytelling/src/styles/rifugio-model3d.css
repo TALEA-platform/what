@@ -578,35 +578,12 @@
   pointer-events: none;
 }
 
-@keyframes plastico-entra {
-  from {
-    opacity: 0.55;
-    transform: scale(0.966);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-.relief-explainer--engaged.relief-explainer--model-ready
+.relief-explainer[data-active-view="model"]
   .relief-figure-frame
   .rifugio-model3d-holder {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
-  animation: plastico-entra 0.62s var(--ease-cine, cubic-bezier(0.22, 1, 0.36, 1)) both;
-}
-
-/* During reverse handoff the intro is already visible underneath. Keep the
-   last painted model frame as a two-frame WebKit compositor safety cover. */
-.relief-explainer--reverse-paint-cover.relief-explainer--model-ready
-  .relief-figure-frame
-  .rifugio-model3d-holder {
-  opacity: 1;
-  visibility: visible;
-  pointer-events: none;
-  animation: none;
 }
 
 .relief-figure-frame .rifugio-model3d {
@@ -621,17 +598,11 @@
   transition: transform 0.5s var(--ease-cine, cubic-bezier(0.22, 1, 0.36, 1));
 }
 
-@keyframes rifugio-intro-model-handoff {
-  from { visibility: visible; }
-  to { visibility: hidden; }
-}
-
-.relief-explainer--engaged.relief-explainer--model-ready .relief-figure {
+.relief-explainer[data-active-view="model"] .relief-figure {
   visibility: hidden;
   pointer-events: none;
-  transform: scale(0.985);
+  transform: none;
   transition: none;
-  animation: rifugio-intro-model-handoff 0.62s step-end both;
 }
 
 .relief-explainer--engaged .relief-figure-frame {
@@ -658,21 +629,6 @@
 }
 
 @media (max-width: 1279px) {
-  .relief-explainer--engaged.relief-explainer--model-ready
-    .relief-figure-frame
-    .rifugio-model3d-holder {
-    animation: plastico-entra-mobile 220ms ease-out both;
-  }
-
-  .relief-explainer--engaged.relief-explainer--model-ready .relief-figure {
-    animation-duration: 220ms;
-  }
-
-  @keyframes plastico-entra-mobile {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-
   /* Mobile keeps the small static backdrop texture but skips scene-wide filters. */
   .rifugio-model3d #model,
   .rifugio-model3d #model-svg {

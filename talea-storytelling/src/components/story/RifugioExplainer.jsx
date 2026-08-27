@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { rifugioStepSpecs } from "../../data/climateRelief";
 import { rifugioSvg } from "../../data/reliefVignettes";
 import { RifugioModel3D } from "./RifugioModel3D";
@@ -67,7 +67,6 @@ export function RifugioExplainer({ onGlossary }) {
   const [introReturning, setIntroReturning] = useState(false);
   const [modelIntroEntering, setModelIntroEntering] = useState(false);
   const [modelReady, setModelReady] = useState(false);
-  const [reversePaintCover, setReversePaintCover] = useState(false);
   const [finalCueUnlocked, setFinalCueUnlocked] = useState(false);
 
   const explainerRef = useRef(null);
@@ -108,6 +107,7 @@ export function RifugioExplainer({ onGlossary }) {
   const lastStepIndex = rifugioSteps.length - 1;
   const finalCueVisible = finalCueUnlocked || (!manualMode && complete);
   const sequencePlaying = !manualMode && !complete;
+  const activeVisualView = engaged && modelReady ? "model" : "vignette";
   const stepStatus = uiContent.localStory.stepLabelTemplate
     .replace("{current}", String(activeIndex + 1))
     .replace("{total}", String(rifugioSteps.length));
@@ -115,35 +115,6 @@ export function RifugioExplainer({ onGlossary }) {
   useEffect(() => {
     activeIndexRef.current = activeIndex;
   }, [activeIndex]);
-
-  useLayoutEffect(() => {
-    if (!reversePaintCover) return undefined;
-    if (engaged || !nearby) {
-      return undefined;
-    }
-
-    const intro = figureRef.current;
-    let paintFrame = null;
-    let compositorFrame = null;
-    void intro?.getBoundingClientRect();
-    logPerformanceEvent("rifugio:intro-dom-ready", { section: "Rifugio" });
-    paintFrame = requestAnimationFrame(() => {
-      paintFrame = null;
-      void intro?.querySelector("svg")?.getBoundingClientRect();
-      compositorFrame = requestAnimationFrame(() => {
-        compositorFrame = null;
-        logPerformanceEvent("rifugio:intro-paint-ready", {
-          section: "Rifugio",
-        });
-        setReversePaintCover(false);
-      });
-    });
-
-    return () => {
-      if (paintFrame !== null) cancelAnimationFrame(paintFrame);
-      if (compositorFrame !== null) cancelAnimationFrame(compositorFrame);
-    };
-  }, [engaged, nearby, reversePaintCover]);
 
   const takeManualStep = (delta) => {
     const nextIndex = Math.max(
@@ -448,7 +419,6 @@ export function RifugioExplainer({ onGlossary }) {
           if (!nextNearby) {
             modelReadyRef.current = false;
             setModelReady(false);
-            setReversePaintCover(false);
           }
           setNearby(nextNearby);
         }
@@ -464,7 +434,6 @@ export function RifugioExplainer({ onGlossary }) {
         );
         if (mobileLayout) {
           if (nextEngaged) {
-            setReversePaintCover(false);
             setIntroEntering(false);
             setIntroReturning(false);
             if (!modelIntroSeenRef.current) {
@@ -475,9 +444,6 @@ export function RifugioExplainer({ onGlossary }) {
                 setModelIntroEntering(true);
             }
           } else {
-            if (nearbyRef.current && modelReadyRef.current) {
-              setReversePaintCover(true);
-            }
             setIntroReturning(true);
             setModelIntroEntering(false);
           }
@@ -515,9 +481,10 @@ export function RifugioExplainer({ onGlossary }) {
   return (
     <div
       ref={explainerRef}
-      className={`relief-explainer${entered ? " relief-explainer--entered" : ""}${figureReached ? " relief-explainer--figure-reached" : ""}${introHasLiftRoom ? " relief-explainer--intro-has-lift-room" : ""}${introEntering ? " relief-explainer--intro-entering" : ""}${introReturning ? " relief-explainer--intro-returning" : ""}${modelIntroEntering ? " relief-explainer--model-intro-entering" : ""}${modelReady ? " relief-explainer--model-ready" : ""}${reversePaintCover ? " relief-explainer--reverse-paint-cover" : ""}${engaged ? " relief-explainer--engaged" : ""}`}
+      className={`relief-explainer${entered ? " relief-explainer--entered" : ""}${figureReached ? " relief-explainer--figure-reached" : ""}${introHasLiftRoom ? " relief-explainer--intro-has-lift-room" : ""}${introEntering ? " relief-explainer--intro-entering" : ""}${introReturning ? " relief-explainer--intro-returning" : ""}${modelIntroEntering ? " relief-explainer--model-intro-entering" : ""}${modelReady ? " relief-explainer--model-ready" : ""}${engaged ? " relief-explainer--engaged" : ""}`}
       data-step={step}
       data-manual={String(manualMode)}
+      data-active-view={activeVisualView}
     >
       <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">
         {stepStatus}
@@ -555,8 +522,12 @@ export function RifugioExplainer({ onGlossary }) {
                 className="relief-figure"
                 data-effects-active={String(figureInView && !engaged)}
                 data-motion="story"
-                aria-hidden={engaged ? "true" : undefined}
-                aria-label={engaged ? undefined : reliefExplainer.figure.ariaLabel}
+                aria-hidden={activeVisualView === "model" ? "true" : undefined}
+                aria-label={
+                  activeVisualView === "model"
+                    ? undefined
+                    : reliefExplainer.figure.ariaLabel
+                }
                 dangerouslySetInnerHTML={nearby ? RIFUGIO_HTML : EMPTY_HTML}
               />
               {nearby ? (
@@ -564,7 +535,8 @@ export function RifugioExplainer({ onGlossary }) {
                   step={step}
                   label={reliefExplainer.figure.ariaLabel}
                   content={reliefExplainer.model}
-                  idle={!engaged || !settled}
+                  active={activeVisualView === "model"}
+                  idle={activeVisualView !== "model" || !settled}
                   gestureHint={uiContent.localStory.modelGesture}
                   onPreparing={() => {
                     modelReadyRef.current = false;

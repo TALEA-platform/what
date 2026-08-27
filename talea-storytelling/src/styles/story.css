@@ -9597,9 +9597,7 @@
   .relief-explainer--intro-returning:not(.relief-explainer--engaged)
     .relief-intro-heading,
   .relief-explainer--intro-returning:not(.relief-explainer--engaged)
-    .relief-intro-copy,
-  .relief-explainer--intro-returning:not(.relief-explainer--engaged)
-    .relief-figure-stage {
+    .relief-intro-copy {
     animation: relief-mobile-intro-settle 200ms ease-out both;
   }
 

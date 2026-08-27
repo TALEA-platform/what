@@ -49,6 +49,7 @@ export function RifugioModel3D({
   step = 0,
   label,
   content,
+  active = false,
   idle = false,
   gestureHint,
   onPreparing,
@@ -210,7 +211,10 @@ export function RifugioModel3D({
   const tempLocation = content.temperature.locations[thermalStateIndex];
 
   return (
-    <div className="rifugio-model3d-holder">
+    <div
+      className="rifugio-model3d-holder"
+      aria-hidden={active ? undefined : "true"}
+    >
       <div className="rifugio-model3d-temp" data-step={step}>
         <span
           className="rifugio-model3d-temp-value"

@@ -70,6 +70,54 @@ export function getMemoryDebugSummary() {
   };
 }
 
+function mountedImagePixels(images) {
+  return images.reduce(
+    (total, image) =>
+      total +
+      (Number(image.naturalWidth) || 0) * (Number(image.naturalHeight) || 0),
+    0,
+  );
+}
+
+export function getPerformanceSnapshot(details = {}) {
+  if (typeof document === "undefined") return { ...details };
+
+  const cityPlanImages = Array.from(
+    document.querySelectorAll(".plan-mobile-map-state[src]"),
+  );
+  const cityPlanRasterPixels = mountedImagePixels(cityPlanImages);
+  const rifugioModel = document.querySelector(".rifugio-model3d");
+  const rifugioRenderer = !rifugioModel
+    ? "none"
+    : rifugioModel.querySelector("canvas")
+      ? "three"
+      : rifugioModel.querySelector("svg")
+        ? "svg"
+        : "unknown";
+
+  return {
+    timestampMs: Number(performance.now().toFixed(1)),
+    ...details,
+    svgCount: countMounted("svg"),
+    svgPaths: countMounted("svg path"),
+    cityplanImages: cityPlanImages.length,
+    cityplanRasterPixels: cityPlanRasterPixels,
+    decodedRgbaMiB: Number(
+      ((cityPlanRasterPixels * 4) / (1024 * 1024)).toFixed(3),
+    ),
+    cityplanVignetteImages: countMounted(".plan-vignette-image[src]"),
+    canvasCount: countMounted("canvas"),
+    mapLibreMaps: [...liveMaps.values()].map(({ name }) => name),
+    mapLibreMapCount: liveMaps.size,
+    rifugioRenderer,
+  };
+}
+
+export function logPerformanceSnapshot(reason, details = {}) {
+  if (!debugPerf) return;
+  console.debug("[TALEA perf]", getPerformanceSnapshot({ reason, ...details }));
+}
+
 export function updateMemoryDebugState(patch = {}) {
   if (patch.heavyScene) {
     const { name, mounted } = patch.heavyScene;
@@ -168,6 +216,7 @@ export function initializeMapPerformanceTelemetry() {
   writeBreadcrumb("boot");
   if (debugPerf) {
     window.__taleaMemorySummary = getMemoryDebugSummary;
+    window.__taleaPerfSnapshot = getPerformanceSnapshot;
     console.debug("[talea:perf] boot", {
       bootCount,
       previousBreadcrumb,

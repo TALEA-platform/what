@@ -27,7 +27,9 @@ import { editorialLinks, useContent } from "../../content";
 import { assetUrl } from "../../lib/assetUrl";
 import { cityPlanMobileRasters } from "../../generated/cityPlanMobileRasters";
 import {
+  debugPerf,
   logPerformanceEvent,
+  logPerformanceSnapshot,
   updateMemoryDebugState,
 } from "../../lib/mapPerformance";
 import { runtimeProfile } from "../../lib/runtimeProfile";
@@ -43,6 +45,13 @@ const VIGNETTE_HTML = Object.fromEntries(
 );
 
 const READING_LINE = 0.56;
+const CITY_PLAN_DECODE_MODE =
+  typeof window !== "undefined" &&
+  new URLSearchParams(window.location.search).get("cityPlanDecodeTest") ===
+    "serial"
+    ? "serial"
+    : "normal";
+const CITY_PLAN_SERIAL_DECODE = CITY_PLAN_DECODE_MODE === "serial";
 
 // Coupled to generated vignette steps and their CSS draw duration.
 const VIGNETTE_STEP_MS = 420;
@@ -176,8 +185,14 @@ function mobileAssetsForBeat(beat) {
   return [...new Set(assets.filter(Boolean))];
 }
 
-function decodeMobileBeatAssets(beat) {
-  return Promise.all(mobileAssetsForBeat(beat).map(decodeMobileImage));
+function decodeMobileBeatAssets(beat, waitForAll = false) {
+  const decodes = mobileAssetsForBeat(beat).map(decodeMobileImage);
+  if (!waitForAll) return Promise.all(decodes);
+
+  return Promise.allSettled(decodes).then((results) => {
+    const failure = results.find(({ status }) => status === "rejected");
+    if (failure) throw failure.reason;
+  });
 }
 
 const VIGNETTE_PLACE = {
@@ -560,6 +575,13 @@ export function CityPlanScene() {
   const mobileGenerationRef = useRef(0);
   const mobileRequestedBeatRef = useRef(0);
   const mobileCommittedBeatRef = useRef(0);
+  const mobileSerialDecodeRunningRef = useRef(false);
+  const mobileSerialDecodeBeatRef = useRef(null);
+  const mobileSerialLatestRequestedBeatRef = useRef(0);
+  const mobileSerialAssetBeatRef = useRef(0);
+  const mobileSerialDecodeEnabledRef = useRef(false);
+  const mobileSerialDecodeLiveRef = useRef(true);
+  const startMobileSerialDecodeRef = useRef(null);
   const requestMobileBeatRef = useRef(null);
   const viewportMetricsRef = useRef(null);
   const mapBeatStatesRef = useRef(null);
@@ -572,6 +594,7 @@ export function CityPlanScene() {
   const previousBeatRef = useRef(0);
   const completedVignetteBeatsRef = useRef(new Set());
   const enteredVignetteMountRef = useRef(-1);
+  const performanceBeatRef = useRef({ requestedBeat: 0, committedBeat: 0 });
 
   const [entered, setEntered] = useState(false);
   const [mobileCameraActive, setMobileCameraActive] = useState(
@@ -604,6 +627,78 @@ export function CityPlanScene() {
   const [vignetteNode, setVignetteNode] = useState(null);
   const [link, setLink] = useState(null);
 
+  const startMobileSerialDecode = useCallback(() => {
+    if (
+      !CITY_PLAN_SERIAL_DECODE ||
+      !mobileSerialDecodeLiveRef.current ||
+      !mobileSerialDecodeEnabledRef.current ||
+      mobileSerialDecodeRunningRef.current
+    ) {
+      return;
+    }
+
+    const targetBeat = mobileSerialLatestRequestedBeatRef.current;
+    mobileSerialDecodeRunningRef.current = true;
+    mobileSerialDecodeBeatRef.current = targetBeat;
+
+    Promise.resolve()
+      .then(() => decodeMobileBeatAssets(targetBeat, true))
+      .then(() => {
+        if (
+          !mobileSerialDecodeLiveRef.current ||
+          !mobileSerialDecodeEnabledRef.current ||
+          mobileSerialLatestRequestedBeatRef.current !== targetBeat
+        ) {
+          return;
+        }
+
+        mobileDecodedBeatsRef.current.add(targetBeat);
+        mobileSerialAssetBeatRef.current = targetBeat;
+        setMobileReadyBeats((current) => {
+          if (current.has(targetBeat)) return current;
+          const next = new Set(current);
+          next.add(targetBeat);
+          return next;
+        });
+        setMobileAssetFailure(false);
+        setMobileAssetVersion((version) => version + 1);
+      })
+      .catch(() => {
+        if (
+          mobileSerialDecodeLiveRef.current &&
+          mobileSerialDecodeEnabledRef.current &&
+          mobileSerialLatestRequestedBeatRef.current === targetBeat
+        ) {
+          setMobileAssetFailure(true);
+        }
+      })
+      .finally(() => {
+        if (!mobileSerialDecodeLiveRef.current) return;
+
+        mobileSerialDecodeRunningRef.current = false;
+        mobileSerialDecodeBeatRef.current = null;
+        if (
+          mobileSerialDecodeEnabledRef.current &&
+          mobileSerialLatestRequestedBeatRef.current !== targetBeat
+        ) {
+          startMobileSerialDecodeRef.current?.();
+        }
+      });
+  }, []);
+
+  useLayoutEffect(() => {
+    startMobileSerialDecodeRef.current = startMobileSerialDecode;
+  }, [startMobileSerialDecode]);
+
+  useEffect(() => {
+    mobileSerialDecodeLiveRef.current = true;
+    return () => {
+      mobileSerialDecodeLiveRef.current = false;
+      mobileSerialDecodeEnabledRef.current = false;
+      startMobileSerialDecodeRef.current = null;
+    };
+  }, []);
+
   useLayoutEffect(() => {
     if (!mobileCameraActive) return;
     const rasterCount = rootRef.current?.querySelectorAll(
@@ -621,6 +716,10 @@ export function CityPlanScene() {
   const requestedBeat = mobileCameraActive
     ? mobileScene.requestedBeat
     : scrollBeat;
+  const mobileAssetBeat =
+    mobileCameraActive && CITY_PLAN_SERIAL_DECODE
+      ? mobileSerialAssetBeatRef.current
+      : requestedBeat;
   const side = planBeats[beat]?.side === "right" ? "right" : "left";
   const vignetteName = planBeats[beat]?.vignette ?? null;
   const place = VIGNETTE_PLACE[vignetteName] ?? "top";
@@ -652,7 +751,7 @@ export function CityPlanScene() {
     const activeLayerCount = mobilePlanLayersForBeat(beat).length;
     const requestedLayerCount = new Set([
       ...mobilePlanLayersForBeat(beat),
-      ...mobilePlanLayersForBeat(requestedBeat),
+      ...mobilePlanLayersForBeat(mobileAssetBeat),
       ...(beat === 2 ? mobilePlanLayersForBeat(1) : []),
     ].map(({ name }) => name)).size;
     logPerformanceEvent("cityplan:beat", {
@@ -666,7 +765,72 @@ export function CityPlanScene() {
         ? 1 + activeLayerCount
         : 0,
     });
-  }, [beat, mobileCameraActive, mobileVignettesMounted, requestedBeat]);
+
+    const previous = performanceBeatRef.current;
+    const requestedChanged = requestedBeat !== previous.requestedBeat;
+    const committedChanged = beat !== previous.committedBeat;
+    performanceBeatRef.current = {
+      requestedBeat,
+      committedBeat: beat,
+    };
+    if (!requestedChanged && !committedChanged) return undefined;
+
+    const reason =
+      requestedChanged && Math.abs(requestedBeat - previous.requestedBeat) > 1
+        ? "cityplan-fast-beat-skip"
+        : "cityplan-beat-change";
+    const frame = requestAnimationFrame(() => {
+      logPerformanceSnapshot(reason, {
+        scene: "cityplan",
+        storyBeat: beat,
+        requestedBeat,
+        cityPlanDecodeMode: CITY_PLAN_DECODE_MODE,
+        cityPlanDecodeRunning: mobileSerialDecodeRunningRef.current,
+        cityPlanDecodeBeat: mobileSerialDecodeBeatRef.current,
+        cityPlanLatestRequestedBeat: CITY_PLAN_SERIAL_DECODE
+          ? mobileSerialLatestRequestedBeatRef.current
+          : mobileRequestedBeatRef.current,
+      });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [
+    beat,
+    mobileAssetBeat,
+    mobileCameraActive,
+    mobileVignettesMounted,
+    requestedBeat,
+  ]);
+
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!debugPerf || !mobileCameraActive || !root) return undefined;
+
+    let hasEntered = false;
+    let visible = false;
+    const observer = new IntersectionObserver(([entry]) => {
+      const nextVisible = entry.isIntersecting;
+      if (nextVisible === visible) return;
+      visible = nextVisible;
+      if (nextVisible) hasEntered = true;
+      if (!nextVisible && !hasEntered) return;
+      logPerformanceSnapshot(
+        nextVisible ? "cityplan-enter" : "cityplan-exit",
+        {
+          scene: "cityplan",
+          storyBeat: mobileCommittedBeatRef.current,
+          requestedBeat: mobileRequestedBeatRef.current,
+          cityPlanDecodeMode: CITY_PLAN_DECODE_MODE,
+          cityPlanDecodeRunning: mobileSerialDecodeRunningRef.current,
+          cityPlanDecodeBeat: mobileSerialDecodeBeatRef.current,
+          cityPlanLatestRequestedBeat: CITY_PLAN_SERIAL_DECODE
+            ? mobileSerialLatestRequestedBeatRef.current
+            : mobileRequestedBeatRef.current,
+        },
+      );
+    });
+    observer.observe(root);
+    return () => observer.disconnect();
+  }, [mobileCameraActive]);
 
   useEffect(
     () =>
@@ -965,6 +1129,9 @@ export function CityPlanScene() {
       planBeatSpecs.length - 1,
       Math.max(0, nextBeat),
     );
+    if (CITY_PLAN_SERIAL_DECODE) {
+      mobileSerialLatestRequestedBeatRef.current = targetBeat;
+    }
     if (mobileRequestedBeatRef.current === targetBeat) return;
     const generation = mobileGenerationRef.current + 1;
     mobileGenerationRef.current = generation;
@@ -998,6 +1165,17 @@ export function CityPlanScene() {
   );
 
   useEffect(() => {
+    if (CITY_PLAN_SERIAL_DECODE) {
+      const targetBeat = mobileScene.requestedBeat;
+      mobileSerialLatestRequestedBeatRef.current = targetBeat;
+      mobileSerialDecodeEnabledRef.current =
+        mobileCameraActive && mobileVignettesMounted;
+      if (mobileSerialDecodeEnabledRef.current) {
+        startMobileSerialDecodeRef.current?.();
+      }
+      return undefined;
+    }
+
     if (!mobileCameraActive || !mobileVignettesMounted) return undefined;
     const targetBeat = mobileScene.requestedBeat;
     const generation = mobileScene.generation;
@@ -1869,7 +2047,7 @@ export function CityPlanScene() {
                 ) : (
                   <MobilePersistentPlan
                     activeBeat={beat}
-                    requestedBeat={requestedBeat}
+                    requestedBeat={mobileAssetBeat}
                     fallbackActive={!mobileVisualReady}
                     onAssetSettled={handleMobileAssetSettled}
                   />
@@ -2063,7 +2241,9 @@ export function CityPlanScene() {
               <MobilePersistentVignettes
                 activeName={vignetteLive ? vignetteName : null}
                 requestedName={
-                  entered ? planBeatSpecs[requestedBeat]?.vignette ?? null : null
+                  entered
+                    ? planBeatSpecs[mobileAssetBeat]?.vignette ?? null
+                    : null
                 }
                 onAssetSettled={handleMobileAssetSettled}
               />

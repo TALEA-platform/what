@@ -16,8 +16,6 @@ import {
 } from "../../lib/mapPerformance";
 import { useIOSFarOffscreenMount } from "../../hooks/useIOSFarOffscreenMount";
 import { requestIOSHeavyOffscreenRelease } from "../../lib/iosMemoryLifecycle";
-import { runtimeProfile } from "../../lib/runtimeProfile";
-import { createIPhoneZonesMap } from "../maps/IPhoneZonesMap";
 
 const ZONES = zonesMap.zones;
 const STAGE_COUNT = ZONES.length + 1;
@@ -133,12 +131,7 @@ function positionFocusMask(map, zone, element) {
 }
 
 function cameraPadding() {
-  if (
-    !runtimeProfile.forceIPhoneLayout &&
-    !window.matchMedia(MOBILE_LAYOUT_QUERY).matches
-  ) {
-    return FIT_PADDING;
-  }
+  if (!window.matchMedia(MOBILE_LAYOUT_QUERY).matches) return FIT_PADDING;
   const width = window.innerWidth;
   const height = window.innerHeight;
   const edge = width < 600 ? 18 : width < 900 ? 28 : 38;
@@ -200,7 +193,6 @@ export function ZonesMapScene() {
     name: "Zones",
     prewarmViewports: 0.25,
     releaseViewports: 4,
-    keepAliveAfterMount: runtimeProfile.useIOSCanvasMaps,
   });
 
   const [ready, setReady] = useState(false);
@@ -251,9 +243,7 @@ export function ZonesMapScene() {
   const applyStage = useCallback((s, animate, opening = false) => {
     const map = mapRef.current;
     if (!map) return;
-    const mobileLayout =
-      runtimeProfile.forceIPhoneLayout ||
-      window.matchMedia(MOBILE_LAYOUT_QUERY).matches;
+    const mobileLayout = window.matchMedia(MOBILE_LAYOUT_QUERY).matches;
     map.stop();
 
     const zone = s >= 1 ? ZONES[s - 1] : null;
@@ -336,34 +326,21 @@ export function ZonesMapScene() {
       if (mapRef.current || !containerRef.current) return;
       logPerformanceEvent("zones:init-start", { section: "Zones" });
       logPerformanceEvent("map:constructor", { mapName: "Zones" });
-      const map = runtimeProfile.useIOSCanvasMaps
-        ? createIPhoneZonesMap({
-            container: containerRef.current,
-            center: INIT_CAMERA.center,
-            zoom: INIT_CAMERA.zoom,
-            minZoom: EXPLORE_ZOOM_LIMITS.minZoom,
-            maxZoom: EXPLORE_ZOOM_LIMITS.maxZoom,
-            locale: mapLibreLocaleRef.current,
-          })
-        : new maplibregl.Map({
-            container: containerRef.current,
-            style: BASEMAP_STYLE,
-            center: INIT_CAMERA.center,
-            zoom: INIT_CAMERA.zoom,
-            minZoom: EXPLORE_ZOOM_LIMITS.minZoom,
-            maxZoom: EXPLORE_ZOOM_LIMITS.maxZoom,
-            attributionControl: false,
-            locale: mapLibreLocaleRef.current,
-          });
+      const map = new maplibregl.Map({
+        container: containerRef.current,
+        style: BASEMAP_STYLE,
+        center: INIT_CAMERA.center,
+        zoom: INIT_CAMERA.zoom,
+        minZoom: EXPLORE_ZOOM_LIMITS.minZoom,
+        maxZoom: EXPLORE_ZOOM_LIMITS.maxZoom,
+        attributionControl: false,
+        locale: mapLibreLocaleRef.current,
+      });
       resizeControllerRef.current = createMapResizeController(map);
-      unregisterPerformanceRef.current = runtimeProfile.useIOSCanvasMaps
-        ? null
-        : registerMapPerformance(map, "Zones");
+      unregisterPerformanceRef.current = registerMapPerformance(map, "Zones");
       mapRef.current = map;
       lockCamera(map);
-      const mobileMap =
-        runtimeProfile.forceIPhoneLayout ||
-        window.matchMedia(MOBILE_LAYOUT_QUERY).matches;
+      const mobileMap = window.matchMedia(MOBILE_LAYOUT_QUERY).matches;
       map.on("render", () => {
         positionFocusMask(map, activeZoneRef.current, focusMaskRef.current);
       });
@@ -372,17 +349,15 @@ export function ZonesMapScene() {
         logPerformanceEvent("zones:map-load", { section: "Zones" });
         try {
           addOrthophoto(map);
-          if (!runtimeProfile.useIOSCanvasMaps) {
-            map.addControl(
-              new maplibregl.AttributionControl({ compact: true }),
-              "bottom-right",
-            );
-            map.addControl(
-              new maplibregl.ScaleControl({ maxWidth: 120, unit: "metric" }),
-              "bottom-right",
-            );
-          }
-          if (mobileMap && !runtimeProfile.useIOSCanvasMaps) {
+          map.addControl(
+            new maplibregl.AttributionControl({ compact: true }),
+            "bottom-right",
+          );
+          map.addControl(
+            new maplibregl.ScaleControl({ maxWidth: 120, unit: "metric" }),
+            "bottom-right",
+          );
+          if (mobileMap) {
             closeMobileAttributionWhenReady(map, containerRef.current);
           }
           map.addSource("areas-src", { type: "geojson", data: AREAS_FC });
@@ -418,9 +393,7 @@ export function ZonesMapScene() {
       });
     };
 
-    if (!runtimeProfile.useIOSCanvasMaps) {
-      requestIOSHeavyOffscreenRelease("zones-context-create");
-    }
+    requestIOSHeavyOffscreenRelease("zones-context-create");
     initFrame = requestAnimationFrame(init);
 
     const io = new IntersectionObserver(
@@ -498,9 +471,7 @@ export function ZonesMapScene() {
       frame = null;
       const vh = window.innerHeight || 768;
       const readingLine = vh * 0.55;
-      const mobileLayout =
-        runtimeProfile.forceIPhoneLayout ||
-        window.matchMedia(MOBILE_LAYOUT_QUERY).matches;
+      const mobileLayout = window.matchMedia(MOBILE_LAYOUT_QUERY).matches;
       const steps = stepsRef.current.filter(Boolean);
       const stepMetrics = steps.map((element) => {
         const rect = element.getBoundingClientRect();

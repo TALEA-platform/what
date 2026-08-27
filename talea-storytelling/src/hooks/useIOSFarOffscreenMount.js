@@ -21,7 +21,6 @@ export function useIOSFarOffscreenMount(
     releaseViewports = 9,
     initiallyMounted = false,
     retainUntilFirstApproach = false,
-    keepAliveAfterMount = false,
   } = {},
 ) {
   const [mounted, setMounted] = useState(
@@ -48,7 +47,6 @@ export function useIOSFarOffscreenMount(
 
     const updateMounted = (next, reason) => {
       setMounted((current) => {
-        if (!next && current && keepAliveAfterMount) return current;
         if (current === next) return current;
         logPerformanceEvent(`renderer:${next ? "prewarm" : "release"}`, {
           renderer: name ?? "unnamed",
@@ -154,7 +152,6 @@ export function useIOSFarOffscreenMount(
     };
   }, [
     initiallyMounted,
-    keepAliveAfterMount,
     name,
     prewarmViewports,
     releaseViewports,

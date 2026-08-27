@@ -45,13 +45,14 @@ const VIGNETTE_HTML = Object.fromEntries(
 );
 
 const READING_LINE = 0.56;
-const CITY_PLAN_DECODE_MODE =
+const CITY_BUILD_DIAGNOSTIC_MODE =
   typeof window !== "undefined" &&
-  new URLSearchParams(window.location.search).get("cityPlanDecodeTest") ===
-    "serial"
-    ? "serial"
+  new URLSearchParams(window.location.search).get("cityBuildTest") ===
+    "minimal"
+    ? "minimal"
     : "normal";
-const CITY_PLAN_SERIAL_DECODE = CITY_PLAN_DECODE_MODE === "serial";
+const CITY_BUILD_MINIMAL_DIAGNOSTIC =
+  CITY_BUILD_DIAGNOSTIC_MODE === "minimal";
 
 // Coupled to generated vignette steps and their CSS draw duration.
 const VIGNETTE_STEP_MS = 420;
@@ -185,14 +186,8 @@ function mobileAssetsForBeat(beat) {
   return [...new Set(assets.filter(Boolean))];
 }
 
-function decodeMobileBeatAssets(beat, waitForAll = false) {
-  const decodes = mobileAssetsForBeat(beat).map(decodeMobileImage);
-  if (!waitForAll) return Promise.all(decodes);
-
-  return Promise.allSettled(decodes).then((results) => {
-    const failure = results.find(({ status }) => status === "rejected");
-    if (failure) throw failure.reason;
-  });
+function decodeMobileBeatAssets(beat) {
+  return Promise.all(mobileAssetsForBeat(beat).map(decodeMobileImage));
 }
 
 const VIGNETTE_PLACE = {
@@ -575,12 +570,6 @@ export function CityPlanScene() {
   const mobileGenerationRef = useRef(0);
   const mobileRequestedBeatRef = useRef(0);
   const mobileCommittedBeatRef = useRef(0);
-  const mobileSerialDecodeRunningRef = useRef(false);
-  const mobileSerialDecodeBeatRef = useRef(null);
-  const mobileSerialLatestRequestedBeatRef = useRef(0);
-  const mobileSerialDecodeEnabledRef = useRef(false);
-  const mobileSerialDecodeLiveRef = useRef(true);
-  const startMobileSerialDecodeRef = useRef(null);
   const requestMobileBeatRef = useRef(null);
   const viewportMetricsRef = useRef(null);
   const mapBeatStatesRef = useRef(null);
@@ -616,7 +605,6 @@ export function CityPlanScene() {
   const [mobileAssetVersion, setMobileAssetVersion] = useState(0);
   const [mobileReadyBeats, setMobileReadyBeats] = useState(() => new Set());
   const [mobileAssetFailure, setMobileAssetFailure] = useState(false);
-  const [mobileSerialAssetBeat, setMobileSerialAssetBeat] = useState(0);
   const [mobileOverlayLayoutVersion, setMobileOverlayLayoutVersion] = useState(0);
   const [vignetteProgress, setVignetteProgress] = useState({
     beat: -1,
@@ -626,78 +614,6 @@ export function CityPlanScene() {
   const [vignetteMount, setVignetteMount] = useState(0);
   const [vignetteNode, setVignetteNode] = useState(null);
   const [link, setLink] = useState(null);
-
-  const startMobileSerialDecode = useCallback(() => {
-    if (
-      !CITY_PLAN_SERIAL_DECODE ||
-      !mobileSerialDecodeLiveRef.current ||
-      !mobileSerialDecodeEnabledRef.current ||
-      mobileSerialDecodeRunningRef.current
-    ) {
-      return;
-    }
-
-    const targetBeat = mobileSerialLatestRequestedBeatRef.current;
-    mobileSerialDecodeRunningRef.current = true;
-    mobileSerialDecodeBeatRef.current = targetBeat;
-
-    Promise.resolve()
-      .then(() => decodeMobileBeatAssets(targetBeat, true))
-      .then(() => {
-        if (
-          !mobileSerialDecodeLiveRef.current ||
-          !mobileSerialDecodeEnabledRef.current ||
-          mobileSerialLatestRequestedBeatRef.current !== targetBeat
-        ) {
-          return;
-        }
-
-        mobileDecodedBeatsRef.current.add(targetBeat);
-        setMobileSerialAssetBeat(targetBeat);
-        setMobileReadyBeats((current) => {
-          if (current.has(targetBeat)) return current;
-          const next = new Set(current);
-          next.add(targetBeat);
-          return next;
-        });
-        setMobileAssetFailure(false);
-        setMobileAssetVersion((version) => version + 1);
-      })
-      .catch(() => {
-        if (
-          mobileSerialDecodeLiveRef.current &&
-          mobileSerialDecodeEnabledRef.current &&
-          mobileSerialLatestRequestedBeatRef.current === targetBeat
-        ) {
-          setMobileAssetFailure(true);
-        }
-      })
-      .finally(() => {
-        if (!mobileSerialDecodeLiveRef.current) return;
-
-        mobileSerialDecodeRunningRef.current = false;
-        mobileSerialDecodeBeatRef.current = null;
-        if (
-          mobileSerialDecodeEnabledRef.current &&
-          mobileSerialLatestRequestedBeatRef.current !== targetBeat
-        ) {
-          startMobileSerialDecodeRef.current?.();
-        }
-      });
-  }, []);
-
-  useLayoutEffect(() => {
-    startMobileSerialDecodeRef.current = startMobileSerialDecode;
-  }, [startMobileSerialDecode]);
-
-  useEffect(() => {
-    mobileSerialDecodeLiveRef.current = true;
-    return () => {
-      mobileSerialDecodeLiveRef.current = false;
-      mobileSerialDecodeEnabledRef.current = false;
-      startMobileSerialDecodeRef.current = null;
-    };
-  }, []);
 
   useLayoutEffect(() => {
     if (!mobileCameraActive) return;
@@ -716,10 +632,6 @@ export function CityPlanScene() {
   const requestedBeat = mobileCameraActive
     ? mobileScene.requestedBeat
     : scrollBeat;
-  const mobileAssetBeat =
-    mobileCameraActive && CITY_PLAN_SERIAL_DECODE
-      ? mobileSerialAssetBeat
-      : requestedBeat;
   const side = planBeats[beat]?.side === "right" ? "right" : "left";
   const vignetteName = planBeats[beat]?.vignette ?? null;
   const place = VIGNETTE_PLACE[vignetteName] ?? "top";
@@ -751,7 +663,7 @@ export function CityPlanScene() {
     const activeLayerCount = mobilePlanLayersForBeat(beat).length;
     const requestedLayerCount = new Set([
       ...mobilePlanLayersForBeat(beat),
-      ...mobilePlanLayersForBeat(mobileAssetBeat),
+      ...mobilePlanLayersForBeat(requestedBeat),
       ...(beat === 2 ? mobilePlanLayersForBeat(1) : []),
     ].map(({ name }) => name)).size;
     logPerformanceEvent("cityplan:beat", {
@@ -784,18 +696,12 @@ export function CityPlanScene() {
         scene: "cityplan",
         storyBeat: beat,
         requestedBeat,
-        cityPlanDecodeMode: CITY_PLAN_DECODE_MODE,
-        cityPlanDecodeRunning: mobileSerialDecodeRunningRef.current,
-        cityPlanDecodeBeat: mobileSerialDecodeBeatRef.current,
-        cityPlanLatestRequestedBeat: CITY_PLAN_SERIAL_DECODE
-          ? mobileSerialLatestRequestedBeatRef.current
-          : mobileRequestedBeatRef.current,
+        cityBuildDiagnosticMode: CITY_BUILD_DIAGNOSTIC_MODE,
       });
     });
     return () => cancelAnimationFrame(frame);
   }, [
     beat,
-    mobileAssetBeat,
     mobileCameraActive,
     mobileVignettesMounted,
     requestedBeat,
@@ -819,12 +725,7 @@ export function CityPlanScene() {
           scene: "cityplan",
           storyBeat: mobileCommittedBeatRef.current,
           requestedBeat: mobileRequestedBeatRef.current,
-          cityPlanDecodeMode: CITY_PLAN_DECODE_MODE,
-          cityPlanDecodeRunning: mobileSerialDecodeRunningRef.current,
-          cityPlanDecodeBeat: mobileSerialDecodeBeatRef.current,
-          cityPlanLatestRequestedBeat: CITY_PLAN_SERIAL_DECODE
-            ? mobileSerialLatestRequestedBeatRef.current
-            : mobileRequestedBeatRef.current,
+          cityBuildDiagnosticMode: CITY_BUILD_DIAGNOSTIC_MODE,
         },
       );
     });
@@ -832,23 +733,22 @@ export function CityPlanScene() {
     return () => observer.disconnect();
   }, [mobileCameraActive]);
 
-  useEffect(
-    () =>
-      onIOSHeavyOffscreenRelease((reason) => {
-        const rect = rootRef.current?.getBoundingClientRect();
-        if (!rect || (rect.bottom > 0 && rect.top < window.innerHeight)) return;
-        setMobileVignettesMounted((mounted) => {
-          if (!mounted) return mounted;
-          logPerformanceEvent("cityplan:rasters-release", {
-            section: "CityPlan",
-            cityPlanBeat: mobileCommittedBeatRef.current,
-            reason,
-          });
-          return false;
+  useEffect(() => {
+    if (CITY_BUILD_MINIMAL_DIAGNOSTIC) return undefined;
+    return onIOSHeavyOffscreenRelease((reason) => {
+      const rect = rootRef.current?.getBoundingClientRect();
+      if (!rect || (rect.bottom > 0 && rect.top < window.innerHeight)) return;
+      setMobileVignettesMounted((mounted) => {
+        if (!mounted) return mounted;
+        logPerformanceEvent("cityplan:rasters-release", {
+          section: "CityPlan",
+          cityPlanBeat: mobileCommittedBeatRef.current,
+          reason,
         });
-      }),
-    [],
-  );
+        return false;
+      });
+    });
+  }, []);
 
   const measureMobileOverlayLayout = useCallback(() => {
     const band = bandRef.current;
@@ -920,6 +820,7 @@ export function CityPlanScene() {
 
   const syncMobileOverlayGeometry = useCallback(
     (activeBeat, frameOverride = null) => {
+      if (CITY_BUILD_MINIMAL_DIAGNOSTIC) return;
       const band = bandRef.current;
       const frame = frameOverride ?? cameraFrameRef.current;
       if (!band || !frame) return;
@@ -943,7 +844,7 @@ export function CityPlanScene() {
 
   const syncOverlayGeometry = useCallback(
     (commitLink = false, frameOverride = null) => {
-      if (mobileCameraActive) return;
+      if (CITY_BUILD_MINIMAL_DIAGNOSTIC || mobileCameraActive) return;
       const band = bandRef.current;
       const box = vignetteNodeRef.current;
       const frame = frameOverride ?? cameraFrameRef.current;
@@ -1009,6 +910,7 @@ export function CityPlanScene() {
   }, [syncMobileOverlayGeometry, syncOverlayGeometry]);
 
   useLayoutEffect(() => {
+    if (CITY_BUILD_MINIMAL_DIAGNOSTIC) return;
     const planDescription = figRef.current?.querySelector("desc");
     if (planDescription) planDescription.textContent = cityPlanContent.scene.svgDescription;
     if (mobileCameraActive) return;
@@ -1028,7 +930,11 @@ export function CityPlanScene() {
   ]);
 
   useLayoutEffect(() => {
-    if (!mobileCameraActive || !mobileVignettesMounted) {
+    if (
+      CITY_BUILD_MINIMAL_DIAGNOSTIC ||
+      !mobileCameraActive ||
+      !mobileVignettesMounted
+    ) {
       mobileVignetteNodesRef.current = {};
       mobileOverlayLayoutRef.current = null;
       return;
@@ -1082,6 +988,14 @@ export function CityPlanScene() {
 
   const prewarmMobileBeat = useCallback(
     (targetBeat) => {
+      if (CITY_BUILD_MINIMAL_DIAGNOSTIC) {
+        mobilePrewarmedBeatRef.current = targetBeat;
+        mobilePreparedGeometryRef.current = {
+          beat: targetBeat,
+          geometry: null,
+        };
+        return true;
+      }
       if (!mobileDecodedBeatsRef.current.has(targetBeat)) return false;
       const planImages = [
         camRef.current?.querySelector(".plan-mobile-map-base"),
@@ -1129,9 +1043,6 @@ export function CityPlanScene() {
       planBeatSpecs.length - 1,
       Math.max(0, nextBeat),
     );
-    if (CITY_PLAN_SERIAL_DECODE) {
-      mobileSerialLatestRequestedBeatRef.current = targetBeat;
-    }
     if (mobileRequestedBeatRef.current === targetBeat) return;
     const generation = mobileGenerationRef.current + 1;
     mobileGenerationRef.current = generation;
@@ -1165,17 +1076,7 @@ export function CityPlanScene() {
   );
 
   useEffect(() => {
-    if (CITY_PLAN_SERIAL_DECODE) {
-      const targetBeat = mobileScene.requestedBeat;
-      mobileSerialLatestRequestedBeatRef.current = targetBeat;
-      mobileSerialDecodeEnabledRef.current =
-        mobileCameraActive && mobileVignettesMounted;
-      if (mobileSerialDecodeEnabledRef.current) {
-        startMobileSerialDecodeRef.current?.();
-      }
-      return undefined;
-    }
-
+    if (CITY_BUILD_MINIMAL_DIAGNOSTIC) return undefined;
     if (!mobileCameraActive || !mobileVignettesMounted) return undefined;
     const targetBeat = mobileScene.requestedBeat;
     const generation = mobileScene.generation;
@@ -1237,7 +1138,9 @@ export function CityPlanScene() {
       return undefined;
     }
 
-    const name = planBeatSpecs[targetBeat]?.vignette;
+    const name = CITY_BUILD_MINIMAL_DIAGNOSTIC
+      ? null
+      : planBeatSpecs[targetBeat]?.vignette;
     const wasPrewarmed = mobilePrewarmedBeatRef.current === targetBeat;
     if (!prewarmMobileBeat(targetBeat)) return undefined;
 
@@ -1431,7 +1334,9 @@ export function CityPlanScene() {
         const nextNearby = entry.isIntersecting;
         if (nextNearby === mobileNearbyRef.current) return;
         mobileNearbyRef.current = nextNearby;
-        if (nextNearby) setMobileVignettesMounted(true);
+        if (nextNearby && !CITY_BUILD_MINIMAL_DIAGNOSTIC) {
+          setMobileVignettesMounted(true);
+        }
         root.dataset.mobileNearby = String(nextNearby);
         if (!nextNearby) return;
         if (syncFrame) cancelAnimationFrame(syncFrame);
@@ -1444,7 +1349,7 @@ export function CityPlanScene() {
       { rootMargin: "1500px 0px 1500px 0px", threshold: 0 },
     );
     observer.observe(root);
-    if (runtimeProfile.isIOSWebKit) {
+    if (!CITY_BUILD_MINIMAL_DIAGNOSTIC && runtimeProfile.isIOSWebKit) {
       const releaseMargin = Math.round((window.innerHeight || 768) * 4);
       retentionObserver = new IntersectionObserver(
         ([entry]) => {
@@ -1465,7 +1370,9 @@ export function CityPlanScene() {
     syncFrame = requestAnimationFrame(() => {
       syncFrame = null;
       if (mobileNearbyRef.current) {
-        setMobileVignettesMounted(true);
+        if (!CITY_BUILD_MINIMAL_DIAGNOSTIC) {
+          setMobileVignettesMounted(true);
+        }
         syncScrollStateRef.current?.();
       }
     });
@@ -1519,7 +1426,10 @@ export function CityPlanScene() {
         viewportWidth: window.innerWidth || 1280,
         viewportHeight: vh,
       };
-      if (window.innerWidth <= planMobileCameraSettings.maxWidth) {
+      if (
+        !CITY_BUILD_MINIMAL_DIAGNOSTIC &&
+        window.innerWidth <= planMobileCameraSettings.maxWidth
+      ) {
         const overlayLayout = measureMobileOverlayLayout();
         if (overlayLayout.changed) {
           setMobileOverlayLayoutVersion((version) => version + 1);
@@ -1638,76 +1548,79 @@ export function CityPlanScene() {
       const band = bandRef.current;
       const cam = camRef.current;
       if (stage && band && cam) {
-        const viewport = viewportMetricsRef.current;
-        const viewportWidth = viewport?.viewportWidth ?? window.innerWidth ?? 1280;
         const localProgress = physicalBeatProgress(y, marks, next);
-        if (mobileViewport) {
-          const layerProgress = mobileLayerProgressForBeat(
-            next,
-            localProgress,
-            reduceMotion,
-          );
-          rootRef.current?.style.setProperty(
-            "--plan-mobile-gap-opacity",
-            layerProgress.gap.toFixed(4),
-          );
-          rootRef.current?.style.setProperty(
-            "--plan-mobile-relief-sites-opacity",
-            layerProgress.reliefSites.toFixed(4),
-          );
-          rootRef.current?.style.setProperty(
-            "--plan-mobile-parking-opacity",
-            layerProgress.parking.toFixed(4),
-          );
-          rootRef.current?.style.setProperty(
-            "--plan-mobile-first-refuge-opacity",
-            layerProgress.firstRefuge.toFixed(4),
-          );
-          rootRef.current?.style.setProperty(
-            "--plan-mobile-extra-refuges-opacity",
-            layerProgress.extraRefuges.toFixed(4),
-          );
-          const revealAfterCamera = MOBILE_CAMERA_THEN_REVEAL_BEATS.has(next);
-          const revealAt =
-            planMobileCamera[next]?.entryFraction ??
-            planMobileCameraSettings.entryFraction;
-          stage.dataset.mobileReveal =
-            reduceMotion || !revealAfterCamera || localProgress >= revealAt
-              ? "ready"
-              : "holding";
+        if (!CITY_BUILD_MINIMAL_DIAGNOSTIC) {
+          const viewport = viewportMetricsRef.current;
+          const viewportWidth =
+            viewport?.viewportWidth ?? window.innerWidth ?? 1280;
+          if (mobileViewport) {
+            const layerProgress = mobileLayerProgressForBeat(
+              next,
+              localProgress,
+              reduceMotion,
+            );
+            rootRef.current?.style.setProperty(
+              "--plan-mobile-gap-opacity",
+              layerProgress.gap.toFixed(4),
+            );
+            rootRef.current?.style.setProperty(
+              "--plan-mobile-relief-sites-opacity",
+              layerProgress.reliefSites.toFixed(4),
+            );
+            rootRef.current?.style.setProperty(
+              "--plan-mobile-parking-opacity",
+              layerProgress.parking.toFixed(4),
+            );
+            rootRef.current?.style.setProperty(
+              "--plan-mobile-first-refuge-opacity",
+              layerProgress.firstRefuge.toFixed(4),
+            );
+            rootRef.current?.style.setProperty(
+              "--plan-mobile-extra-refuges-opacity",
+              layerProgress.extraRefuges.toFixed(4),
+            );
+            const revealAfterCamera = MOBILE_CAMERA_THEN_REVEAL_BEATS.has(next);
+            const revealAt =
+              planMobileCamera[next]?.entryFraction ??
+              planMobileCameraSettings.entryFraction;
+            stage.dataset.mobileReveal =
+              reduceMotion || !revealAfterCamera || localProgress >= revealAt
+                ? "ready"
+                : "holding";
+          }
+          const camera =
+            viewportWidth <= planMobileCameraSettings.maxWidth
+              ? cameraForBeat(next, localProgress, viewportWidth, reduceMotion)
+              : { at: planView.at, units: planView.units, screen: [0.5, 0.5] };
+          const bandWidth = viewport?.bandWidth ?? 1;
+          const stageHeight = viewport?.stageHeight ?? vh;
+          const zc = bandWidth / camera.units;
+          const sx = (camera.screen[0] - 0.5) * bandWidth;
+          const sy = (camera.screen[1] - 0.5) * stageHeight;
+          const nextFrame = {
+            bandWidth,
+            stageHeight,
+            cx: camera.at[0],
+            cy: camera.at[1],
+            zc,
+            sx,
+            sy,
+          };
+          cameraFrameRef.current = nextFrame;
+          if (mobileViewport) {
+            syncMobileOverlayGeometryRef.current?.(
+              mobileCommittedBeatRef.current,
+              nextFrame,
+            );
+          } else {
+            syncOverlayGeometryRef.current?.(false, nextFrame);
+          }
+          cam.style.setProperty("--cx", camera.at[0].toFixed(2));
+          cam.style.setProperty("--cy", camera.at[1].toFixed(2));
+          cam.style.setProperty("--zc", zc.toFixed(5));
+          cam.style.setProperty("--sx", `${sx.toFixed(2)}px`);
+          cam.style.setProperty("--sy", `${sy.toFixed(2)}px`);
         }
-        const camera =
-          viewportWidth <= planMobileCameraSettings.maxWidth
-            ? cameraForBeat(next, localProgress, viewportWidth, reduceMotion)
-            : { at: planView.at, units: planView.units, screen: [0.5, 0.5] };
-        const bandWidth = viewport?.bandWidth ?? 1;
-        const stageHeight = viewport?.stageHeight ?? vh;
-        const zc = bandWidth / camera.units;
-        const sx = (camera.screen[0] - 0.5) * bandWidth;
-        const sy = (camera.screen[1] - 0.5) * stageHeight;
-        const nextFrame = {
-          bandWidth,
-          stageHeight,
-          cx: camera.at[0],
-          cy: camera.at[1],
-          zc,
-          sx,
-          sy,
-        };
-        cameraFrameRef.current = nextFrame;
-        if (mobileViewport) {
-          syncMobileOverlayGeometryRef.current?.(
-            mobileCommittedBeatRef.current,
-            nextFrame,
-          );
-        } else {
-          syncOverlayGeometryRef.current?.(false, nextFrame);
-        }
-        cam.style.setProperty("--cx", camera.at[0].toFixed(2));
-        cam.style.setProperty("--cy", camera.at[1].toFixed(2));
-        cam.style.setProperty("--zc", zc.toFixed(5));
-        cam.style.setProperty("--sx", `${sx.toFixed(2)}px`);
-        cam.style.setProperty("--sy", `${sy.toFixed(2)}px`);
         rootRef.current?.style.setProperty(
           "--plan-camera-step-progress",
           (mobileViewport && next !== mobileCommittedBeatRef.current
@@ -1715,7 +1628,6 @@ export function CityPlanScene() {
             : localProgress
           ).toFixed(4),
         );
-
       }
       rootRef.current?.style.setProperty("--plan-progress", progress.toFixed(4));
       rootRef.current?.style.setProperty("--plan-entry", entry.toFixed(4));
@@ -1894,6 +1806,7 @@ export function CityPlanScene() {
   ]);
 
   const paintMapBeat = useCallback((activeBeat, mobileDelta = false) => {
+    if (CITY_BUILD_MINIMAL_DIAGNOSTIC) return;
     const fig = figRef.current;
     if (!fig || !entered) return;
     if (!itemsRef.current) {
@@ -2034,7 +1947,13 @@ export function CityPlanScene() {
             className="plan-camera"
             style={{ width: `${PLAN_W}px`, height: `${PLAN_H}px` }}
           >
-            {mobileCameraActive ? (
+            {CITY_BUILD_MINIMAL_DIAGNOSTIC ? (
+              <figure
+                ref={figRef}
+                className="plan-figure plan-figure--minimal-diagnostic"
+                aria-hidden="true"
+              />
+            ) : mobileCameraActive ? (
               mobileVignettesMounted ? (
                 mobileAssetFailure && !mobileVisualReady ? (
                   <figure
@@ -2047,7 +1966,7 @@ export function CityPlanScene() {
                 ) : (
                   <MobilePersistentPlan
                     activeBeat={beat}
-                    requestedBeat={mobileAssetBeat}
+                    requestedBeat={requestedBeat}
                     fallbackActive={!mobileVisualReady}
                     onAssetSettled={handleMobileAssetSettled}
                   />
@@ -2072,7 +1991,7 @@ export function CityPlanScene() {
         <div className="plan-curtain plan-curtain--exit" aria-hidden="true" />
 
         <div ref={bandRef} className="plan-band">
-          {mobileCameraActive ? (
+          {!CITY_BUILD_MINIMAL_DIAGNOSTIC && (mobileCameraActive ? (
             entered && planAnnotations.map((annotation) => {
               const active = activeAnnotations.some(
                 (activeAnnotation) => activeAnnotation.id === annotation.id,
@@ -2169,9 +2088,9 @@ export function CityPlanScene() {
                 </motion.div>
               ))}
             </AnimatePresence>
-          )}
+          ))}
 
-          {mobileCameraActive ? (
+          {!CITY_BUILD_MINIMAL_DIAGNOSTIC && (mobileCameraActive ? (
             mobileVignettesMounted ? (
               <MobilePersistentLink
                 name={vignetteLive ? vignetteName : null}
@@ -2234,15 +2153,15 @@ export function CityPlanScene() {
               </motion.svg>
               ) : null}
             </AnimatePresence>
-          )}
+          ))}
 
-          {mobileCameraActive ? (
+          {!CITY_BUILD_MINIMAL_DIAGNOSTIC && (mobileCameraActive ? (
             mobileVignettesMounted ? (
               <MobilePersistentVignettes
                 activeName={vignetteLive ? vignetteName : null}
                 requestedName={
                   entered
-                    ? planBeatSpecs[mobileAssetBeat]?.vignette ?? null
+                    ? planBeatSpecs[requestedBeat]?.vignette ?? null
                     : null
                 }
                 onAssetSettled={handleMobileAssetSettled}
@@ -2290,7 +2209,7 @@ export function CityPlanScene() {
               </motion.div>
               ) : null}
             </AnimatePresence>
-          )}
+          ))}
 
           {COPY_SIDES.map((copySide) => {
             const currentSide = copySide === side;

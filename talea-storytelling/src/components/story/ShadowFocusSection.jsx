@@ -7,6 +7,7 @@ import {
   useRef,
 } from "react";
 import { MapLibreCanvas } from "../maps/MapLibreCanvas";
+import { OpenLayersCanvas } from "../maps/OpenLayersCanvas";
 import { useTimedSequence } from "../../hooks/useTimedSequence";
 import {
   CAMERA_MS,
@@ -28,6 +29,7 @@ import { assetUrl } from "../../lib/assetUrl";
 import { editorialLinks, useContent } from "../../content";
 import { isMapSizeSynchronized } from "../../lib/mapResize";
 import { useIOSFarOffscreenMount } from "../../hooks/useIOSFarOffscreenMount";
+import { runtimeProfile } from "../../lib/runtimeProfile";
 
 const bolognaBoundaryUrl = assetUrl("/data/vectors/bologna_boundary_outline.geojson");
 
@@ -661,8 +663,12 @@ function SceneDarkMap({
     return () => window.clearTimeout(veilOut);
   }, [map, centroProminent]);
 
-  return materialized ? (
-    <MapLibreCanvas
+  if (!materialized) return null;
+  const CanvasRenderer = runtimeProfile.useIOSCanvasMaps
+    ? OpenLayersCanvas
+    : MapLibreCanvas;
+  return (
+    <CanvasRenderer
       onMapReady={handleReady}
       onMapRemoved={handleRemoved}
       mapName="Ombra"
@@ -676,8 +682,9 @@ function SceneDarkMap({
       cooperativeGestures={mobileLayout}
       locale={locale}
       collapseAttribution={mobileLayout}
+      background="#0B2A18"
     />
-  ) : null;
+  );
 }
 
 
@@ -721,7 +728,8 @@ export function ShadowFocusSection() {
   const [mobileLayout, setMobileLayout] = useState(
     () =>
       typeof window !== "undefined" &&
-      window.matchMedia(MOBILE_LAYOUT_QUERY).matches,
+      (runtimeProfile.forceIPhoneLayout ||
+        window.matchMedia(MOBILE_LAYOUT_QUERY).matches),
   );
   const [renderedMobileIndex, setRenderedMobileIndex] = useState(0);
   const [mobilePanelExiting, setMobilePanelExiting] = useState(false);
@@ -744,6 +752,7 @@ export function ShadowFocusSection() {
     name: "Ombra",
     prewarmViewports: 1.5,
     releaseViewports: 3,
+    keepAliveAfterMount: runtimeProfile.useIOSCanvasMaps,
   });
 
   const stages = shadowScene.stages;
@@ -792,7 +801,8 @@ export function ShadowFocusSection() {
 
   useEffect(() => {
     const mq = window.matchMedia(MOBILE_LAYOUT_QUERY);
-    const handler = (event) => setMobileLayout(event.matches);
+    const handler = (event) =>
+      setMobileLayout(runtimeProfile.forceIPhoneLayout || event.matches);
     mq.addEventListener?.("change", handler);
     return () => mq.removeEventListener?.("change", handler);
   }, []);

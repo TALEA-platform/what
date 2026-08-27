@@ -9,6 +9,14 @@ function readContainerSize(map) {
 export function isMapSizeSynchronized(map) {
   if (!map) return false;
   const { width, height } = readContainerSize(map);
+  if (map.backend === "openlayers-canvas") {
+    const size = map._olMap?.getSize?.();
+    return (
+      Boolean(size) &&
+      Math.abs((size?.[0] ?? 0) - width) < 0.5 &&
+      Math.abs((size?.[1] ?? 0) - height) < 0.5
+    );
+  }
   const canvas = map.getCanvas?.();
   if (!canvas || width <= 0 || height <= 0) return false;
   return (

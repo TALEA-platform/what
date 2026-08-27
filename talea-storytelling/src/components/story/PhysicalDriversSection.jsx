@@ -24,6 +24,7 @@ import {
   updateMemoryDebugState,
 } from "../../lib/mapPerformance";
 import { useIOSFarOffscreenMount } from "../../hooks/useIOSFarOffscreenMount";
+import { runtimeProfile } from "../../lib/runtimeProfile";
 
 // Overlay maps own only data layers; a second basemap would flicker while loading.
 const transparentCauseMapStyle = {
@@ -1097,7 +1098,8 @@ export function PhysicalDriversSection() {
   const [mobileLayout, setMobileLayout] = useState(
     () =>
       typeof window !== "undefined" &&
-      window.matchMedia(MOBILE_LAYOUT_QUERY).matches,
+      (runtimeProfile.forceIPhoneLayout ||
+        window.matchMedia(MOBILE_LAYOUT_QUERY).matches),
   );
   const panelRefs = useRef([]);
   const panelBodyRefs = useRef({});
@@ -1147,7 +1149,8 @@ export function PhysicalDriversSection() {
 
   useEffect(() => {
     const query = window.matchMedia(MOBILE_LAYOUT_QUERY);
-    const handleChange = (event) => setMobileLayout(event.matches);
+    const handleChange = (event) =>
+      setMobileLayout(runtimeProfile.forceIPhoneLayout || event.matches);
     query.addEventListener?.("change", handleChange);
     return () => query.removeEventListener?.("change", handleChange);
   }, []);

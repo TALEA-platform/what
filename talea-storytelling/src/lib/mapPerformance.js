@@ -168,6 +168,9 @@ export function initializeMapPerformanceTelemetry() {
   writeBreadcrumb("boot");
   if (debugPerf) {
     window.__taleaMemorySummary = getMemoryDebugSummary;
+    if (runtimeProfile.isIPhone) {
+      console.debug(`[ios-map-backend] ${runtimeProfile.iosMapBackend}`);
+    }
     console.debug("[talea:perf] boot", {
       bootCount,
       previousBreadcrumb,

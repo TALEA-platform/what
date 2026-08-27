@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { MapLibreCanvas } from "../maps/MapLibreCanvas";
+import { IPhoneHotspotMap } from "../maps/IPhoneHotspotMap";
 import { HotspotLayer } from "../maps/HotspotLayer";
 import { AnnotationLayer } from "../maps/AnnotationLayer";
 import { BolognaBoundaryLayer } from "../maps/BolognaBoundaryLayer";
@@ -16,6 +17,7 @@ import {
 import { applyPaperBasemap } from "../../lib/basemapPaper";
 import { getHotspotPersistenceColor } from "../../data/hotspotPalette";
 import { useIOSFarOffscreenMount } from "../../hooks/useIOSFarOffscreenMount";
+import { runtimeProfile } from "../../lib/runtimeProfile";
 import {
   buildHotspotSteps,
   hotspotStepSpecs,
@@ -106,7 +108,8 @@ export function HotspotMapScene() {
   const [mobileLayout, setMobileLayout] = useState(
     () =>
       typeof window !== "undefined" &&
-      window.matchMedia(MOBILE_LAYOUT_QUERY).matches,
+      (runtimeProfile.forceIPhoneLayout ||
+        window.matchMedia(MOBILE_LAYOUT_QUERY).matches),
   );
   const [narrowFrame, setNarrowFrame] = useState(false);
   const [legendOpen, setLegendOpen] = useState(false);
@@ -163,6 +166,7 @@ export function HotspotMapScene() {
     name: "Hotspot",
     prewarmViewports: 1.5,
     releaseViewports: 3.5,
+    keepAliveAfterMount: runtimeProfile.useIOSCanvasMaps,
   });
 
   useEffect(() => {
@@ -174,7 +178,8 @@ export function HotspotMapScene() {
 
   useEffect(() => {
     const mq = window.matchMedia(MOBILE_LAYOUT_QUERY);
-    const handler = (event) => setMobileLayout(event.matches);
+    const handler = (event) =>
+      setMobileLayout(runtimeProfile.forceIPhoneLayout || event.matches);
     mq.addEventListener?.("change", handler);
     return () => mq.removeEventListener?.("change", handler);
   }, []);
@@ -250,7 +255,7 @@ export function HotspotMapScene() {
   }, [mapEngaged, mapRevealed, mobileLayout]);
 
   const onMapReady = useCallback((m) => {
-    applyPaperBasemap(m);
+    if (!runtimeProfile.useIOSCanvasMaps) applyPaperBasemap(m);
     setMap(m);
   }, []);
 
@@ -1202,7 +1207,22 @@ export function HotspotMapScene() {
         ref={mapBoxRef}
         className={`hotspot-scene-map${mapEngaged ? " hotspot-scene-map--engaged" : ""}`}
       >
-        {mapMaterialized ? (
+        {mapMaterialized && runtimeProfile.useIOSCanvasMaps ? (
+          <IPhoneHotspotMap
+            onMapReady={onMapReady}
+            onMapRemoved={onMapRemoved}
+            locale={mapLibreLocale}
+            minYears={narrativeMinYears}
+            opacity={narrativeOpacity}
+            visible={narrativeVisible && fillsReady}
+            boundaryVisible={bordersReady}
+            transitionMs={1100 / playbackRate}
+            center={BOLOGNA_CENTER}
+            zoom={BOLOGNA_ZOOM_INTRO}
+            minZoom={10}
+            maxZoom={MOBILE_MAX_ZOOM}
+          />
+        ) : mapMaterialized ? (
           <MapLibreCanvas
             onMapReady={onMapReady}
             onMapRemoved={onMapRemoved}
@@ -1218,16 +1238,20 @@ export function HotspotMapScene() {
           />
         ) : null}
 
-        <HotspotLayer
-          map={renderedMap}
-          id="narrative"
-          minYears={narrativeMinYears}
-          opacity={narrativeOpacity}
-          visible={narrativeVisible && fillsReady}
-          transitionMs={1100 / playbackRate}
-        />
+        {!runtimeProfile.useIOSCanvasMaps && (
+          <>
+            <HotspotLayer
+              map={renderedMap}
+              id="narrative"
+              minYears={narrativeMinYears}
+              opacity={narrativeOpacity}
+              visible={narrativeVisible && fillsReady}
+              transitionMs={1100 / playbackRate}
+            />
 
-        <BolognaBoundaryLayer map={renderedMap} visible={bordersReady} />
+            <BolognaBoundaryLayer map={renderedMap} visible={bordersReady} />
+          </>
+        )}
 
         <div className={`hotspot-map-veil${veilLifted ? " hotspot-map-veil--hidden" : ""}`} aria-hidden="true" />
 

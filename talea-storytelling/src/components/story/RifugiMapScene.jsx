@@ -6,6 +6,11 @@ import { loadReliefSources } from "../../data/reliefData";
 import { editorialLinks, useContent } from "../../content";
 import { SearchSuggest } from "../ui/SearchSuggest";
 import {
+  createIPhoneRifugiMap,
+  createIPhoneRifugiMarker,
+  createIPhoneRifugiPopup,
+} from "../maps/IPhoneRifugiMap";
+import {
   createMapResizeController,
   isMapSizeSynchronized,
 } from "../../lib/mapResize";
@@ -13,6 +18,7 @@ import {
   logPerformanceEvent,
   registerMapPerformance,
 } from "../../lib/mapPerformance";
+import { runtimeProfile } from "../../lib/runtimeProfile";
 import {
   ADDRESS_ZOOM,
   BASEMAP_STYLE,
@@ -303,7 +309,10 @@ export function RifugiMapScene() {
     markerRef.current?.remove();
     markerRef.current = null;
     if (pt && mapRef.current) {
-      markerRef.current = new maplibregl.Marker({ color: "#FFE604" }).setLngLat(pt).addTo(mapRef.current);
+      const marker = runtimeProfile.useIOSCanvasMaps
+        ? createIPhoneRifugiMarker({ color: "#FFE604" })
+        : new maplibregl.Marker({ color: "#FFE604" });
+      markerRef.current = marker.setLngLat(pt).addTo(mapRef.current);
     }
   }, []);
 
@@ -725,25 +734,38 @@ export function RifugiMapScene() {
 
     const init = () => {
       if (mapRef.current || !containerRef.current) return;
-      const mobileMap = window.matchMedia(MOBILE_MAP_QUERY).matches;
+      const mobileMap =
+        runtimeProfile.forceIPhoneLayout ||
+        window.matchMedia(MOBILE_MAP_QUERY).matches;
       mobileMapRef.current = mobileMap;
       cameraTouchedRef.current = false;
       logPerformanceEvent("rifugi:init-start", { section: "Mappa Rifugi" });
       logPerformanceEvent("map:constructor", { mapName: "Rifugi" });
-      const map = new maplibregl.Map({
-        container: containerRef.current,
-        style: BASEMAP_STYLE,
-        center: RELIEF_STORY_CAMERA.center,
-        zoom: RELIEF_STORY_CAMERA.zoom,
-        minZoom: EXPLORE_ZOOM_LIMITS.minZoom,
-        maxZoom: EXPLORE_ZOOM_LIMITS.maxZoom,
-        attributionControl: false,
-        cooperativeGestures: mobileMap,
-        locale: mapLibreLocaleRef.current,
-      });
+      const map = runtimeProfile.useIOSCanvasMaps
+        ? createIPhoneRifugiMap({
+            container: containerRef.current,
+            center: RELIEF_STORY_CAMERA.center,
+            zoom: RELIEF_STORY_CAMERA.zoom,
+            minZoom: EXPLORE_ZOOM_LIMITS.minZoom,
+            maxZoom: EXPLORE_ZOOM_LIMITS.maxZoom,
+            locale: mapLibreLocaleRef.current,
+          })
+        : new maplibregl.Map({
+            container: containerRef.current,
+            style: BASEMAP_STYLE,
+            center: RELIEF_STORY_CAMERA.center,
+            zoom: RELIEF_STORY_CAMERA.zoom,
+            minZoom: EXPLORE_ZOOM_LIMITS.minZoom,
+            maxZoom: EXPLORE_ZOOM_LIMITS.maxZoom,
+            attributionControl: false,
+            cooperativeGestures: mobileMap,
+            locale: mapLibreLocaleRef.current,
+          });
       const resizeController = createMapResizeController(map);
       resizeControllerRef.current = resizeController;
-      unregisterPerformanceRef.current = registerMapPerformance(map, "Rifugi");
+      unregisterPerformanceRef.current = runtimeProfile.useIOSCanvasMaps
+        ? null
+        : registerMapPerformance(map, "Rifugi");
       mapRef.current = map;
       lockCamera(map);
       map.on("resize", () => requestMapResizeUpdateRef.current?.());
@@ -774,15 +796,17 @@ export function RifugiMapScene() {
       map.on("load", async () => {
         logPerformanceEvent("rifugi:map-load", { section: "Mappa Rifugi" });
         addOrthophoto(map, { damped: true });
-        map.addControl(
-          new maplibregl.AttributionControl({ compact: true }),
-          "bottom-right",
-        );
-        map.addControl(
-          new maplibregl.ScaleControl({ maxWidth: 110, unit: "metric" }),
-          "bottom-right",
-        );
-        if (mobileMap) {
+        if (!runtimeProfile.useIOSCanvasMaps) {
+          map.addControl(
+            new maplibregl.AttributionControl({ compact: true }),
+            "bottom-right",
+          );
+          map.addControl(
+            new maplibregl.ScaleControl({ maxWidth: 110, unit: "metric" }),
+            "bottom-right",
+          );
+        }
+        if (mobileMap && !runtimeProfile.useIOSCanvasMaps) {
           closeMobileAttributionWhenReady(map, containerRef.current);
         }
         addBolognaBoundary(map, "main", { color: "rgba(255,255,255,.72)", glowOpacity: 0.28, opacity: 0.7 });
@@ -885,7 +909,9 @@ export function RifugiMapScene() {
           const ufficialeAt = (point) => nearestIn(point, ["main-ufficiali-dot"]);
           const rifugioAt = (point) => nearestIn(point, ["main-rifugi-fill", "main-rifugi-cutout"]);
 
-          popupRef.current = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 16 });
+          popupRef.current = runtimeProfile.useIOSCanvasMaps
+            ? createIPhoneRifugiPopup({ offset: 16 })
+            : new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 16 });
           map.on("mousemove", (e) => {
             const pin = ufficialeAt(e.point);
             if (pin) {
@@ -1021,6 +1047,8 @@ export function RifugiMapScene() {
       routeAbortRef.current = null;
       markerRef.current?.remove();
       markerRef.current = null;
+      popupRef.current?.remove();
+      popupRef.current = null;
       resizeControllerRef.current?.destroy();
       resizeControllerRef.current = null;
       unregisterPerformanceRef.current?.();

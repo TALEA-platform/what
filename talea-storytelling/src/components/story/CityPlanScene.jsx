@@ -578,7 +578,6 @@ export function CityPlanScene() {
   const mobileSerialDecodeRunningRef = useRef(false);
   const mobileSerialDecodeBeatRef = useRef(null);
   const mobileSerialLatestRequestedBeatRef = useRef(0);
-  const mobileSerialAssetBeatRef = useRef(0);
   const mobileSerialDecodeEnabledRef = useRef(false);
   const mobileSerialDecodeLiveRef = useRef(true);
   const startMobileSerialDecodeRef = useRef(null);
@@ -617,6 +616,7 @@ export function CityPlanScene() {
   const [mobileAssetVersion, setMobileAssetVersion] = useState(0);
   const [mobileReadyBeats, setMobileReadyBeats] = useState(() => new Set());
   const [mobileAssetFailure, setMobileAssetFailure] = useState(false);
+  const [mobileSerialAssetBeat, setMobileSerialAssetBeat] = useState(0);
   const [mobileOverlayLayoutVersion, setMobileOverlayLayoutVersion] = useState(0);
   const [vignetteProgress, setVignetteProgress] = useState({
     beat: -1,
@@ -653,7 +653,7 @@ export function CityPlanScene() {
         }
 
         mobileDecodedBeatsRef.current.add(targetBeat);
-        mobileSerialAssetBeatRef.current = targetBeat;
+        setMobileSerialAssetBeat(targetBeat);
         setMobileReadyBeats((current) => {
           if (current.has(targetBeat)) return current;
           const next = new Set(current);
@@ -718,7 +718,7 @@ export function CityPlanScene() {
     : scrollBeat;
   const mobileAssetBeat =
     mobileCameraActive && CITY_PLAN_SERIAL_DECODE
-      ? mobileSerialAssetBeatRef.current
+      ? mobileSerialAssetBeat
       : requestedBeat;
   const side = planBeats[beat]?.side === "right" ? "right" : "left";
   const vignetteName = planBeats[beat]?.vignette ?? null;

@@ -7906,6 +7906,10 @@
   overflow: visible;
 }
 
+.plan-figure--raster-plain {
+  background: #f4f2e9;
+}
+
 .plan-mobile-map-state {
   position: absolute;
   inset: 0;

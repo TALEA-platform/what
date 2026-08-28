@@ -25,6 +25,7 @@ import { planVignetteMeta, planVignettes } from "../../data/planVignettes";
 import { CopySegments } from "./CopySegments";
 import { editorialLinks, useContent } from "../../content";
 import { assetUrl } from "../../lib/assetUrl";
+import { cityPlanMobileComposites } from "../../generated/cityPlanMobileComposites";
 import { cityPlanMobileRasters } from "../../generated/cityPlanMobileRasters";
 import {
   debugPerf,
@@ -45,20 +46,6 @@ const VIGNETTE_HTML = Object.fromEntries(
 );
 
 const READING_LINE = 0.56;
-const CITY_BUILD_RASTER_TEST =
-  typeof window !== "undefined"
-    ? new URLSearchParams(window.location.search).get("cityBuildRasterTest")
-    : null;
-const CITY_BUILD_RASTER_DIAGNOSTIC_MODE =
-  CITY_BUILD_RASTER_TEST === "base" ||
-  CITY_BUILD_RASTER_TEST === "overlays" ||
-  CITY_BUILD_RASTER_TEST === "single"
-    ? CITY_BUILD_RASTER_TEST
-    : "normal";
-const CITY_BUILD_RASTER_DIAGNOSTIC_ACTIVE =
-  CITY_BUILD_RASTER_DIAGNOSTIC_MODE !== "normal";
-const CITY_PLAN_VIGNETTES_ENABLED =
-  !CITY_BUILD_RASTER_DIAGNOSTIC_ACTIVE;
 
 // Coupled to generated vignette steps and their CSS draw duration.
 const VIGNETTE_STEP_MS = 420;
@@ -104,19 +91,13 @@ const MOBILE_PLAN_LAYER_SPECS = [
   src: `${MOBILE_ASSET_ROOT}/${MOBILE_PLAN_RASTERS.get(layer.name).file}`,
   style: mobileRasterStyle(MOBILE_PLAN_RASTERS.get(layer.name).style),
 }));
-const MOBILE_PLAN_LAYERS_BY_NAME = new Map(
-  MOBILE_PLAN_LAYER_SPECS.map((layer) => [layer.name, layer]),
+const MOBILE_PLAN_COMPOSITES = cityPlanMobileComposites.beats.map(
+  (composite) => ({
+    ...composite,
+    src: `${MOBILE_ASSET_ROOT}/${composite.file}`,
+    style: mobileRasterStyle(composite.style),
+  }),
 );
-// One existing, semantically representative raster for each narrative beat.
-const MOBILE_PLAN_SINGLE_RASTER_NAMES = [
-  "base",
-  "gap-emphasis",
-  "first-refuge",
-  "extra-refuges",
-  "corridor-network",
-  "porticoes",
-  "final-network",
-];
 const MOBILE_VIGNETTE_LAYER_SPECS = {
   costruire: [
     { name: "context", kind: "context", delay: 0 },
@@ -194,46 +175,28 @@ function mobilePlanLayersForBeat(beat) {
   );
 }
 
-function mobileSingleRasterForBeat(beat) {
-  const name = MOBILE_PLAN_SINGLE_RASTER_NAMES[beat] ?? "base";
-  if (name === "base") {
-    return {
-      name,
-      src: MOBILE_PLAN_BASE_ASSET,
-      style: MOBILE_PLAN_BASE_STYLE,
-    };
-  }
-  return MOBILE_PLAN_LAYERS_BY_NAME.get(name);
-}
-
-function mobileRasterAssetsForBeat(beat) {
-  switch (CITY_BUILD_RASTER_DIAGNOSTIC_MODE) {
-    case "base":
-      return [MOBILE_PLAN_BASE_ASSET];
-    case "overlays":
-      return mobilePlanLayersForBeat(beat).map(({ src }) => src);
-    case "single":
-      return [mobileSingleRasterForBeat(beat)?.src];
-    default:
-      return [
-        MOBILE_PLAN_BASE_ASSET,
-        ...mobilePlanLayersForBeat(beat).map(({ src }) => src),
-      ];
-  }
+function mobileVignetteAssetsForBeat(beat) {
+  const name = planBeatSpecs[beat]?.vignette;
+  return name
+    ? MOBILE_VIGNETTE_ASSETS[name]?.map(({ src }) => src) ?? []
+    : [];
 }
 
 function mobileAssetsForBeat(beat) {
-  const assets = mobileRasterAssetsForBeat(beat);
-  if (CITY_PLAN_VIGNETTES_ENABLED) {
-    const name = planBeatSpecs[beat]?.vignette;
-    const vignetteAssets = name ? MOBILE_VIGNETTE_ASSETS[name] : null;
-    if (vignetteAssets) assets.push(...vignetteAssets.map(({ src }) => src));
-  }
+  const assets = [
+    MOBILE_PLAN_BASE_ASSET,
+    ...mobilePlanLayersForBeat(beat).map(({ src }) => src),
+    ...mobileVignetteAssetsForBeat(beat),
+  ];
   return [...new Set(assets.filter(Boolean))];
 }
 
 function decodeMobileBeatAssets(beat) {
   return Promise.all(mobileAssetsForBeat(beat).map(decodeMobileImage));
+}
+
+function decodeMobileVignetteAssets(beat) {
+  return Promise.all(mobileVignetteAssetsForBeat(beat).map(decodeMobileImage));
 }
 
 const VIGNETTE_PLACE = {
@@ -416,23 +379,12 @@ function MobilePersistentPlan({
   requestedBeat,
   fallbackActive,
   onAssetSettled,
-  rasterDiagnosticMode,
 }) {
-  const singleRaster =
-    rasterDiagnosticMode === "single"
-      ? mobileSingleRasterForBeat(activeBeat)
-      : null;
-  const layersEnabled =
-    rasterDiagnosticMode === "normal" || rasterDiagnosticMode === "overlays";
-  const activeLayers = layersEnabled ? mobilePlanLayersForBeat(activeBeat) : [];
-  const requestedLayers = layersEnabled
-    ? mobilePlanLayersForBeat(requestedBeat)
-    : [];
+  const activeLayers = mobilePlanLayersForBeat(activeBeat);
+  const requestedLayers = mobilePlanLayersForBeat(requestedBeat);
   // Beat 2 deliberately retains the two outgoing parking/gap deltas just for
   // its cinematic replacement animation. This is not speculative preloading.
-  const exitLayers = layersEnabled && activeBeat === 2
-    ? mobilePlanLayersForBeat(1)
-    : [];
+  const exitLayers = activeBeat === 2 ? mobilePlanLayersForBeat(1) : [];
   const renderedLayerNames = new Set(
     [...activeLayers, ...requestedLayers, ...exitLayers].map(
       ({ name }) => name,
@@ -442,54 +394,23 @@ function MobilePersistentPlan({
     renderedLayerNames.has(name),
   );
   const activeLayerNames = new Set(activeLayers.map(({ name }) => name));
-  const hasPlainBackground =
-    rasterDiagnosticMode === "overlays" || rasterDiagnosticMode === "single";
-
-  if (rasterDiagnosticMode === "single") {
-    const isBase = singleRaster.name === "base";
-    return (
-      <figure
-        className="plan-figure plan-figure--mobile-images plan-figure--raster-plain"
-        aria-hidden="true"
-      >
-        <img
-          className={`plan-mobile-map-state ${
-            isBase ? "plan-mobile-map-base" : "plan-mobile-map-layer"
-          } is-active`}
-          src={singleRaster.src}
-          style={singleRaster.style}
-          alt=""
-          decoding="async"
-          fetchPriority="high"
-          draggable="false"
-          data-mobile-map-layer={isBase ? undefined : singleRaster.name}
-          onLoad={onAssetSettled}
-          onError={onAssetSettled}
-        />
-      </figure>
-    );
-  }
 
   return (
     <figure
-      className={`plan-figure plan-figure--mobile-images${
-        hasPlainBackground ? " plan-figure--raster-plain" : ""
-      }`}
+      className="plan-figure plan-figure--mobile-images"
       aria-hidden="true"
     >
-      {rasterDiagnosticMode !== "overlays" ? (
-        <img
-          className="plan-mobile-map-state plan-mobile-map-base is-active"
-          src={MOBILE_PLAN_BASE_ASSET}
-          style={MOBILE_PLAN_BASE_STYLE}
-          alt=""
-          decoding="async"
-          fetchPriority="high"
-          draggable="false"
-          onLoad={onAssetSettled}
-          onError={onAssetSettled}
-        />
-      ) : null}
+      <img
+        className="plan-mobile-map-state plan-mobile-map-base is-active"
+        src={MOBILE_PLAN_BASE_ASSET}
+        style={MOBILE_PLAN_BASE_STYLE}
+        alt=""
+        decoding="async"
+        fetchPriority="high"
+        draggable="false"
+        onLoad={onAssetSettled}
+        onError={onAssetSettled}
+      />
       {renderedLayers.map((layer) => {
         const isActive = !fallbackActive && activeLayerNames.has(layer.name);
         return (
@@ -510,6 +431,30 @@ function MobilePersistentPlan({
           />
         );
       })}
+    </figure>
+  );
+}
+
+function MobileIOSCompositePlan({ composite, failed, onLoad, onError }) {
+  return (
+    <figure
+      className="plan-figure plan-figure--mobile-images plan-figure--ios-composite"
+      aria-hidden="true"
+    >
+      {composite && !failed ? (
+        <img
+          className="plan-mobile-map-state plan-mobile-map-base is-active"
+          src={composite.src}
+          style={composite.style}
+          alt=""
+          decoding="async"
+          fetchPriority="high"
+          draggable="false"
+          data-mobile-map-composite-beat={composite.beat}
+          onLoad={() => onLoad(composite.beat)}
+          onError={() => onError(composite.beat)}
+        />
+      ) : null}
     </figure>
   );
 }
@@ -693,6 +638,7 @@ export function CityPlanScene() {
   const [mobileAssetVersion, setMobileAssetVersion] = useState(0);
   const [mobileReadyBeats, setMobileReadyBeats] = useState(() => new Set());
   const [mobileAssetFailure, setMobileAssetFailure] = useState(false);
+  const [mobileCompositeFailedBeat, setMobileCompositeFailedBeat] = useState(null);
   const [mobileOverlayLayoutVersion, setMobileOverlayLayoutVersion] = useState(0);
   const [vignetteProgress, setVignetteProgress] = useState({
     beat: -1,
@@ -702,11 +648,13 @@ export function CityPlanScene() {
   const [vignetteMount, setVignetteMount] = useState(0);
   const [vignetteNode, setVignetteNode] = useState(null);
   const [link, setLink] = useState(null);
+  const iosPrecomposedRasterActive =
+    mobileCameraActive && runtimeProfile.isIOSWebKit;
 
   useLayoutEffect(() => {
     if (!mobileCameraActive) return;
     const rasterCount =
-      rootRef.current?.querySelectorAll("img[src], image[href]").length ?? 0;
+      rootRef.current?.querySelectorAll(".plan-mobile-map-state[src]").length ?? 0;
     updateMemoryDebugState({
       cityPlanRasterCount: rasterCount,
       heavyScene: {
@@ -714,11 +662,19 @@ export function CityPlanScene() {
         mounted: mobileVignettesMounted && rasterCount > 0,
       },
     });
-  }, [mobileCameraActive, mobileVignettesMounted, mobileScene.committedBeat]);
+  }, [
+    mobileCameraActive,
+    mobileCompositeFailedBeat,
+    mobileVignettesMounted,
+    mobileScene.committedBeat,
+  ]);
   const beat = mobileCameraActive ? mobileScene.committedBeat : scrollBeat;
   const requestedBeat = mobileCameraActive
     ? mobileScene.requestedBeat
     : scrollBeat;
+  const currentMobileComposite = iosPrecomposedRasterActive
+    ? MOBILE_PLAN_COMPOSITES[beat] ?? null
+    : null;
   const side = planBeats[beat]?.side === "right" ? "right" : "left";
   const vignetteName = planBeats[beat]?.vignette ?? null;
   const place = VIGNETTE_PLACE[vignetteName] ?? "top";
@@ -753,24 +709,25 @@ export function CityPlanScene() {
       ...mobilePlanLayersForBeat(requestedBeat),
       ...(beat === 2 ? mobilePlanLayersForBeat(1) : []),
     ].map(({ name }) => name)).size;
+    const iosRasterCount =
+      currentMobileComposite && mobileCompositeFailedBeat !== beat ? 1 : 0;
     const mountedRasterLayerCount =
       !mobileVignettesMounted ? 0
-      : CITY_BUILD_RASTER_DIAGNOSTIC_MODE === "base" ||
-          CITY_BUILD_RASTER_DIAGNOSTIC_MODE === "single" ? 1
-      : (CITY_BUILD_RASTER_DIAGNOSTIC_MODE === "normal" ? 1 : 0) +
-        requestedLayerCount;
+      : iosPrecomposedRasterActive ? iosRasterCount
+      : 1 + requestedLayerCount;
     const visibleRasterLayerCount =
       !mobileVignettesMounted ? 0
-      : CITY_BUILD_RASTER_DIAGNOSTIC_MODE === "base" ||
-          CITY_BUILD_RASTER_DIAGNOSTIC_MODE === "single" ? 1
-      : (CITY_BUILD_RASTER_DIAGNOSTIC_MODE === "normal" ? 1 : 0) +
-        activeLayerCount;
+      : iosPrecomposedRasterActive ? iosRasterCount
+      : 1 + activeLayerCount;
     logPerformanceEvent("cityplan:beat", {
       section: "CityPlan",
       cityPlanBeat: beat,
       requestedBeat,
       mountedRasterLayerCount,
       visibleRasterLayerCount,
+      cityplanRasterBackend:
+        iosPrecomposedRasterActive ? "ios-precomposed" : "stack",
+      currentCompositeBeat: iosPrecomposedRasterActive ? beat : null,
     });
 
     const previous = performanceBeatRef.current;
@@ -791,13 +748,18 @@ export function CityPlanScene() {
         scene: "cityplan",
         storyBeat: beat,
         requestedBeat,
-        cityBuildRasterDiagnosticMode: CITY_BUILD_RASTER_DIAGNOSTIC_MODE,
+        cityplanRasterBackend:
+          iosPrecomposedRasterActive ? "ios-precomposed" : "stack",
+        currentCompositeBeat: iosPrecomposedRasterActive ? beat : null,
       });
     });
     return () => cancelAnimationFrame(frame);
   }, [
     beat,
+    currentMobileComposite,
+    iosPrecomposedRasterActive,
     mobileCameraActive,
+    mobileCompositeFailedBeat,
     mobileVignettesMounted,
     requestedBeat,
   ]);
@@ -820,13 +782,17 @@ export function CityPlanScene() {
           scene: "cityplan",
           storyBeat: mobileCommittedBeatRef.current,
           requestedBeat: mobileRequestedBeatRef.current,
-          cityBuildRasterDiagnosticMode: CITY_BUILD_RASTER_DIAGNOSTIC_MODE,
+          cityplanRasterBackend:
+            iosPrecomposedRasterActive ? "ios-precomposed" : "stack",
+          currentCompositeBeat: iosPrecomposedRasterActive
+            ? mobileCommittedBeatRef.current
+            : null,
         },
       );
     });
     observer.observe(root);
     return () => observer.disconnect();
-  }, [mobileCameraActive]);
+  }, [iosPrecomposedRasterActive, mobileCameraActive]);
 
   useEffect(
     () =>
@@ -929,7 +895,6 @@ export function CityPlanScene() {
         band.style.setProperty(`--annotation-${note.id}-y`, `${y.toFixed(2)}px`);
       });
 
-      if (!CITY_PLAN_VIGNETTES_ENABLED) return;
       const name = planBeatSpecs[activeBeat]?.vignette;
       if (!name) return;
       const geometry = geometryForMobileVignette(name, frame);
@@ -954,7 +919,6 @@ export function CityPlanScene() {
 
       let geometry = null;
       if (
-        CITY_PLAN_VIGNETTES_ENABLED &&
         vignetteName &&
         box &&
         box.dataset.vignette === vignetteName
@@ -1016,7 +980,6 @@ export function CityPlanScene() {
       planDescription.textContent = cityPlanContent.scene.svgDescription;
     }
     if (mobileCameraActive) return;
-    if (!CITY_PLAN_VIGNETTES_ENABLED) return;
     if (!vignetteName) return;
     const vignetteDescription = bandRef.current?.querySelector(
       `[data-vignette="${vignetteName}"] .plan-vignette-art desc`,
@@ -1034,7 +997,6 @@ export function CityPlanScene() {
 
   useLayoutEffect(() => {
     if (
-      !CITY_PLAN_VIGNETTES_ENABLED ||
       !mobileCameraActive ||
       !mobileVignettesMounted
     ) {
@@ -1091,30 +1053,22 @@ export function CityPlanScene() {
 
   const prewarmMobileBeat = useCallback(
     (targetBeat) => {
-      if (CITY_BUILD_RASTER_DIAGNOSTIC_MODE === "single") {
-        mobilePrewarmedBeatRef.current = targetBeat;
-        return true;
-      }
       if (!mobileDecodedBeatsRef.current.has(targetBeat)) return false;
-      const planImages = [
-        ...(CITY_BUILD_RASTER_DIAGNOSTIC_MODE !== "overlays"
-          ? [camRef.current?.querySelector(".plan-mobile-map-base")]
-          : []),
-        ...(CITY_BUILD_RASTER_DIAGNOSTIC_MODE !== "base"
-          ? mobilePlanLayersForBeat(targetBeat).map(({ name }) =>
-              camRef.current?.querySelector(`[data-mobile-map-layer="${name}"]`),
-            )
-          : []),
-      ];
-      if (
-        planImages.some((image) => !image?.complete || !image.naturalWidth)
-      ) {
-        return false;
+      if (!iosPrecomposedRasterActive) {
+        const planImages = [
+          camRef.current?.querySelector(".plan-mobile-map-base"),
+          ...mobilePlanLayersForBeat(targetBeat).map(({ name }) =>
+            camRef.current?.querySelector(`[data-mobile-map-layer="${name}"]`),
+          ),
+        ];
+        if (
+          planImages.some((image) => !image?.complete || !image.naturalWidth)
+        ) {
+          return false;
+        }
       }
 
-      const name = CITY_PLAN_VIGNETTES_ENABLED
-        ? planBeatSpecs[targetBeat]?.vignette
-        : null;
+      const name = planBeatSpecs[targetBeat]?.vignette;
       if (!name) {
         mobilePrewarmedBeatRef.current = targetBeat;
         return true;
@@ -1140,7 +1094,7 @@ export function CityPlanScene() {
       mobilePreparedGeometryRef.current = { beat: targetBeat, geometry };
       return true;
     },
-    [geometryForMobileVignette, mobileVignettesReady],
+    [geometryForMobileVignette, iosPrecomposedRasterActive, mobileVignettesReady],
   );
 
   const requestMobileBeat = useCallback((nextBeat) => {
@@ -1171,6 +1125,20 @@ export function CityPlanScene() {
     });
   }, []);
 
+  const handleMobileCompositeLoad = useCallback(
+    (loadedBeat) => {
+      setMobileCompositeFailedBeat((failedBeat) =>
+        failedBeat === loadedBeat ? null : failedBeat,
+      );
+      handleMobileAssetSettled();
+    },
+    [handleMobileAssetSettled],
+  );
+
+  const handleMobileCompositeError = useCallback((failedBeat) => {
+    setMobileCompositeFailedBeat(failedBeat);
+  }, []);
+
   useEffect(
     () => () => {
       if (mobileAssetSettleFrameRef.current != null) {
@@ -1182,7 +1150,6 @@ export function CityPlanScene() {
 
   useEffect(() => {
     if (!mobileCameraActive || !mobileVignettesMounted) return undefined;
-    if (CITY_BUILD_RASTER_DIAGNOSTIC_MODE === "single") return undefined;
     const targetBeat = mobileScene.requestedBeat;
     const generation = mobileScene.generation;
     let live = true;
@@ -1197,10 +1164,12 @@ export function CityPlanScene() {
       });
     };
 
-    // Decode only the requested beat. Adjacent beats are neither fetched nor
-    // decoded speculatively; the committed visual stays visible until this set
-    // of semantic delta assets is ready.
-    decodeMobileBeatAssets(targetBeat)
+    // iOS prepares only the requested vignette assets. Its map composite is
+    // requested by the single mounted image after the latest beat commits.
+    const decodeRequestedAssets = iosPrecomposedRasterActive
+      ? decodeMobileVignetteAssets(targetBeat)
+      : decodeMobileBeatAssets(targetBeat);
+    decodeRequestedAssets
       .then(() => {
         if (!live) return;
         markDecoded(targetBeat);
@@ -1227,6 +1196,7 @@ export function CityPlanScene() {
     };
   }, [
     mobileCameraActive,
+    iosPrecomposedRasterActive,
     mobileScene.generation,
     mobileScene.requestedBeat,
     mobileVignettesMounted,
@@ -1243,9 +1213,7 @@ export function CityPlanScene() {
       return undefined;
     }
 
-    const name = CITY_PLAN_VIGNETTES_ENABLED
-      ? planBeatSpecs[targetBeat]?.vignette
-      : null;
+    const name = planBeatSpecs[targetBeat]?.vignette;
     const wasPrewarmed = mobilePrewarmedBeatRef.current === targetBeat;
     if (!prewarmMobileBeat(targetBeat)) return undefined;
 
@@ -1527,10 +1495,7 @@ export function CityPlanScene() {
         viewportWidth: window.innerWidth || 1280,
         viewportHeight: vh,
       };
-      if (
-        CITY_PLAN_VIGNETTES_ENABLED &&
-        window.innerWidth <= planMobileCameraSettings.maxWidth
-      ) {
+      if (window.innerWidth <= planMobileCameraSettings.maxWidth) {
         const overlayLayout = measureMobileOverlayLayout();
         if (overlayLayout.changed) {
           setMobileOverlayLayoutVersion((version) => version + 1);
@@ -2047,9 +2012,17 @@ export function CityPlanScene() {
           >
             {mobileCameraActive ? (
               mobileVignettesMounted ? (
-                CITY_BUILD_RASTER_DIAGNOSTIC_MODE === "normal" &&
-                mobileAssetFailure &&
-                !mobileVisualReady ? (
+                iosPrecomposedRasterActive ? (
+                  <MobileIOSCompositePlan
+                    composite={currentMobileComposite}
+                    failed={
+                      !currentMobileComposite ||
+                      mobileCompositeFailedBeat === beat
+                    }
+                    onLoad={handleMobileCompositeLoad}
+                    onError={handleMobileCompositeError}
+                  />
+                ) : mobileAssetFailure && !mobileVisualReady ? (
                   <figure
                     ref={figRef}
                     className="plan-figure plan-figure--mobile-fallback"
@@ -2063,18 +2036,9 @@ export function CityPlanScene() {
                     requestedBeat={requestedBeat}
                     fallbackActive={!mobileVisualReady}
                     onAssetSettled={handleMobileAssetSettled}
-                    rasterDiagnosticMode={CITY_BUILD_RASTER_DIAGNOSTIC_MODE}
                   />
                 )
               ) : null
-            ) : CITY_BUILD_RASTER_DIAGNOSTIC_ACTIVE ? (
-              <MobilePersistentPlan
-                activeBeat={beat}
-                requestedBeat={beat}
-                fallbackActive={false}
-                onAssetSettled={handleMobileAssetSettled}
-                rasterDiagnosticMode={CITY_BUILD_RASTER_DIAGNOSTIC_MODE}
-              />
             ) : (
               <figure
                 ref={figRef}
@@ -2193,7 +2157,7 @@ export function CityPlanScene() {
             </AnimatePresence>
           )}
 
-          {CITY_PLAN_VIGNETTES_ENABLED && (mobileCameraActive ? (
+          {mobileCameraActive ? (
             mobileVignettesMounted ? (
               <MobilePersistentLink
                 name={vignetteLive ? vignetteName : null}
@@ -2256,9 +2220,9 @@ export function CityPlanScene() {
               </motion.svg>
               ) : null}
             </AnimatePresence>
-          ))}
+          )}
 
-          {CITY_PLAN_VIGNETTES_ENABLED && (mobileCameraActive ? (
+          {mobileCameraActive ? (
             mobileVignettesMounted ? (
               <MobilePersistentVignettes
                 activeName={vignetteLive ? vignetteName : null}
@@ -2312,7 +2276,7 @@ export function CityPlanScene() {
               </motion.div>
               ) : null}
             </AnimatePresence>
-          ))}
+          )}
 
           {COPY_SIDES.map((copySide) => {
             const currentSide = copySide === side;

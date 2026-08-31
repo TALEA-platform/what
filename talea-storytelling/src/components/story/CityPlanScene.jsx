@@ -240,8 +240,8 @@ function prefetchCompressedAsset(src, signal) {
 }
 
 function prefetchIPhoneBeatBytes(beat, signal) {
-  // The canvas owns the raster request. Fetching it here as well can retain a
-  // second compressed response buffer while WebKit is decoding the first.
+  // The visible image owns the map-raster request. Fetching it here as well can
+  // retain a second compressed response buffer while WebKit decodes the first.
   // Only the small vignette bytes are warmed independently.
   const name = planBeatSpecs[beat]?.vignette;
   const assets = name ? [MOBILE_IPHONE_STATIC_VIGNETTE_ASSETS[name]] : [];
@@ -517,217 +517,42 @@ function MobileIOSCompositePlan({ composite, failed, onLoad, onError }) {
   );
 }
 
-function MobileIPhoneCanvasPlan({ composite, surfaceEpoch, onLoad, onError }) {
-  const canvasRef = useRef(null);
-  const generationRef = useRef(0);
-  const controllerRef = useRef(null);
-  const releaseTransientRef = useRef(null);
-
-  useEffect(() => {
-    if (!composite) return undefined;
-    const canvas = canvasRef.current;
-    if (!canvas) return undefined;
-
-    const generation = generationRef.current + 1;
-    generationRef.current = generation;
-    const controller = new AbortController();
-    controllerRef.current = controller;
-    let sourceImage = null;
-    let objectUrl = null;
-    let retryTimer = null;
-    let commitRaf = null;
-    let live = true;
-
-    const pixelWidth =
-      cityPlanMobileComposites.iphoneCanvas?.pixelWidth ??
-      cityPlanMobileComposites.iphoneCanvas?.width ??
-      cityPlanMobileComposites.canvas.width;
-    const pixelHeight =
-      cityPlanMobileComposites.iphoneCanvas?.pixelHeight ??
-      cityPlanMobileComposites.iphoneCanvas?.height ??
-      cityPlanMobileComposites.canvas.height;
-    // A boundary release deliberately shrinks the backing store to 1x1. If a
-    // quick direction change keeps the React component alive, restore it here
-    // before retrying the requested beat. Normal beat changes preserve the old
-    // pixels until the replacement is ready.
-    if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
-      canvas.width = pixelWidth;
-      canvas.height = pixelHeight;
+function MobileIPhoneStaticPlan({ composite, failed, onLoad, onError }) {
+  const handleLoad = (event) => {
+    const image = event.currentTarget;
+    const expectedSrc = new URL(composite.fallbackSrc, document.baseURI).href;
+    // A superseded Safari image request can still dispatch a late event after
+    // React has assigned the latest beat to the persistent element. Never let
+    // that stale completion advance copy, annotations or the vignette.
+    if (
+      !image.complete ||
+      !image.naturalWidth ||
+      (image.currentSrc && image.currentSrc !== expectedSrc)
+    ) {
+      return;
     }
-
-    const releaseTransientSource = () => {
-      if (sourceImage) {
-        sourceImage.onload = null;
-        sourceImage.onerror = null;
-        sourceImage.src = "";
-        sourceImage = null;
-      }
-      if (objectUrl) {
-        URL.revokeObjectURL(objectUrl);
-        objectUrl = null;
-      }
-    };
-    releaseTransientRef.current = releaseTransientSource;
-
-    const sourceUrls = Array.from(
-      new Set(
-        [
-          SUPPORTS_WEBP ? composite.src : composite.fallbackSrc,
-          composite.fallbackSrc,
-        ].filter(Boolean),
-      ),
-    );
-    const isCurrent = () =>
-      live &&
-      !controller.signal.aborted &&
-      generationRef.current === generation;
-
-    const loadSource = (sourceIndex, retryRound = 0) => {
-      if (!isCurrent()) return;
-      const sourceUrl = sourceUrls[sourceIndex];
-      fetch(sourceUrl, { cache: "force-cache", signal: controller.signal })
-        .then((response) => {
-          if (!response.ok) throw new Error(`Unable to load ${sourceUrl}`);
-          return response.blob();
-        })
-        .then((blob) => {
-          if (!isCurrent()) return;
-          objectUrl = URL.createObjectURL(blob);
-          sourceImage = new Image();
-          sourceImage.decoding = "async";
-          sourceImage.onload = () => {
-            if (!isCurrent()) {
-              releaseTransientSource();
-              return;
-            }
-            const context = canvas.getContext("2d", { alpha: true });
-            if (!context) {
-              releaseTransientSource();
-              onError(composite.beat);
-              return;
-            }
-            // The old beat remains painted until this synchronous replacement.
-            // There is never an old/new pair of displayed raster elements.
-            context.clearRect(0, 0, canvas.width, canvas.height);
-            // Every iPhone beat now uses the same source-space envelope as the
-            // canvas. Keeping this a zero-origin replacement avoids the
-            // coordinate/crop mismatch that could leave only the vignette
-            // visible while the map surface remained transparent.
-            context.drawImage(sourceImage, 0, 0, canvas.width, canvas.height);
-            canvas.dataset.mobileMapCompositeBeat = String(composite.beat);
-            releaseTransientSource();
-            // Give WebKit one presentation frame to discard the transient
-            // decoder surface before React mounts the beat's SVG vignette.
-            // The newly painted map is already visible during this frame.
-            commitRaf = window.requestAnimationFrame(() => {
-              commitRaf = null;
-              if (isCurrent()) onLoad(composite.beat);
-            });
-          };
-          sourceImage.onerror = () => {
-            if (!isCurrent()) {
-              releaseTransientSource();
-              return;
-            }
-            releaseTransientSource();
-            if (sourceIndex + 1 < sourceUrls.length) {
-              loadSource(sourceIndex + 1, retryRound);
-            } else if (retryRound === 0) {
-              retryTimer = window.setTimeout(() => loadSource(0, 1), 240);
-            } else {
-              onError(composite.beat);
-            }
-          };
-          sourceImage.src = objectUrl;
-        })
-        .catch((error) => {
-          if (!isCurrent() || error?.name === "AbortError") return;
-          releaseTransientSource();
-          if (sourceIndex + 1 < sourceUrls.length) {
-            loadSource(sourceIndex + 1, retryRound);
-          } else if (retryRound === 0) {
-            retryTimer = window.setTimeout(() => loadSource(0, 1), 240);
-          } else {
-            onError(composite.beat);
-          }
-        });
-    };
-
-    loadSource(0);
-
-    return () => {
-      live = false;
-      if (retryTimer !== null) window.clearTimeout(retryTimer);
-      if (commitRaf !== null) window.cancelAnimationFrame(commitRaf);
-      controller.abort();
-      releaseTransientSource();
-      if (controllerRef.current === controller) controllerRef.current = null;
-      if (releaseTransientRef.current === releaseTransientSource) {
-        releaseTransientRef.current = null;
-      }
-    };
-  }, [composite, onError, onLoad, surfaceEpoch]);
-
-  useEffect(
-    () =>
-      onIOSHeavyOffscreenRelease((reason) => {
-        if (
-          reason !== "zones-context-create" &&
-          reason !== "rifugi-context-create"
-        ) {
-          return;
-        }
-        generationRef.current += 1;
-        controllerRef.current?.abort();
-        controllerRef.current = null;
-        releaseTransientRef.current?.();
-        releaseTransientRef.current = null;
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        canvas.width = 1;
-        canvas.height = 1;
-      }),
-    [],
-  );
-
-  useEffect(
-    () => () => {
-      generationRef.current += 1;
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      // Resizing is the deterministic Canvas2D backing-store release.
-      canvas.width = 1;
-      canvas.height = 1;
-    },
-    [],
-  );
+    onLoad(composite.beat);
+  };
 
   return (
     <figure
       className="plan-figure plan-figure--mobile-images plan-figure--ios-composite"
       aria-hidden="true"
     >
-      <canvas
-        ref={canvasRef}
-        className="plan-mobile-map-state plan-mobile-map-base plan-mobile-map-canvas is-active"
-        width={
-          cityPlanMobileComposites.iphoneCanvas?.pixelWidth ??
-          cityPlanMobileComposites.iphoneCanvas?.width ??
-          cityPlanMobileComposites.canvas.width
-        }
-        height={
-          cityPlanMobileComposites.iphoneCanvas?.pixelHeight ??
-          cityPlanMobileComposites.iphoneCanvas?.height ??
-          cityPlanMobileComposites.canvas.height
-        }
-        style={
-          mobileRasterStyle(
-            cityPlanMobileComposites.iphoneCanvas ??
-              cityPlanMobileComposites.canvas,
-          )
-        }
-        data-mobile-map-composite-beat="pending"
-      />
+      {composite && !failed ? (
+        <img
+          className="plan-mobile-map-state plan-mobile-map-base is-active"
+          src={composite.fallbackSrc}
+          style={composite.style}
+          alt=""
+          decoding="async"
+          fetchPriority="high"
+          draggable="false"
+          data-mobile-map-composite-beat={composite.beat}
+          onLoad={handleLoad}
+          onError={() => onError(composite.beat)}
+        />
+      ) : null}
     </figure>
   );
 }
@@ -944,14 +769,14 @@ export function CityPlanScene() {
   const [link, setLink] = useState(null);
   const iosPrecomposedRasterActive =
     mobileCameraActive && runtimeProfile.isIOSWebKit;
-  const iphoneCanvasRasterActive =
+  const iphoneStaticRasterActive =
     mobileCameraActive && runtimeProfile.isIPhone;
 
   useLayoutEffect(() => {
     if (!mobileCameraActive) return;
     const rasterCount =
       rootRef.current?.querySelectorAll(
-        ".plan-mobile-map-state[src], canvas.plan-mobile-map-state",
+        ".plan-mobile-map-state[src]",
       ).length ?? 0;
     updateMemoryDebugState({
       cityPlanRasterCount: rasterCount,
@@ -971,10 +796,10 @@ export function CityPlanScene() {
     ? mobileScene.requestedBeat
     : scrollBeat;
   const currentMobileComposite = iosPrecomposedRasterActive
-    ? (iphoneCanvasRasterActive
+    ? (iphoneStaticRasterActive
         ? MOBILE_IPHONE_PLAN_COMPOSITES
         : MOBILE_PLAN_COMPOSITES)[
-          iphoneCanvasRasterActive ? requestedBeat : beat
+          iphoneStaticRasterActive ? requestedBeat : beat
         ] ?? null
     : null;
   const side = planBeats[beat]?.side === "right" ? "right" : "left";
@@ -989,7 +814,7 @@ export function CityPlanScene() {
       : 0;
   const vignetteLive = Boolean(vignetteName) && entered;
   const iphoneVignetteSurfaceReady =
-    !iphoneCanvasRasterActive ||
+    !iphoneStaticRasterActive ||
     mobileCompositePaintedBeat === beat;
   const mobileVisualReady = mobileReadyBeats.has(beat);
   const vignetteComplete =
@@ -1010,7 +835,7 @@ export function CityPlanScene() {
   const ensureMobileRastersMounted = useCallback((reason) => {
     if (runtimeProfile.isIPhone) {
       // CityBuild is a non-WebGL owner, but claiming the slot synchronously
-      // destroys a Rifugi/Zones MapLibre lease before the canvas can return.
+      // destroys a Rifugi/Zones MapLibre lease before its raster can mount.
       claimIPhoneMapOwnership("CityPlan");
       requestIOSHeavyOffscreenRelease("cityplan-approach");
     }
@@ -1034,8 +859,8 @@ export function CityPlanScene() {
     setMobileCompositePaintedBeat(null);
     setMobileCompositeFailedBeat(null);
     setMobileVignettesReady(false);
-    // Forces the single persistent canvas to restore its backing dimensions
-    // even when a false -> true state pair is batched during a fast reversal.
+    // Forces the single persistent image subtree to remount even when a
+    // false -> true state pair is batched during a fast reversal.
     setMobileRasterSurfaceEpoch((epoch) => epoch + 1);
     setMobileVignettesMounted(false);
     logPerformanceEvent("cityplan:rasters-release", {
@@ -1069,8 +894,8 @@ export function CityPlanScene() {
       requestedBeat,
       mountedRasterLayerCount,
       visibleRasterLayerCount,
-      cityplanRasterBackend: iphoneCanvasRasterActive
-        ? "iphone-canvas"
+      cityplanRasterBackend: iphoneStaticRasterActive
+        ? "iphone-static-png"
         : iosPrecomposedRasterActive
           ? "ios-precomposed"
           : "stack",
@@ -1095,8 +920,8 @@ export function CityPlanScene() {
         scene: "cityplan",
         storyBeat: beat,
         requestedBeat,
-        cityplanRasterBackend: iphoneCanvasRasterActive
-          ? "iphone-canvas"
+        cityplanRasterBackend: iphoneStaticRasterActive
+          ? "iphone-static-png"
           : iosPrecomposedRasterActive
             ? "ios-precomposed"
             : "stack",
@@ -1107,7 +932,7 @@ export function CityPlanScene() {
   }, [
     beat,
     currentMobileComposite,
-    iphoneCanvasRasterActive,
+    iphoneStaticRasterActive,
     iosPrecomposedRasterActive,
     mobileCameraActive,
     mobileCompositeFailedBeat,
@@ -1133,8 +958,8 @@ export function CityPlanScene() {
           scene: "cityplan",
           storyBeat: mobileCommittedBeatRef.current,
           requestedBeat: mobileRequestedBeatRef.current,
-          cityplanRasterBackend: iphoneCanvasRasterActive
-            ? "iphone-canvas"
+          cityplanRasterBackend: iphoneStaticRasterActive
+            ? "iphone-static-png"
             : iosPrecomposedRasterActive
               ? "ios-precomposed"
               : "stack",
@@ -1146,7 +971,7 @@ export function CityPlanScene() {
     });
     observer.observe(root);
     return () => observer.disconnect();
-  }, [iphoneCanvasRasterActive, iosPrecomposedRasterActive, mobileCameraActive]);
+  }, [iphoneStaticRasterActive, iosPrecomposedRasterActive, mobileCameraActive]);
 
   useEffect(
     () =>
@@ -1410,11 +1235,11 @@ export function CityPlanScene() {
   const prewarmMobileBeat = useCallback(
     (targetBeat) => {
       if (!mobileDecodedBeatsRef.current.has(targetBeat)) return false;
-      // On iPhone the semantic beat may advance only after the one canvas has
-      // actually painted that raster. Copy, labels and vignettes therefore
+      // On iPhone the semantic beat may advance only after the single PNG has
+      // actually loaded. Copy, labels and vignettes therefore
       // cannot get ahead of the map during an initial load or rapid scroll.
       if (
-        iphoneCanvasRasterActive &&
+        iphoneStaticRasterActive &&
         mobileCompositePaintedBeat !== targetBeat
       ) {
         return false;
@@ -1445,7 +1270,7 @@ export function CityPlanScene() {
       const images = Array.from(node?.querySelectorAll(".plan-vignette-image") ?? []);
       if (
         !node?.isConnected ||
-        (!iphoneCanvasRasterActive &&
+        (!iphoneStaticRasterActive &&
           (images.length === 0 ||
             images.some((image) => !image.complete || !image.naturalWidth))) ||
         !mobileOverlayLayoutRef.current ||
@@ -1462,7 +1287,7 @@ export function CityPlanScene() {
     },
     [
       geometryForMobileVignette,
-      iphoneCanvasRasterActive,
+      iphoneStaticRasterActive,
       iosPrecomposedRasterActive,
       mobileCompositePaintedBeat,
       mobileVignettesReady,
@@ -1532,7 +1357,7 @@ export function CityPlanScene() {
     const targetBeat = mobileScene.requestedBeat;
     const generation = mobileScene.generation;
     let live = true;
-    const controller = iphoneCanvasRasterActive
+    const controller = iphoneStaticRasterActive
       ? new AbortController()
       : null;
 
@@ -1546,11 +1371,11 @@ export function CityPlanScene() {
       });
     };
 
-    // iPhone prefetches compressed bytes only. Decode starts later in the
-    // single reusable canvas, and its vignette surfaces mount only after that
-    // canvas has painted. Other iOS devices retain their existing path.
+    // iPhone prefetches only the compressed static-vignette bytes. The map PNG
+    // is owned by one persistent image element, and the vignette mounts only
+    // after that image has loaded. Other iOS devices retain their existing path.
     const decodeRequestedAssets = iosPrecomposedRasterActive
-      ? iphoneCanvasRasterActive
+      ? iphoneStaticRasterActive
         ? prefetchIPhoneBeatBytes(targetBeat, controller.signal)
         : decodeMobileVignetteAssets(targetBeat)
       : decodeMobileBeatAssets(targetBeat);
@@ -1583,7 +1408,7 @@ export function CityPlanScene() {
     };
   }, [
     mobileCameraActive,
-    iphoneCanvasRasterActive,
+    iphoneStaticRasterActive,
     iosPrecomposedRasterActive,
     mobileScene.generation,
     mobileScene.requestedBeat,
@@ -2449,11 +2274,14 @@ export function CityPlanScene() {
             {mobileCameraActive ? (
               mobileVignettesMounted ? (
                 iosPrecomposedRasterActive ? (
-                  iphoneCanvasRasterActive ? (
-                    <MobileIPhoneCanvasPlan
+                  iphoneStaticRasterActive ? (
+                    <MobileIPhoneStaticPlan
                       key={`iphone-plan-surface-${mobileRasterSurfaceEpoch}`}
                       composite={currentMobileComposite}
-                      surfaceEpoch={mobileRasterSurfaceEpoch}
+                      failed={
+                        !currentMobileComposite ||
+                        mobileCompositeFailedBeat === requestedBeat
+                      }
                       onLoad={handleMobileCompositeLoad}
                       onError={handleMobileCompositeError}
                     />
@@ -2682,12 +2510,12 @@ export function CityPlanScene() {
                     : null
                 }
                 requestedName={
-                  entered && !iphoneCanvasRasterActive
+                  entered && !iphoneStaticRasterActive
                     ? planBeatSpecs[requestedBeat]?.vignette ?? null
                     : null
                 }
                 onAssetSettled={handleMobileAssetSettled}
-                staticIPhone={iphoneCanvasRasterActive}
+                staticIPhone={iphoneStaticRasterActive}
               />
             ) : null
           ) : (

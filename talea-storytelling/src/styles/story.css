@@ -7974,10 +7974,6 @@
   opacity: 1;
 }
 
-.plan-mobile-map-canvas {
-  image-rendering: auto;
-}
-
 .plan-figure .pl-ink {
   fill: none;
   stroke: var(--relief-ink, #3a352a);
@@ -12995,7 +12991,12 @@
   /* CityBuild's settled close-ups are precomposed PNGs on iPhone. Keep the
      single active surface static: the layered SVG build animation otherwise
      promotes five or six independent WebKit compositor surfaces. */
-  html[data-talea-iphone-direct="true"] .plan-vignette--iphone-static,
+  html[data-talea-iphone-direct="true"] .plan-vignette--iphone-static {
+    animation: none !important;
+    transition: none !important;
+    will-change: auto;
+  }
+
   html[data-talea-iphone-direct="true"]
     .plan-vignette--iphone-static
     .plan-vignette-static-image {

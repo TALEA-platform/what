@@ -2465,7 +2465,9 @@
   html[data-talea-iphone-direct="true"] .hotspot-legend.hotspot-legend--mobile,
   html[data-talea-iphone-direct="true"] .hotspot-mobile-story-card,
   html[data-talea-iphone-direct="true"] .hotspot-mobile-story-nav,
+  html[data-talea-iphone-direct="true"] .hotspot-mobile-story .hotspot-slider,
   html[data-talea-iphone-direct="true"] .hotspot-sequence-controls,
+  html[data-talea-iphone-direct="true"] .hotspot-exit-wrapper,
   html[data-talea-iphone-direct="true"]
     .hotspot-scene
     .annotation-label--priority {

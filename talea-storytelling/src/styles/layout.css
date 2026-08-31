@@ -273,7 +273,7 @@
 
   html[data-talea-iphone-direct="true"] .mobile-shell-reopen,
   html[data-talea-iphone-direct="true"] .scroll-stem,
-  html[data-talea-iphone-direct="true"] .mobile-experience-notice__card {
+  html[data-talea-iphone-direct="true"] .mobile-experience-notice {
     background: var(--paper-hi);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;

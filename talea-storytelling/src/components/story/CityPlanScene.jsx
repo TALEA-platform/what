@@ -116,6 +116,8 @@ const MOBILE_IPHONE_PLAN_COMPOSITES = prepareMobileComposites(
   cityPlanMobileComposites.iphoneBeats ?? cityPlanMobileComposites.beats,
   true,
 );
+const MOBILE_IPHONE_PLAN_WORLD_RECT =
+  cityPlanMobileComposites.iphoneCanvas ?? cityPlanMobileComposites.canvas;
 const SUPPORTS_WEBP = (() => {
   if (typeof document === "undefined") return true;
   const canvas = document.createElement("canvas");
@@ -517,42 +519,234 @@ function MobileIOSCompositePlan({ composite, failed, onLoad, onError }) {
   );
 }
 
-function MobileIPhoneStaticPlan({ composite, failed, onLoad, onError }) {
-  const handleLoad = (event) => {
-    const image = event.currentTarget;
-    const expectedSrc = new URL(composite.fallbackSrc, document.baseURI).href;
-    // A superseded Safari image request can still dispatch a late event after
-    // React has assigned the latest beat to the persistent element. Never let
-    // that stale completion advance copy, annotations or the vignette.
-    if (
-      !image.complete ||
-      !image.naturalWidth ||
-      (image.currentSrc && image.currentSrc !== expectedSrc)
-    ) {
-      return;
+function MobileIPhoneViewportPlan({
+  composite,
+  failed,
+  frameRef,
+  surfaceControllerRef,
+  onLoad,
+  onError,
+}) {
+  const canvasRef = useRef(null);
+  const sourceRef = useRef(null);
+  const generationRef = useRef(0);
+
+  const releaseSource = useCallback((entry) => {
+    if (!entry) return;
+    if (typeof entry.source?.close === "function") {
+      entry.source.close();
+    } else if (entry.source) {
+      entry.source.onload = null;
+      entry.source.onerror = null;
+      entry.source.src = "";
     }
-    onLoad(composite.beat);
-  };
+  }, []);
+
+  const drawFrame = useCallback((frameOverride = null) => {
+    const canvas = canvasRef.current;
+    const entry = sourceRef.current;
+    const frame = frameOverride ?? frameRef.current;
+    if (!canvas || !entry?.source || !frame) return false;
+
+    const cssWidth = Math.max(1, Math.round(frame.bandWidth));
+    const cssHeight = Math.max(1, Math.round(frame.stageHeight));
+    // CityBuild keeps native device sharpness. The memory saving comes from a
+    // viewport-sized backing store, not from capping DPR or map resolution.
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    const pixelWidth = Math.max(1, Math.round(cssWidth * dpr));
+    const pixelHeight = Math.max(1, Math.round(cssHeight * dpr));
+    if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
+      canvas.width = pixelWidth;
+      canvas.height = pixelHeight;
+    }
+
+    const context = canvas.getContext("2d", { alpha: true });
+    if (!context) return false;
+    context.setTransform(dpr, 0, 0, dpr, 0, 0);
+    context.imageSmoothingEnabled = true;
+    if ("imageSmoothingQuality" in context) {
+      context.imageSmoothingQuality = "high";
+    }
+    context.clearRect(0, 0, cssWidth, cssHeight);
+
+    const rect = MOBILE_IPHONE_PLAN_WORLD_RECT;
+    const left =
+      frame.bandWidth / 2 + frame.sx + (rect.left - frame.cx) * frame.zc;
+    const top =
+      frame.stageHeight / 2 + frame.sy + (rect.top - frame.cy) * frame.zc;
+    context.drawImage(
+      entry.source,
+      left,
+      top,
+      rect.width * frame.zc,
+      rect.height * frame.zc,
+    );
+    canvas.dataset.mobileMapCompositeBeat = String(entry.beat);
+    return true;
+  }, [frameRef]);
+
+  useLayoutEffect(() => {
+    const controller = { draw: drawFrame };
+    surfaceControllerRef.current = controller;
+    drawFrame();
+    return () => {
+      if (surfaceControllerRef.current === controller) {
+        surfaceControllerRef.current = null;
+      }
+    };
+  }, [drawFrame, surfaceControllerRef]);
+
+  useEffect(() => {
+    if (!composite || failed) return undefined;
+    const generation = generationRef.current + 1;
+    generationRef.current = generation;
+    const controller = new AbortController();
+    let candidate = null;
+    let live = true;
+
+    const loadImageFallback = (blob) =>
+      new Promise((resolve, reject) => {
+        const objectUrl = URL.createObjectURL(blob);
+        const image = new Image();
+        const cleanup = () => {
+          image.onload = null;
+          image.onerror = null;
+          controller.signal.removeEventListener("abort", handleAbort);
+          URL.revokeObjectURL(objectUrl);
+        };
+        const handleAbort = () => {
+          cleanup();
+          image.src = "";
+          const error = new Error("CityBuild raster request aborted");
+          error.name = "AbortError";
+          reject(error);
+        };
+        image.decoding = "async";
+        image.onload = () => {
+          cleanup();
+          resolve(image);
+        };
+        image.onerror = () => {
+          cleanup();
+          reject(new Error(`Unable to decode ${composite.fallbackSrc}`));
+        };
+        controller.signal.addEventListener("abort", handleAbort, { once: true });
+        image.src = objectUrl;
+      });
+
+    const loadSource = async (cacheMode) => {
+      const response = await fetch(composite.fallbackSrc, {
+        cache: cacheMode,
+        signal: controller.signal,
+      });
+      if (!response.ok) {
+        throw new Error(`Unable to load ${composite.fallbackSrc}`);
+      }
+      const blob = await response.blob();
+      if (typeof window.createImageBitmap === "function") {
+        try {
+          return await window.createImageBitmap(blob);
+        } catch {
+          // Older WebKit implementations expose createImageBitmap but cannot
+          // decode every PNG. The one-image fallback preserves iOS 13 support.
+        }
+      }
+      return loadImageFallback(blob);
+    };
+
+    const loadLatestSource = async () => {
+      let lastError = null;
+      // A cached response can occasionally fail during WebKit image decode.
+      // Retry once, sequentially and through a revalidated response: this
+      // never creates two candidate decodes or two mounted raster surfaces.
+      for (const cacheMode of ["force-cache", "reload"]) {
+        try {
+          return await loadSource(cacheMode);
+        } catch (error) {
+          if (
+            error?.name === "AbortError" ||
+            !live ||
+            generationRef.current !== generation
+          ) {
+            throw error;
+          }
+          lastError = error;
+        }
+      }
+      throw lastError ?? new Error(`Unable to load ${composite.fallbackSrc}`);
+    };
+
+    loadLatestSource()
+      .then((source) => {
+        candidate = { source, beat: composite.beat };
+        if (
+          !live ||
+          controller.signal.aborted ||
+          generationRef.current !== generation
+        ) {
+          releaseSource(candidate);
+          candidate = null;
+          return;
+        }
+
+        const previous = sourceRef.current;
+        const next = candidate;
+        sourceRef.current = next;
+        candidate = null;
+        if (!drawFrame()) {
+          sourceRef.current = previous;
+          releaseSource(next);
+          onError(composite.beat);
+          return;
+        }
+        releaseSource(previous);
+        onLoad(composite.beat);
+      })
+      .catch((error) => {
+        if (
+          !live ||
+          error?.name === "AbortError" ||
+          generationRef.current !== generation
+        ) {
+          return;
+        }
+        onError(composite.beat);
+      });
+
+    return () => {
+      live = false;
+      controller.abort();
+      releaseSource(candidate);
+      candidate = null;
+    };
+  }, [composite, drawFrame, failed, onError, onLoad, releaseSource]);
+
+  useEffect(
+    () => () => {
+      generationRef.current += 1;
+      releaseSource(sourceRef.current);
+      sourceRef.current = null;
+      const canvas = canvasRef.current;
+      if (canvas) {
+        canvas.width = 1;
+        canvas.height = 1;
+      }
+    },
+    [releaseSource],
+  );
 
   return (
     <figure
-      className="plan-figure plan-figure--mobile-images plan-figure--ios-composite"
+      className="plan-iphone-viewport-surface plan-figure--ios-composite"
       aria-hidden="true"
     >
-      {composite && !failed ? (
-        <img
-          className="plan-mobile-map-state plan-mobile-map-base is-active"
-          src={composite.fallbackSrc}
-          style={composite.style}
-          alt=""
-          decoding="async"
-          fetchPriority="high"
-          draggable="false"
-          data-mobile-map-composite-beat={composite.beat}
-          onLoad={handleLoad}
-          onError={() => onError(composite.beat)}
-        />
-      ) : null}
+      <canvas
+        ref={canvasRef}
+        className="plan-iphone-viewport-canvas"
+        width="1"
+        height="1"
+        data-mobile-map-composite-beat="pending"
+      />
     </figure>
   );
 }
@@ -700,6 +894,7 @@ export function CityPlanScene() {
   const stageRef = useRef(null);
   const viewRef = useRef(null);
   const camRef = useRef(null);
+  const iphonePlanSurfaceControllerRef = useRef(null);
   const figRef = useRef(null);
   const bandRef = useRef(null);
   const linkSvgRef = useRef(null);
@@ -776,7 +971,7 @@ export function CityPlanScene() {
     if (!mobileCameraActive) return;
     const rasterCount =
       rootRef.current?.querySelectorAll(
-        ".plan-mobile-map-state[src]",
+        ".plan-mobile-map-state[src], .plan-iphone-viewport-canvas",
       ).length ?? 0;
     updateMemoryDebugState({
       cityPlanRasterCount: rasterCount,
@@ -895,7 +1090,7 @@ export function CityPlanScene() {
       mountedRasterLayerCount,
       visibleRasterLayerCount,
       cityplanRasterBackend: iphoneStaticRasterActive
-        ? "iphone-static-png"
+        ? "iphone-viewport-canvas"
         : iosPrecomposedRasterActive
           ? "ios-precomposed"
           : "stack",
@@ -921,7 +1116,7 @@ export function CityPlanScene() {
         storyBeat: beat,
         requestedBeat,
         cityplanRasterBackend: iphoneStaticRasterActive
-          ? "iphone-static-png"
+          ? "iphone-viewport-canvas"
           : iosPrecomposedRasterActive
             ? "ios-precomposed"
             : "stack",
@@ -959,7 +1154,7 @@ export function CityPlanScene() {
           storyBeat: mobileCommittedBeatRef.current,
           requestedBeat: mobileRequestedBeatRef.current,
           cityplanRasterBackend: iphoneStaticRasterActive
-            ? "iphone-static-png"
+            ? "iphone-viewport-canvas"
             : iosPrecomposedRasterActive
               ? "ios-precomposed"
               : "stack",
@@ -1899,6 +2094,9 @@ export function CityPlanScene() {
         };
         cameraFrameRef.current = nextFrame;
         if (mobileViewport) {
+          if (runtimeProfile.isIPhone) {
+            iphonePlanSurfaceControllerRef.current?.draw(nextFrame);
+          }
           syncMobileOverlayGeometryRef.current?.(
             mobileCommittedBeatRef.current,
             nextFrame,
@@ -2266,6 +2464,22 @@ export function CityPlanScene() {
         aria-hidden="true"
       >
         <div ref={viewRef} className="plan-bleed">
+          {mobileCameraActive &&
+          mobileVignettesMounted &&
+          iphoneStaticRasterActive ? (
+            <MobileIPhoneViewportPlan
+              key={`iphone-plan-surface-${mobileRasterSurfaceEpoch}`}
+              composite={currentMobileComposite}
+              failed={
+                !currentMobileComposite ||
+                mobileCompositeFailedBeat === requestedBeat
+              }
+              frameRef={cameraFrameRef}
+              surfaceControllerRef={iphonePlanSurfaceControllerRef}
+              onLoad={handleMobileCompositeLoad}
+              onError={handleMobileCompositeError}
+            />
+          ) : null}
           <div
             ref={camRef}
             className="plan-camera"
@@ -2274,18 +2488,7 @@ export function CityPlanScene() {
             {mobileCameraActive ? (
               mobileVignettesMounted ? (
                 iosPrecomposedRasterActive ? (
-                  iphoneStaticRasterActive ? (
-                    <MobileIPhoneStaticPlan
-                      key={`iphone-plan-surface-${mobileRasterSurfaceEpoch}`}
-                      composite={currentMobileComposite}
-                      failed={
-                        !currentMobileComposite ||
-                        mobileCompositeFailedBeat === requestedBeat
-                      }
-                      onLoad={handleMobileCompositeLoad}
-                      onError={handleMobileCompositeError}
-                    />
-                  ) : (
+                  iphoneStaticRasterActive ? null : (
                     <MobileIOSCompositePlan
                       composite={currentMobileComposite}
                       failed={

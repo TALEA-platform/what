@@ -7958,6 +7958,22 @@
   background: #f4f2e9;
 }
 
+.plan-iphone-viewport-surface {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+.plan-iphone-viewport-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
 .plan-mobile-map-state {
   position: absolute;
   inset: 0;
@@ -12988,6 +13004,15 @@
     will-change: auto;
   }
 
+  /* The direct-iPhone renderer now applies the production camera in Canvas2D.
+     Its former 2400x1500 DOM camera has no children on this path; leaving that
+     transformed box present can still make WebKit allocate a large backing
+     layer. Keep the camera object for shared geometry code, but do not paint or
+     composite its empty DOM box. */
+  html[data-talea-iphone-direct="true"] .plan-camera {
+    display: none;
+  }
+
   /* CityBuild's settled close-ups are precomposed PNGs on iPhone. Keep the
      single active surface static: the layered SVG build animation otherwise
      promotes five or six independent WebKit compositor surfaces. */
@@ -13073,6 +13098,18 @@
 
   html[data-talea-iphone-direct="true"] .causes-stage {
     height: 100svh;
+    align-content: center;
+    row-gap: clamp(14px, 2svh, 22px);
+  }
+
+  /* The production statistic scale is too tall for these two long narrative
+     paragraphs on a narrow physical viewport: the sticky stage clips their
+     last lines even though its grid can appear to retain empty space. Keep the
+     copy and wording intact while fitting the actual available column. */
+  html[data-talea-iphone-direct="true"] .causes-mobile-story-body {
+    max-width: min(38ch, 100%);
+    font-size: clamp(0.9375rem, 4.1vw, 1.0625rem);
+    line-height: 1.45;
   }
 
   html[data-talea-iphone-direct="true"] .causes-mobile-compare-stack {
@@ -13209,11 +13246,26 @@
     overflow: visible;
   }
 
-  /* Framer Motion reveals this heading from translateY(28px). Once WebKit's
-     glyph clipping is removed that travel reads as a late position correction.
-     Keep the existing opacity reveal, but make the iPhone heading stationary. */
-  html[data-talea-iphone-direct="true"] .rifugi-intro-head {
+  /* Both Rifugi headings used a vertical reveal. On short iPhone stages that
+     travel intersects the sticky overflow edge and reads as a late position
+     correction. Preserve an opacity entrance without moving the line box. */
+  html[data-talea-iphone-direct="true"] .rifugi-intro-head,
+  html[data-talea-iphone-direct="true"] .relief-intro-heading,
+  html[data-talea-iphone-direct="true"]
+    .relief-explainer--intro-entering:not(.relief-explainer--engaged)
+    .relief-intro-heading {
     transform: none !important;
+  }
+
+  html[data-talea-iphone-direct="true"]
+    .relief-explainer--intro-entering:not(.relief-explainer--engaged)
+    .relief-intro-heading {
+    animation: relief-iphone-intro-title-opacity 560ms var(--ease-cine) 40ms both;
+  }
+
+  @keyframes relief-iphone-intro-title-opacity {
+    from { opacity: 0; transform: none; }
+    to { opacity: 1; transform: none; }
   }
 
   html[data-talea-iphone-direct="true"] .relief-intro-heading {
@@ -13224,11 +13276,14 @@
   html[data-talea-iphone-direct="true"] .relief-intro-heading .relief-title,
   html[data-talea-iphone-direct="true"] .rifugi-title {
     display: block;
-    padding: 0.2em 0.1em 0.24em;
-    margin-top: -0.2em;
+    box-sizing: border-box;
+    width: 100%;
+    padding: 0.16em 0.22em 0.24em;
+    margin-top: 0;
     margin-right: auto;
-    margin-bottom: -0.24em;
+    margin-bottom: 0;
     margin-left: auto;
+    line-height: 1.14;
     -webkit-clip-path: none;
     clip-path: none;
     overflow: visible;

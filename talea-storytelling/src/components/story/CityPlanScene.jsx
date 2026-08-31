@@ -524,14 +524,13 @@ function MobileIPhoneCanvasPlan({ composite, surfaceEpoch, onLoad, onError }) {
     let sourceImage = null;
     let objectUrl = null;
     let retryTimer = null;
+    let commitRaf = null;
     let live = true;
 
     const pixelWidth =
-      composite.pixelWidth ??
       cityPlanMobileComposites.iphoneCanvas?.width ??
       cityPlanMobileComposites.canvas.width;
     const pixelHeight =
-      composite.pixelHeight ??
       cityPlanMobileComposites.iphoneCanvas?.height ??
       cityPlanMobileComposites.canvas.height;
     // A boundary release deliberately shrinks the backing store to 1x1. If a
@@ -597,10 +596,24 @@ function MobileIPhoneCanvasPlan({ composite, surfaceEpoch, onLoad, onError }) {
             // The old beat remains painted until this synchronous replacement.
             // There is never an old/new pair of displayed raster elements.
             context.clearRect(0, 0, canvas.width, canvas.height);
-            context.drawImage(sourceImage, 0, 0, canvas.width, canvas.height);
+            const canvasSpec =
+              cityPlanMobileComposites.iphoneCanvas ??
+              cityPlanMobileComposites.canvas;
+            const sourceStyle = composite.style ?? canvasSpec;
+            context.drawImage(
+              sourceImage,
+              Number(sourceStyle.left) - Number(canvasSpec.left),
+              Number(sourceStyle.top) - Number(canvasSpec.top),
+            );
             canvas.dataset.mobileMapCompositeBeat = String(composite.beat);
             releaseTransientSource();
-            onLoad(composite.beat);
+            // Give WebKit one presentation frame to discard the transient
+            // decoder surface before React mounts the beat's SVG vignette.
+            // The newly painted map is already visible during this frame.
+            commitRaf = window.requestAnimationFrame(() => {
+              commitRaf = null;
+              if (isCurrent()) onLoad(composite.beat);
+            });
           };
           sourceImage.onerror = () => {
             if (!isCurrent()) {
@@ -636,6 +649,7 @@ function MobileIPhoneCanvasPlan({ composite, surfaceEpoch, onLoad, onError }) {
     return () => {
       live = false;
       if (retryTimer !== null) window.clearTimeout(retryTimer);
+      if (commitRaf !== null) window.cancelAnimationFrame(commitRaf);
       controller.abort();
       releaseTransientSource();
       if (controllerRef.current === controller) controllerRef.current = null;
@@ -688,17 +702,14 @@ function MobileIPhoneCanvasPlan({ composite, surfaceEpoch, onLoad, onError }) {
         ref={canvasRef}
         className="plan-mobile-map-state plan-mobile-map-base plan-mobile-map-canvas is-active"
         width={
-          composite?.pixelWidth ??
           cityPlanMobileComposites.iphoneCanvas?.width ??
           cityPlanMobileComposites.canvas.width
         }
         height={
-          composite?.pixelHeight ??
           cityPlanMobileComposites.iphoneCanvas?.height ??
           cityPlanMobileComposites.canvas.height
         }
         style={
-          composite?.style ??
           mobileRasterStyle(
             cityPlanMobileComposites.iphoneCanvas ??
               cityPlanMobileComposites.canvas,

@@ -32,26 +32,10 @@ IPHONE_OUTPUT_PREFIX = "cityplan-iphone-composite-beat-"
 
 # All phone and phone-landscape camera paths stay inside this source-space
 # envelope. It is the single persistent Canvas2D backing store used on iPhone.
-# Cropping is pixel-for-pixel (no resize), so the perceived map and camera
-# framing are unchanged while the decoded surface drops from 3530x2394 to
-# 2240x2394.
+# Its CSS/world dimensions remain unchanged; only the iPhone raster backing
+# resolution is reduced to keep WebKit well below its graphics high-water mark.
 IPHONE_CANVAS = (-64, -308, 2240, 2394)
-
-# Each transient decode only contains the source-space envelope reachable by
-# that beat (including its entry camera from the previous beat), with a safety
-# margin. The source is drawn at its original offset into IPHONE_CANVAS; it is
-# never scaled. This matters most around costruisce/nonuno, where a uniform
-# 2240x2394 source would otherwise briefly coexist with the 2240x2394 canvas.
-# Values deliberately remain conservative for portrait and landscape iPhones.
-IPHONE_BEAT_CROPS = (
-    (-64, 0, 2016, 2086),
-    (-64, 0, 2016, 2086),
-    (-64, 160, 1664, 1926),
-    (-64, -308, 1888, 2394),
-    (-64, -308, 2240, 2394),
-    (0, -308, 2176, 2394),
-    (32, -308, 2144, 2394),
-)
+IPHONE_RASTER_SCALE = 0.5
 
 
 def read_beat_ids() -> list[str]:
@@ -198,9 +182,7 @@ def main() -> None:
             }
         )
 
-        if beat >= len(IPHONE_BEAT_CROPS):
-            raise RuntimeError(f"Missing iPhone crop for beat {beat}")
-        iphone_x, iphone_y, iphone_width, iphone_height = IPHONE_BEAT_CROPS[beat]
+        iphone_x, iphone_y, iphone_width, iphone_height = IPHONE_CANVAS
         iphone_box = (
             iphone_x - canvas_x,
             iphone_y - canvas_y,
@@ -215,6 +197,12 @@ def main() -> None:
         ):
             raise RuntimeError("IPHONE_CANVAS falls outside the reference canvas")
         iphone_composite = composite.crop(iphone_box)
+        iphone_pixel_width = round(iphone_width * IPHONE_RASTER_SCALE)
+        iphone_pixel_height = round(iphone_height * IPHONE_RASTER_SCALE)
+        iphone_composite = iphone_composite.resize(
+            (iphone_pixel_width, iphone_pixel_height),
+            Image.Resampling.LANCZOS,
+        )
         iphone_filename = f"{IPHONE_OUTPUT_PREFIX}{beat}.webp"
         iphone_output_path = ASSET_DIR / iphone_filename
         iphone_composite.save(
@@ -240,9 +228,9 @@ def main() -> None:
                 "bytes": iphone_output_path.stat().st_size,
                 "fallbackFile": iphone_fallback_filename,
                 "fallbackBytes": iphone_fallback_output_path.stat().st_size,
-                "pixelWidth": iphone_width,
-                "pixelHeight": iphone_height,
-                "decodedBytes": iphone_width * iphone_height * 4,
+                "pixelWidth": iphone_pixel_width,
+                "pixelHeight": iphone_pixel_height,
+                "decodedBytes": iphone_pixel_width * iphone_pixel_height * 4,
                 "style": {
                     "left": iphone_x,
                     "top": iphone_y,
@@ -269,6 +257,9 @@ def main() -> None:
             "top": IPHONE_CANVAS[1],
             "width": IPHONE_CANVAS[2],
             "height": IPHONE_CANVAS[3],
+            "pixelWidth": round(IPHONE_CANVAS[2] * IPHONE_RASTER_SCALE),
+            "pixelHeight": round(IPHONE_CANVAS[3] * IPHONE_RASTER_SCALE),
+            "rasterScale": IPHONE_RASTER_SCALE,
         },
         "iphoneBeats": generated_iphone_beats,
     }
@@ -292,7 +283,9 @@ def main() -> None:
         f"{canvas_width}x{canvas_height}, "
         f"{total_bytes / (1024 * 1024):.2f} MiB WebP / "
         f"{fallback_bytes / (1024 * 1024):.2f} MiB PNG; "
-        f"iPhone {IPHONE_CANVAS[2]}x{IPHONE_CANVAS[3]}, "
+        f"iPhone CSS {IPHONE_CANVAS[2]}x{IPHONE_CANVAS[3]} / raster "
+        f"{round(IPHONE_CANVAS[2] * IPHONE_RASTER_SCALE)}x"
+        f"{round(IPHONE_CANVAS[3] * IPHONE_RASTER_SCALE)}, "
         f"{iphone_total_bytes / (1024 * 1024):.2f} MiB WebP / "
         f"{iphone_fallback_bytes / (1024 * 1024):.2f} MiB PNG -> {ASSET_DIR}"
     )

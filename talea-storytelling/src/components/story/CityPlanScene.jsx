@@ -98,19 +98,23 @@ const MOBILE_PLAN_LAYER_SPECS = [
   src: `${MOBILE_ASSET_ROOT}/${MOBILE_PLAN_RASTERS.get(layer.name).file}`,
   style: mobileRasterStyle(MOBILE_PLAN_RASTERS.get(layer.name).style),
 }));
-const prepareMobileComposites = (composites) => composites.map(
-  (composite) => ({
+const prepareMobileComposites = (composites, cacheBust = false) =>
+  composites.map((composite) => ({
     ...composite,
-    src: `${MOBILE_ASSET_ROOT}/${composite.file}`,
-    fallbackSrc: `${MOBILE_ASSET_ROOT}/${composite.fallbackFile}`,
+    src: `${MOBILE_ASSET_ROOT}/${composite.file}${
+      cacheBust ? `?v=${composite.bytes}` : ""
+    }`,
+    fallbackSrc: `${MOBILE_ASSET_ROOT}/${composite.fallbackFile}${
+      cacheBust ? `?v=${composite.fallbackBytes}` : ""
+    }`,
     style: mobileRasterStyle(composite.style),
-  }),
-);
+  }));
 const MOBILE_PLAN_COMPOSITES = prepareMobileComposites(
   cityPlanMobileComposites.beats,
 );
 const MOBILE_IPHONE_PLAN_COMPOSITES = prepareMobileComposites(
   cityPlanMobileComposites.iphoneBeats ?? cityPlanMobileComposites.beats,
+  true,
 );
 const SUPPORTS_WEBP = (() => {
   if (typeof document === "undefined") return true;
@@ -528,9 +532,11 @@ function MobileIPhoneCanvasPlan({ composite, surfaceEpoch, onLoad, onError }) {
     let live = true;
 
     const pixelWidth =
+      cityPlanMobileComposites.iphoneCanvas?.pixelWidth ??
       cityPlanMobileComposites.iphoneCanvas?.width ??
       cityPlanMobileComposites.canvas.width;
     const pixelHeight =
+      cityPlanMobileComposites.iphoneCanvas?.pixelHeight ??
       cityPlanMobileComposites.iphoneCanvas?.height ??
       cityPlanMobileComposites.canvas.height;
     // A boundary release deliberately shrinks the backing store to 1x1. If a
@@ -596,15 +602,11 @@ function MobileIPhoneCanvasPlan({ composite, surfaceEpoch, onLoad, onError }) {
             // The old beat remains painted until this synchronous replacement.
             // There is never an old/new pair of displayed raster elements.
             context.clearRect(0, 0, canvas.width, canvas.height);
-            const canvasSpec =
-              cityPlanMobileComposites.iphoneCanvas ??
-              cityPlanMobileComposites.canvas;
-            const sourceStyle = composite.style ?? canvasSpec;
-            context.drawImage(
-              sourceImage,
-              Number(sourceStyle.left) - Number(canvasSpec.left),
-              Number(sourceStyle.top) - Number(canvasSpec.top),
-            );
+            // Every iPhone beat now uses the same source-space envelope as the
+            // canvas. Keeping this a zero-origin replacement avoids the
+            // coordinate/crop mismatch that could leave only the vignette
+            // visible while the map surface remained transparent.
+            context.drawImage(sourceImage, 0, 0, canvas.width, canvas.height);
             canvas.dataset.mobileMapCompositeBeat = String(composite.beat);
             releaseTransientSource();
             // Give WebKit one presentation frame to discard the transient
@@ -702,10 +704,12 @@ function MobileIPhoneCanvasPlan({ composite, surfaceEpoch, onLoad, onError }) {
         ref={canvasRef}
         className="plan-mobile-map-state plan-mobile-map-base plan-mobile-map-canvas is-active"
         width={
+          cityPlanMobileComposites.iphoneCanvas?.pixelWidth ??
           cityPlanMobileComposites.iphoneCanvas?.width ??
           cityPlanMobileComposites.canvas.width
         }
         height={
+          cityPlanMobileComposites.iphoneCanvas?.pixelHeight ??
           cityPlanMobileComposites.iphoneCanvas?.height ??
           cityPlanMobileComposites.canvas.height
         }

@@ -12992,6 +12992,19 @@
     will-change: auto;
   }
 
+  /* CityBuild's settled close-ups are precomposed PNGs on iPhone. Keep the
+     single active surface static: the layered SVG build animation otherwise
+     promotes five or six independent WebKit compositor surfaces. */
+  html[data-talea-iphone-direct="true"] .plan-vignette--iphone-static,
+  html[data-talea-iphone-direct="true"]
+    .plan-vignette--iphone-static
+    .plan-vignette-static-image {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+    will-change: auto;
+  }
+
   /* Preserve the production Bridge -> Aria background overlap, but do not let
      Aria's copy travel underneath the bridge for the whole handoff. The copy
      starts entering only as the Hero fade begins, avoiding both the premature

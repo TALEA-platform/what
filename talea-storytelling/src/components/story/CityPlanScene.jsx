@@ -156,6 +156,12 @@ const MOBILE_VIGNETTE_ASSETS = Object.fromEntries(
     })),
   ]),
 );
+const MOBILE_IPHONE_STATIC_VIGNETTE_ASSETS = Object.fromEntries(
+  Object.keys(MOBILE_VIGNETTE_LAYER_SPECS).map((name) => [
+    name,
+    `${MOBILE_ASSET_ROOT}/cityplan-iphone-static-vignette-${name}.png`,
+  ]),
+);
 const MOBILE_IMAGE_DECODE_CACHE = new Map();
 
 function decodeMobileImage(src) {
@@ -237,7 +243,8 @@ function prefetchIPhoneBeatBytes(beat, signal) {
   // The canvas owns the raster request. Fetching it here as well can retain a
   // second compressed response buffer while WebKit is decoding the first.
   // Only the small vignette bytes are warmed independently.
-  const assets = mobileVignetteAssetsForBeat(beat);
+  const name = planBeatSpecs[beat]?.vignette;
+  const assets = name ? [MOBILE_IPHONE_STATIC_VIGNETTE_ASSETS[name]] : [];
   return Promise.all(
     assets.map((src) =>
       prefetchCompressedAsset(src, signal).catch((error) => {
@@ -729,40 +736,57 @@ function MobilePersistentVignettes({
   activeName,
   requestedName,
   onAssetSettled,
+  staticIPhone = false,
 }) {
   return Object.keys(VIGNETTE_HTML).map((name) => {
     const config = MOBILE_VIGNETTE_CONFIG[name];
     const isCurrent = name === activeName;
     const shouldLoad = isCurrent || name === requestedName;
     const layers = MOBILE_VIGNETTE_ASSETS[name];
+    const staticSrc = MOBILE_IPHONE_STATIC_VIGNETTE_ASSETS[name];
     return (
       <div
         key={name}
         className={`plan-vignette plan-vignette--mobile plan-vignette--${config.place} plan-vignette--${config.side}${
           isCurrent ? " is-active" : ""
-        }`}
+        }${staticIPhone ? " plan-vignette--iphone-static" : ""}`}
         style={{ "--ratio": planVignetteMeta[name].ratio }}
         data-mobile-vignette-active={String(isCurrent)}
         data-vignette={name}
         aria-hidden="true"
       >
         <div className="plan-vignette-art">
-          {shouldLoad ? layers.map((layer) => (
-            <img
-              key={layer.src}
-              className="plan-vignette-image plan-vignette-layer"
-              src={layer.src}
-              alt=""
-              decoding="async"
-              fetchPriority="high"
-              draggable="false"
-              data-vignette-layer={layer.name}
-              data-vignette-layer-kind={layer.kind}
-              style={{ "--layer-delay": `${layer.delay}ms` }}
-              onLoad={onAssetSettled}
-              onError={onAssetSettled}
-            />
-          )) : null}
+          {shouldLoad
+            ? staticIPhone
+              ? (
+                  <img
+                    className="plan-vignette-image plan-vignette-static-image"
+                    src={staticSrc}
+                    alt=""
+                    decoding="async"
+                    fetchPriority="high"
+                    draggable="false"
+                    onLoad={onAssetSettled}
+                    onError={onAssetSettled}
+                  />
+                )
+              : layers.map((layer) => (
+                  <img
+                    key={layer.src}
+                    className="plan-vignette-image plan-vignette-layer"
+                    src={layer.src}
+                    alt=""
+                    decoding="async"
+                    fetchPriority="high"
+                    draggable="false"
+                    data-vignette-layer={layer.name}
+                    data-vignette-layer-kind={layer.kind}
+                    style={{ "--layer-delay": `${layer.delay}ms` }}
+                    onLoad={onAssetSettled}
+                    onError={onAssetSettled}
+                  />
+                ))
+            : null}
         </div>
       </div>
     );
@@ -2663,6 +2687,7 @@ export function CityPlanScene() {
                     : null
                 }
                 onAssetSettled={handleMobileAssetSettled}
+                staticIPhone={iphoneCanvasRasterActive}
               />
             ) : null
           ) : (

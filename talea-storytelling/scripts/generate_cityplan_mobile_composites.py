@@ -30,14 +30,14 @@ GENERATED_MODULE = ROOT / "src" / "generated" / "cityPlanMobileComposites.js"
 OUTPUT_PREFIX = "cityplan-mobile-composite-beat-"
 # Keep each published iPhone resolution immutable. A new filename prevents a
 # CDN or Safari cache from ever pairing a new manifest with an older raster.
-IPHONE_OUTPUT_PREFIX = "cityplan-iphone-quarter-composite-beat-"
+IPHONE_OUTPUT_PREFIX = "cityplan-iphone-half-static-composite-beat-"
 
 # All phone and phone-landscape camera paths stay inside this source-space
 # envelope. It is the single persistent Canvas2D backing store used on iPhone.
 # Its CSS/world dimensions remain unchanged; only the iPhone raster backing
 # resolution is reduced to keep WebKit well below its graphics high-water mark.
 IPHONE_CANVAS = (-64, -308, 2240, 2394)
-IPHONE_RASTER_SCALE = 0.25
+IPHONE_RASTER_SCALE = 0.5
 
 
 def scaled_size(value: int) -> int:

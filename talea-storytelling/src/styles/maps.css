@@ -2449,6 +2449,17 @@
   }
 }
 
+@media (max-width: 1279px) {
+  html[data-talea-iphone-direct="true"] .hotspot-scene-map {
+    height: var(--talea-viewport-height);
+    max-height: none;
+  }
+
+  html[data-talea-iphone-direct="true"] .hotspot-scene-panels--mobile {
+    margin-top: calc(-0.2 * var(--talea-viewport-height));
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hotspot-mobile-scroll-indicator > span {
     animation: none !important;

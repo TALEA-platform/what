@@ -205,8 +205,10 @@ export function Hero() {
       frame = null;
       const viewportHeight = window.innerHeight || 768;
       const bottom = wrapper.getBoundingClientRect().bottom;
-      const shouldRelease = bottom < -viewportHeight * 8;
-      const shouldRestore = bottom >= -viewportHeight * 4;
+      const releaseDistance = runtimeProfile.isIPhone ? 2.5 : 8;
+      const restoreDistance = runtimeProfile.isIPhone ? 1.25 : 4;
+      const shouldRelease = bottom < -viewportHeight * releaseDistance;
+      const shouldRestore = bottom >= -viewportHeight * restoreDistance;
 
       if (shouldRelease && heroMediaAttachedRef.current) {
         heroMediaAttachedRef.current = false;

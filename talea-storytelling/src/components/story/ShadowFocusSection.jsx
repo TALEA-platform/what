@@ -730,6 +730,7 @@ export function ShadowFocusSection() {
   const [mobileGestureHintVisible, setMobileGestureHintVisible] = useState(false);
   const [legendOpen, setLegendOpen] = useState(false);
 
+  const sectionRef = useRef(null);
   const sceneRef = useRef(null);
   const sceneMapRef = useRef(null);
   const holdRef = useRef(null);
@@ -740,10 +741,11 @@ export function ShadowFocusSection() {
   const mobileScrollCueShownRef = useRef(false);
   const mobileGestureHintShownRef = useRef(false);
   const scrollAccelerationUnlockAtRef = useRef(Infinity);
-  const mapMaterialized = useIOSFarOffscreenMount(sceneRef, {
+  const mapMaterialized = useIOSFarOffscreenMount(sectionRef, {
     name: "Ombra",
     prewarmViewports: 1.5,
     releaseViewports: 3,
+    exclusiveIPhoneMap: true,
   });
 
   const stages = shadowScene.stages;
@@ -1046,6 +1048,7 @@ export function ShadowFocusSection() {
 
   return (
     <section
+      ref={sectionRef}
       id="ombra"
       className="shadow-focus"
       aria-label={shadowContent.ariaLabel}

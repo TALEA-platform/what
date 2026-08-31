@@ -13,6 +13,15 @@ import {
   logPerformanceEvent,
   registerMapPerformance,
 } from "../../lib/mapPerformance";
+import { runtimeProfile } from "../../lib/runtimeProfile";
+import {
+  onIOSHeavyOffscreenRelease,
+  requestIOSHeavyOffscreenRelease,
+} from "../../lib/iosMemoryLifecycle";
+import {
+  claimIPhoneMapOwnership,
+  registerIPhoneMapRelease,
+} from "../../lib/iphoneMapOwnership";
 import {
   ADDRESS_ZOOM,
   BASEMAP_STYLE,
@@ -134,6 +143,15 @@ const boundsForWalkingSearch = (point, routes) => {
 
 const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
 const smoothstep = (t) => t * t * (3 - 2 * t);
+const serializableFeature = (feature) =>
+  feature
+    ? {
+        type: "Feature",
+        id: feature.id,
+        geometry: feature.geometry,
+        properties: { ...feature.properties },
+      }
+    : null;
 
 export function RifugiMapScene() {
   const { content, locale, uiContent } = useContent();
@@ -181,6 +199,12 @@ export function RifugiMapScene() {
   const cameraResizePendingRef = useRef(false);
   const requestMapResizeUpdateRef = useRef(null);
   const readyWaitersRef = useRef(new Set());
+  const mapGenerationRef = useRef(0);
+  const savedCameraRef = useRef(null);
+  const savedSelectionRef = useRef(null);
+  const searchMarkerPointRef = useRef(null);
+  const hasReadyMapRef = useRef(false);
+  const unregisterIPhoneReleaseRef = useRef(null);
 
   const [revealed, setRevealed] = useState(false);
   const [engaged, setEngaged] = useState(false);
@@ -300,6 +324,7 @@ export function RifugiMapScene() {
   }, []);
 
   const setSearchMarker = useCallback((pt) => {
+    searchMarkerPointRef.current = pt ? [pt[0], pt[1]] : null;
     markerRef.current?.remove();
     markerRef.current = null;
     if (pt && mapRef.current) {
@@ -342,6 +367,73 @@ export function RifugiMapScene() {
     }
     pendingMobileCameraRef.current = null;
   }, []);
+
+  const destroyRifugiMap = useCallback(
+    (reason = "component-cleanup") => {
+      const map = mapRef.current;
+      if (!map) return;
+
+      mapGenerationRef.current += 1;
+      if (readyRef.current) {
+        const center = map.getCenter();
+        const padding = map.getPadding?.();
+        savedCameraRef.current = {
+          center: [center.lng, center.lat],
+          zoom: map.getZoom(),
+          bearing: map.getBearing(),
+          pitch: map.getPitch(),
+          padding: padding
+            ? {
+                top: padding.top,
+                right: padding.right,
+                bottom: padding.bottom,
+                left: padding.left,
+              }
+            : undefined,
+        };
+        hasReadyMapRef.current = true;
+      }
+
+      cancelPendingPointSelection();
+      cancelMobileCamera();
+      cancelWaveRef.current?.();
+      cancelWaveRef.current = null;
+      if (controlsReadyTimerRef.current) {
+        window.clearTimeout(controlsReadyTimerRef.current);
+      }
+      controlsReadyTimerRef.current = null;
+      routeAbortRef.current?.abort();
+      routeAbortRef.current = null;
+      markerRef.current?.remove();
+      markerRef.current = null;
+      popupRef.current?.remove();
+      popupRef.current = null;
+      hoverKeyRef.current = null;
+      popupRefreshRef.current = null;
+      resizeControllerRef.current?.destroy();
+      resizeControllerRef.current = null;
+      unregisterPerformanceRef.current?.();
+      unregisterPerformanceRef.current = null;
+      const unregisterOwnership = unregisterIPhoneReleaseRef.current;
+      unregisterIPhoneReleaseRef.current = null;
+      unregisterOwnership?.();
+
+      mapRef.current = null;
+      readyRef.current = false;
+      revealTargetsRef.current = null;
+      cameraResizePendingRef.current = false;
+      readyWaitersRef.current.forEach((resolve) => resolve(false));
+      readyWaitersRef.current.clear();
+      map.stop();
+      map.remove();
+      setControlsReady(false);
+      logPerformanceEvent("map:remove", {
+        mapName: "Rifugi",
+        reason,
+      });
+    },
+    [cancelMobileCamera, cancelPendingPointSelection],
+  );
 
   const scheduleMobileCamera = useCallback((request) => {
     if (!mobileMapRef.current) return false;
@@ -420,12 +512,15 @@ export function RifugiMapScene() {
       cancelRouting();
       searchResultFocusRef.current = false;
       mobileSearchCameraRef.current = null;
+      const stableFeature = serializableFeature(feature);
+      savedSelectionRef.current = { type: "official", feature: stableFeature };
       clearHighlights();
       setSearchMarker(null);
       detailOpenRef.current = true;
       selectedKeyRef.current = null;
-      setUfficialeFocus(map, "main", feature);
-      detailRefreshRef.current = () => ufficialeDetailHTML(feature, reliefCardsRef.current);
+      setUfficialeFocus(map, "main", stableFeature);
+      detailRefreshRef.current = () =>
+        ufficialeDetailHTML(stableFeature, reliefCardsRef.current);
       setDetail(detailRefreshRef.current());
       setMessageKey(null);
       setSearchOpen(false);
@@ -434,13 +529,13 @@ export function RifugiMapScene() {
       if (
         !scheduleMobileCamera({
           type: "point",
-          center: feature.geometry.coordinates,
+          center: stableFeature.geometry.coordinates,
           zoom: 15.4,
           duration: 1400,
         })
       ) {
         map.flyTo({
-          center: feature.geometry.coordinates,
+          center: stableFeature.geometry.coordinates,
           zoom: 15.4,
           duration: 1400,
           essential: true,
@@ -465,8 +560,13 @@ export function RifugiMapScene() {
       cancelRouting();
       searchResultFocusRef.current = false;
       mobileSearchCameraRef.current = null;
-      const full = fullRifugiFor(feature);
-      const primary = full[0] || feature;
+      const full = fullRifugiFor(feature).map(serializableFeature);
+      const primary = full[0] || serializableFeature(feature);
+      savedSelectionRef.current = {
+        type: "rifugio",
+        feature: primary,
+        features: full,
+      };
       clearHighlights();
       setSearchMarker(null);
       detailOpenRef.current = true;
@@ -502,6 +602,7 @@ export function RifugiMapScene() {
       cancelRouting();
       searchResultFocusRef.current = false;
       mobileSearchCameraRef.current = null;
+      savedSelectionRef.current = { type: "point", point: [pt[0], pt[1]] };
       clearHighlights();
       if (mobileMapRef.current) setSearchMarker(null);
       detailOpenRef.current = false;
@@ -558,6 +659,13 @@ export function RifugiMapScene() {
           );
         }
         setWalkingRoutes(map, "main", routes);
+        savedSelectionRef.current = {
+          type: "routes",
+          point: [pt[0], pt[1]],
+          ufficiale: ufficiale?.f ?? null,
+          rifugi: verdi.flatMap((item) => fullRifugiFor(item.f)),
+          routes,
+        };
         detailRefreshRef.current = () =>
           nearbyCardHTML({
             label,
@@ -604,6 +712,7 @@ export function RifugiMapScene() {
       mapGestureGraceUntilRef.current = 0;
       searchResultFocusRef.current = false;
       mobileSearchCameraRef.current = null;
+      savedSelectionRef.current = null;
       detailOpenRef.current = false;
       selectedKeyRef.current = null;
       hoverKeyRef.current = null;
@@ -725,6 +834,12 @@ export function RifugiMapScene() {
 
     const init = () => {
       if (mapRef.current || !containerRef.current) return;
+      if (runtimeProfile.isIPhone) {
+        requestIOSHeavyOffscreenRelease("rifugi-context-create");
+        claimIPhoneMapOwnership("Rifugi");
+      }
+      const generation = mapGenerationRef.current + 1;
+      mapGenerationRef.current = generation;
       const mobileMap = window.matchMedia(MOBILE_MAP_QUERY).matches;
       mobileMapRef.current = mobileMap;
       cameraTouchedRef.current = false;
@@ -745,6 +860,10 @@ export function RifugiMapScene() {
       resizeControllerRef.current = resizeController;
       unregisterPerformanceRef.current = registerMapPerformance(map, "Rifugi");
       mapRef.current = map;
+      unregisterIPhoneReleaseRef.current = registerIPhoneMapRelease(
+        "Rifugi",
+        destroyRifugiMap,
+      );
       lockCamera(map);
       map.on("resize", () => requestMapResizeUpdateRef.current?.());
       if (mobileMap) {
@@ -788,6 +907,12 @@ export function RifugiMapScene() {
         addBolognaBoundary(map, "main", { color: "rgba(255,255,255,.72)", glowOpacity: 0.28, opacity: 0.7 });
         try {
           const sources = await loadReliefSources(loadRifugiData, loadRifugiUfficiali);
+          if (
+            mapRef.current !== map ||
+            mapGenerationRef.current !== generation
+          ) {
+            return;
+          }
           if (!sources.official) {
             throw sources.errors.official || new Error("rifugi ufficiali non disponibili");
           }
@@ -825,12 +950,16 @@ export function RifugiMapScene() {
             officialDot: map.getPaintProperty("main-ufficiali-dot", "circle-opacity"),
             officialStroke: map.getPaintProperty("main-ufficiali-dot", "circle-stroke-opacity"),
           };
-          map.setPaintProperty("main-rifugi-fill", "fill-opacity", 0);
-          map.setPaintProperty("main-rifugi-line", "line-opacity", 0);
-          map.setPaintProperty("main-rifugi-line-casing", "line-opacity", 0);
-          map.setPaintProperty("main-ufficiali-halo", "circle-opacity", 0);
-          map.setPaintProperty("main-ufficiali-dot", "circle-opacity", 0);
-          map.setPaintProperty("main-ufficiali-dot", "circle-stroke-opacity", 0);
+          const restoringIPhoneMap =
+            runtimeProfile.isIPhone && hasReadyMapRef.current;
+          if (!restoringIPhoneMap) {
+            map.setPaintProperty("main-rifugi-fill", "fill-opacity", 0);
+            map.setPaintProperty("main-rifugi-line", "line-opacity", 0);
+            map.setPaintProperty("main-rifugi-line-casing", "line-opacity", 0);
+            map.setPaintProperty("main-ufficiali-halo", "circle-opacity", 0);
+            map.setPaintProperty("main-ufficiali-dot", "circle-opacity", 0);
+            map.setPaintProperty("main-ufficiali-dot", "circle-stroke-opacity", 0);
+          }
 
           setOverviewFrame(
             map,
@@ -844,11 +973,42 @@ export function RifugiMapScene() {
             map.setMinZoom(initialZoom);
             map.setMaxBounds(initialBounds);
           }
+
+          if (restoringIPhoneMap) {
+            const selection = savedSelectionRef.current;
+            if (selection?.type === "official") {
+              setUfficialeFocus(map, "main", selection.feature);
+            } else if (selection?.type === "rifugio") {
+              setRifugiFocus(
+                map,
+                "main",
+                selection.features,
+                reliefCardsRef.current.green.fallbackName,
+              );
+            } else if (selection?.type === "routes") {
+              setUfficialeFocus(map, "main", selection.ufficiale);
+              setRifugiFocus(
+                map,
+                "main",
+                selection.rifugi,
+                reliefCardsRef.current.green.fallbackName,
+              );
+              setWalkingRoutes(map, "main", selection.routes);
+            }
+            if (searchMarkerPointRef.current) {
+              setSearchMarker(searchMarkerPointRef.current);
+            }
+            if (savedCameraRef.current) {
+              map.jumpTo(savedCameraRef.current);
+            }
+            revealStartedRef.current = true;
+            setControlsReady(true);
+          }
           readyRef.current = true;
           cameraResizePendingRef.current = false;
           readyWaiters.forEach((resolve) => resolve(true));
           readyWaiters.clear();
-          startNetworkReveal();
+          if (!restoringIPhoneMap) startNetworkReveal();
           logPerformanceEvent("rifugi:map-ready", {
             section: "Mappa Rifugi",
           });
@@ -967,6 +1127,10 @@ export function RifugiMapScene() {
               entryResizeTimerRef.current = null;
             }
             resizeControllerRef.current?.cancelPending();
+            if (runtimeProfile.isIPhone) {
+              destroyRifugiMap("left-rifugi-region");
+              return;
+            }
             mapRef.current?.stop();
             if (!focusedRef.current) return;
             routeAbortRef.current?.abort();
@@ -1003,40 +1167,38 @@ export function RifugiMapScene() {
           }
         });
       },
-      { threshold: 0.05 },
+      runtimeProfile.isIPhone
+        ? { rootMargin: "100% 0px", threshold: 0 }
+        : { threshold: 0.05 },
     );
     io.observe(section);
+    const stopHeavyRelease = onIOSHeavyOffscreenRelease((reason) => {
+      if (!runtimeProfile.isIPhone) return;
+      // Never consume the event emitted by our own constructor. Only a real
+      // following heavy boundary owns the authority to tear this map down.
+      if (
+        reason !== "cityplan-approach" &&
+        reason !== "zones-context-create"
+      ) {
+        return;
+      }
+      destroyRifugiMap(`heavy-boundary:${reason}`);
+    });
     return () => {
       io.disconnect();
+      stopHeavyRelease();
       if (entryResizeTimerRef.current !== null) {
         window.clearTimeout(entryResizeTimerRef.current);
         entryResizeTimerRef.current = null;
       }
-      cancelPendingPointSelection();
-      cancelMobileCamera();
-      cancelWaveRef.current?.();
-      if (controlsReadyTimerRef.current) window.clearTimeout(controlsReadyTimerRef.current);
-      controlsReadyTimerRef.current = null;
-      routeAbortRef.current?.abort();
-      routeAbortRef.current = null;
-      markerRef.current?.remove();
-      markerRef.current = null;
-      resizeControllerRef.current?.destroy();
-      resizeControllerRef.current = null;
-      unregisterPerformanceRef.current?.();
-      unregisterPerformanceRef.current = null;
-      mapRef.current?.remove();
-      mapRef.current = null;
-      readyRef.current = false;
-      readyWaiters.forEach((resolve) => resolve(false));
-      readyWaiters.clear();
-      revealTargetsRef.current = null;
+      destroyRifugiMap("component-cleanup");
     };
   }, [
     focusRifugio,
     focusUfficiale,
     cancelMobileCamera,
     cancelPendingPointSelection,
+    destroyRifugiMap,
     zoomIntoPoint,
     isFullScreen,
     holdScrollAtSceneTop,

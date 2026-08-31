@@ -6,6 +6,8 @@ import {
   logPerformanceEvent,
   registerMapPerformance,
 } from "../../lib/mapPerformance";
+import { runtimeProfile } from "../../lib/runtimeProfile";
+import { registerIPhoneMapRelease } from "../../lib/iphoneMapOwnership";
 
 const DEFAULT_OPENFREEMAP_STYLE = "https://tiles.openfreemap.org/styles/positron";
 
@@ -45,6 +47,7 @@ export function MapLibreCanvas({
       locale,
     });
     const unregisterPerformance = registerMapPerformance(map, mapName);
+    let removed = false;
 
     map.addControl(
       new maplibregl.AttributionControl({ compact: true }),
@@ -53,7 +56,23 @@ export function MapLibreCanvas({
 
     mapRef.current = map;
 
+    const removeMap = (reason = "component-cleanup") => {
+      if (removed) return;
+      removed = true;
+      mapRef.current = null;
+      map.stop();
+      onMapRemoved?.(map);
+      unregisterPerformance();
+      map.remove();
+      logPerformanceEvent("map:remove", { mapName, reason });
+    };
+    const unregisterIPhoneRelease = registerIPhoneMapRelease(
+      mapName,
+      removeMap,
+    );
+
     map.on("load", () => {
+      if (removed) return;
       logPerformanceEvent("map:load", { mapName });
       if (collapseAttribution) {
         containerRef.current
@@ -72,6 +91,11 @@ export function MapLibreCanvas({
     });
 
     return () => {
+      unregisterIPhoneRelease();
+      if (runtimeProfile.isIPhone) {
+        removeMap("component-cleanup");
+        return;
+      }
       mapRef.current = null;
       map.stop();
       onMapRemoved?.(map);

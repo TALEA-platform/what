@@ -8,13 +8,16 @@ const forceIOSProfile =
   import.meta.env.DEV &&
   new URLSearchParams(window.location.search).get("forceIOSProfile") === "1";
 
+const isIPhoneDevice = /iPhone|iPod/i.test(userAgent);
 const isIOSDevice = /iPad|iPhone|iPod/i.test(userAgent);
 const isDesktopClassIPad = platform === "MacIntel" && maxTouchPoints > 1;
 const isAppleWebKit = /AppleWebKit/i.test(userAgent);
 const isIOSWebKit =
   forceIOSProfile || ((isIOSDevice || isDesktopClassIPad) && isAppleWebKit);
+const isIPhone = forceIOSProfile || (isIPhoneDevice && isAppleWebKit);
 
 export const runtimeProfile = Object.freeze({
+  isIPhone,
   isIOSWebKit,
   forceIOSProfile,
 });

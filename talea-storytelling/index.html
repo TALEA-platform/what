@@ -3,7 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/assets/talea-logo.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover, shrink-to-fit=no"
+    />
     <script>
       (function () {
         var config = {
@@ -31,10 +34,161 @@
           blockMaxHeight: 799,
         };
         window.__taleaViewportConfig = config;
+        var userAgent = navigator.userAgent || "";
+        var isIPhone =
+          /iPhone|iPod/i.test(userAgent) && /AppleWebKit/i.test(userAgent);
+        var isTopLevel = window.self === window.top;
+
+        // iPhone uses the physical document viewport. This is deliberately a
+        // conservative, ES5-style bootstrap because it runs before Vite's
+        // legacy feature probe has selected a bundle. iPad and Mac Safari do
+        // not match this branch and retain the existing frame shell.
+        window.__taleaIPhoneDirectMount = Boolean(isTopLevel && isIPhone);
+        if (window.__taleaIPhoneDirectMount) {
+          document.documentElement.setAttribute("data-talea-iphone-direct", "true");
+
+          // Cause uses an exact raster aspect ratio. Calculate these four
+          // dimensions once from the stable, toolbar-visible viewport so the
+          // sticky grid never depends on dvh changing during a swipe. Re-run
+          // only for a genuine width/orientation change.
+          var causeGeometryWidth = window.innerWidth || 0;
+          var applyIPhoneCauseGeometry = function () {
+            var width = window.innerWidth || 390;
+            var height =
+              window.innerHeight || document.documentElement.clientHeight || 1;
+            var copyReserve = width <= 520 ? 325 : 270;
+            var causeWidth = Math.max(
+              1,
+              Math.min(width - 24, 860, (height - 68 - copyReserve) * 1.075)
+            );
+            var compareWidth = Math.max(
+              1,
+              Math.min(width - 24, 860, (height - 305) * 1.075)
+            );
+            document.documentElement.style.setProperty(
+              "--talea-causes-visual-width",
+              causeWidth + "px"
+            );
+            document.documentElement.style.setProperty(
+              "--talea-causes-visual-height",
+              causeWidth / 1.075 + "px"
+            );
+            document.documentElement.style.setProperty(
+              "--talea-causes-compare-width",
+              compareWidth + "px"
+            );
+            document.documentElement.style.setProperty(
+              "--talea-causes-compare-height",
+              compareWidth / 1.075 + "px"
+            );
+          };
+          var updateIPhoneCauseGeometry = function () {
+            var nextWidth = window.innerWidth || causeGeometryWidth;
+            if (Math.abs(nextWidth - causeGeometryWidth) < 3) return;
+            causeGeometryWidth = nextWidth;
+            applyIPhoneCauseGeometry();
+          };
+          applyIPhoneCauseGeometry();
+          window.addEventListener("resize", updateIPhoneCauseGeometry, false);
+          window.addEventListener(
+            "orientationchange",
+            applyIPhoneCauseGeometry,
+            false
+          );
+
+          // Keep the production svh/dvh layout untouched on current Safari.
+          // Only Safari versions that cannot parse those units receive the
+          // measured-pixel fallback; mixing both strategies changed sticky
+          // geometry and could leave the Cause stage showing only its paper
+          // background.
+          var supportsModernViewport =
+            window.CSS &&
+            window.CSS.supports &&
+            window.CSS.supports("height", "100svh") &&
+            window.CSS.supports("height", "100dvh");
+          if (!supportsModernViewport) {
+            document.documentElement.setAttribute(
+              "data-talea-legacy-viewport",
+              "true"
+            );
+
+            var viewportFrame = 0;
+            var viewportTimer = 0;
+            var viewportWidth = window.innerWidth || 0;
+            var applyIPhoneViewport = function () {
+              viewportFrame = 0;
+              var height =
+                window.innerHeight || document.documentElement.clientHeight || 1;
+              var unit = height / 100;
+              document.documentElement.style.setProperty("--talea-vh", unit + "px");
+              document.documentElement.style.setProperty(
+                "--talea-viewport-height",
+                height + "px"
+              );
+              document.documentElement.style.setProperty(
+                "--talea-viewport-fifth",
+                height / 5 + "px"
+              );
+              document.documentElement.style.setProperty(
+                "--talea-causes-panel-height",
+                Math.max(570, Math.min(height * 0.78, 820)) + "px"
+              );
+              document.documentElement.style.setProperty(
+                "--talea-causes-last-panel-height",
+                Math.max(690, Math.min(height * 0.96, 960)) + "px"
+              );
+              document.documentElement.style.setProperty(
+                "--talea-causes-panels-pad-top",
+                Math.max(140, Math.min(height * 0.2, 220)) + "px"
+              );
+              document.documentElement.style.setProperty(
+                "--talea-causes-panels-pad-bottom",
+                height * 0.14 + "px"
+              );
+              document.documentElement.style.setProperty(
+                "--talea-shadow-beat-height",
+                Math.max(520, Math.min(height * 0.7, 740)) + "px"
+              );
+              document.documentElement.style.setProperty(
+                "--talea-shadow-closing-height",
+                Math.max(460, Math.min(height * 0.6, 640)) + "px"
+              );
+              document.documentElement.style.setProperty(
+                "--talea-shadow-tail-height",
+                Math.max(44, Math.min(height * 0.065, 76)) + "px"
+              );
+            };
+            var scheduleIPhoneViewport = function (event) {
+              var nextWidth = window.innerWidth || viewportWidth;
+              // Safari changes innerHeight as its toolbar expands/collapses. A
+              // height-only resize must not resize sticky scenes mid-scroll.
+              if (
+                event &&
+                event.type === "resize" &&
+                Math.abs(nextWidth - viewportWidth) < 3
+              ) {
+                return;
+              }
+              viewportWidth = nextWidth;
+              if (!viewportFrame) {
+                viewportFrame = window.requestAnimationFrame(applyIPhoneViewport);
+              }
+              window.clearTimeout(viewportTimer);
+              viewportTimer = window.setTimeout(applyIPhoneViewport, 160);
+            };
+            applyIPhoneViewport();
+            window.addEventListener("resize", scheduleIPhoneViewport, false);
+            window.addEventListener(
+              "orientationchange",
+              scheduleIPhoneViewport,
+              false
+            );
+          }
+        }
         // Nessuna soglia: la cornice vale a ogni risoluzione. Sulla reference il
         // fattore è 1 e il risultato è indistinguibile dal disegno diretto;
         // sopra e sotto è la stessa composizione, ingrandita o ridotta.
-        if (window.self === window.top) {
+        if (isTopLevel && !window.__taleaIPhoneDirectMount) {
           window.__taleaViewportFrameShell = true;
           document.documentElement.dataset.taleaViewportFrameShell = String(config.referenceWidth);
         }
@@ -66,6 +220,10 @@
     <style>
       .talea-boot {
         position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
         inset: 0;
         z-index: 9999;
         display: flex;
@@ -89,6 +247,10 @@
 
       .talea-resize-shell {
         position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
         inset: 0;
         z-index: 1;
         overflow: hidden;
@@ -289,6 +451,10 @@
          togliere quando la versione per schermi piccoli sarà pronta. */
       .talea-gate {
         position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
         inset: 0;
         z-index: 10000;
         display: flex;
@@ -376,6 +542,12 @@
         }
         .talea-boot {
           animation: tb-fade 300ms linear;
+        }
+      }
+
+      @supports not (gap: 1rem) {
+        .talea-boot .tb-bar {
+          margin-top: 2.2rem;
         }
       }
     </style>

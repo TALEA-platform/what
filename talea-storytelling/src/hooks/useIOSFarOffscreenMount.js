@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { logPerformanceEvent } from "../lib/mapPerformance";
 import { runtimeProfile } from "../lib/runtimeProfile";
+import {
+  claimIPhoneMapOwnership,
+  onIPhoneMapOwnershipChange,
+  releaseIPhoneMapOwnership,
+} from "../lib/iphoneMapOwnership";
+import { onIOSHeavyOffscreenRelease } from "../lib/iosMemoryLifecycle";
 
 function intersectsMargin(element, margin) {
   const rect = element.getBoundingClientRect();
@@ -21,11 +27,13 @@ export function useIOSFarOffscreenMount(
     releaseViewports = 9,
     initiallyMounted = false,
     retainUntilFirstApproach = false,
+    exclusiveIPhoneMap = false,
   } = {},
 ) {
   const [mounted, setMounted] = useState(
     () => !runtimeProfile.isIOSWebKit || initiallyMounted,
   );
+  const mountedRef = useRef(mounted);
   const approachedRef = useRef(false);
 
   useEffect(() => {
@@ -35,7 +43,10 @@ export function useIOSFarOffscreenMount(
 
     const target = targetRef.current;
     if (!target || typeof IntersectionObserver !== "function") {
-      const fallbackFrame = requestAnimationFrame(() => setMounted(true));
+      const fallbackFrame = requestAnimationFrame(() => {
+        mountedRef.current = true;
+        setMounted(true);
+      });
       return () => cancelAnimationFrame(fallbackFrame);
     }
 
@@ -43,17 +54,30 @@ export function useIOSFarOffscreenMount(
     let releaseObserver = null;
     let orientationTimer = null;
     let scrollFrame = null;
+    let exclusiveScrollFrame = null;
     let releaseMargin = 0;
+    let lastScrollY = window.scrollY;
+    let scrollingDown = target.getBoundingClientRect().top >= 0;
+    const exclusiveOwner = runtimeProfile.isIPhone && exclusiveIPhoneMap;
+    // Prewarming does not create overlapping contexts: claiming ownership
+    // synchronously removes the previous map first. Starting at the first
+    // visible pixel was too late for WebKit and exposed an empty sticky frame.
+    const effectivePrewarmViewports = prewarmViewports;
+    const effectiveReleaseViewports = exclusiveOwner
+      ? 0
+      : releaseViewports;
 
     const updateMounted = (next, reason) => {
-      setMounted((current) => {
-        if (current === next) return current;
-        logPerformanceEvent(`renderer:${next ? "prewarm" : "release"}`, {
-          renderer: name ?? "unnamed",
-          reason,
-        });
-        return next;
+      if (mountedRef.current === next) return;
+      if (exclusiveOwner && next) {
+        claimIPhoneMapOwnership(name ?? "unnamed");
+      }
+      mountedRef.current = next;
+      logPerformanceEvent(`renderer:${next ? "prewarm" : "release"}`, {
+        renderer: name ?? "unnamed",
+        reason,
       });
+      setMounted(next);
     };
 
     const connect = () => {
@@ -61,9 +85,17 @@ export function useIOSFarOffscreenMount(
       releaseObserver?.disconnect();
 
       const viewportHeight = window.innerHeight || 768;
-      const prewarmMargin = Math.round(viewportHeight * prewarmViewports);
+      const prewarmMargin = Math.round(
+        viewportHeight * effectivePrewarmViewports,
+      );
       releaseMargin = Math.round(
-        viewportHeight * Math.max(prewarmViewports + 1, releaseViewports),
+        viewportHeight *
+          (exclusiveOwner
+            ? effectivePrewarmViewports
+            : Math.max(
+                effectivePrewarmViewports + 1,
+                effectiveReleaseViewports,
+              )),
       );
       const rect = target.getBoundingClientRect();
       const inPrewarmZone =
@@ -89,23 +121,61 @@ export function useIOSFarOffscreenMount(
         },
         { rootMargin: `${prewarmMargin}px 0px`, threshold: 0 },
       );
-      releaseObserver = new IntersectionObserver(
-        ([entry]) => {
-          if (entry.isIntersecting) return;
-          const nextRect = target.getBoundingClientRect();
-          const isFarPast = nextRect.bottom < -releaseMargin;
-          if (
-            retainUntilFirstApproach &&
-            !approachedRef.current &&
-            !isFarPast
-          )
-            return;
-          updateMounted(false, "far-offscreen");
-        },
-        { rootMargin: `${releaseMargin}px 0px`, threshold: 0 },
-      );
       prewarmObserver.observe(target);
-      releaseObserver.observe(target);
+      if (!exclusiveOwner) {
+        releaseObserver = new IntersectionObserver(
+          ([entry]) => {
+            if (entry.isIntersecting) return;
+            const nextRect = target.getBoundingClientRect();
+            const isFarPast = nextRect.bottom < -releaseMargin;
+            if (
+              retainUntilFirstApproach &&
+              !approachedRef.current &&
+              !isFarPast
+            )
+              return;
+            updateMounted(false, "far-offscreen");
+          },
+          { rootMargin: `${releaseMargin}px 0px`, threshold: 0 },
+        );
+        releaseObserver.observe(target);
+      }
+    };
+
+    // IntersectionObserver may remain intersecting with the expanded prewarm
+    // root while another map takes ownership. In that state it will not emit
+    // another entry when this scene reaches the physical viewport. The scroll
+    // check is therefore also a visible-scene recovery path. Release happens
+    // one viewport beyond the scene boundary so WebKit never loses a sticky
+    // WebGL surface while it is still part of the current composite frame.
+    const checkExclusiveRange = () => {
+      exclusiveScrollFrame = null;
+      const nextScrollY = window.scrollY;
+      if (nextScrollY !== lastScrollY) {
+        scrollingDown = nextScrollY > lastScrollY;
+        lastScrollY = nextScrollY;
+      }
+      const rect = target.getBoundingClientRect();
+      const viewportHeight = window.innerHeight || 768;
+      const visiblyCurrent = rect.bottom > 0 && rect.top < viewportHeight;
+      if (visiblyCurrent && !mountedRef.current) {
+        approachedRef.current = true;
+        updateMounted(true, "visible-scene-recovery");
+      }
+
+      const releaseDistance = viewportHeight;
+      if (scrollingDown && rect.bottom < -releaseDistance) {
+        updateMounted(false, "passed-section-forward");
+      } else if (
+        !scrollingDown &&
+        rect.top > viewportHeight + releaseDistance
+      ) {
+        updateMounted(false, "passed-section-backward");
+      }
+    };
+    const requestExclusiveRangeCheck = () => {
+      if (exclusiveScrollFrame !== null) return;
+      exclusiveScrollFrame = requestAnimationFrame(checkExclusiveRange);
     };
 
     // IntersectionObserver does not notify when an instant progress-bar jump
@@ -131,8 +201,28 @@ export function useIOSFarOffscreenMount(
     };
 
     connect();
+    const stopOwnershipListener = exclusiveOwner
+      ? onIPhoneMapOwnershipChange((owner) => {
+          if (owner && owner !== name) {
+            updateMounted(false, `ownership-moved-to:${owner}`);
+          }
+        })
+      : () => {};
+    const stopHeavyReleaseListener =
+      runtimeProfile.isIPhone && !exclusiveOwner
+        ? onIOSHeavyOffscreenRelease((reason) => {
+            const rect = target.getBoundingClientRect();
+            if (rect.bottom > 0 && rect.top < window.innerHeight) return;
+            updateMounted(false, `heavy-boundary:${reason}`);
+          })
+        : () => {};
     if (retainUntilFirstApproach) {
       window.addEventListener("scroll", requestSkippedApproachCheck, {
+        passive: true,
+      });
+    }
+    if (exclusiveOwner) {
+      window.addEventListener("scroll", requestExclusiveRangeCheck, {
         passive: true,
       });
     }
@@ -142,9 +232,18 @@ export function useIOSFarOffscreenMount(
     return () => {
       window.clearTimeout(orientationTimer);
       if (scrollFrame !== null) cancelAnimationFrame(scrollFrame);
+      if (exclusiveScrollFrame !== null) {
+        cancelAnimationFrame(exclusiveScrollFrame);
+      }
       prewarmObserver?.disconnect();
       releaseObserver?.disconnect();
+      stopOwnershipListener();
+      stopHeavyReleaseListener();
+      if (exclusiveOwner) {
+        releaseIPhoneMapOwnership(name ?? "unnamed", "hook-cleanup");
+      }
       window.removeEventListener("scroll", requestSkippedApproachCheck);
+      window.removeEventListener("scroll", requestExclusiveRangeCheck);
       window.removeEventListener(
         "orientationchange",
         reconnectAfterOrientation,
@@ -152,6 +251,7 @@ export function useIOSFarOffscreenMount(
     };
   }, [
     initiallyMounted,
+    exclusiveIPhoneMap,
     name,
     prewarmViewports,
     releaseViewports,

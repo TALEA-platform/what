@@ -163,6 +163,7 @@ export function HotspotMapScene() {
     name: "Hotspot",
     prewarmViewports: 1.5,
     releaseViewports: 3.5,
+    exclusiveIPhoneMap: true,
   });
 
   useEffect(() => {

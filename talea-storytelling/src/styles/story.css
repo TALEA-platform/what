@@ -7926,6 +7926,10 @@
   opacity: 1;
 }
 
+.plan-mobile-map-canvas {
+  image-rendering: auto;
+}
+
 .plan-figure .pl-ink {
   fill: none;
   stroke: var(--relief-ink, #3a352a);
@@ -9652,11 +9656,11 @@
   @keyframes relief-mobile-intro-title-in {
     from {
       opacity: 0;
-      translate: 0 16px;
+      transform: translateY(16px);
     }
     to {
       opacity: 1;
-      translate: 0 0;
+      transform: none;
     }
   }
 
@@ -12915,5 +12919,170 @@
   .sf-mobile-gesture-hint,
   .sf-page-scroll-cue {
     animation: none;
+  }
+}
+
+/* iOS 13/14 cannot parse svh/dvh. Only that capability fallback uses the
+   measured top-level viewport; current Safari keeps the production mobile
+   units and therefore the exact original sticky geometry. */
+@media (max-width: 1279px) {
+  /* In a top-level iPhone document dvh changes while Safari's toolbar moves.
+     Cause and Ombra both combine a sticky surface with a negative overlap;
+     keeping those values on the stable small viewport prevents direction-
+     dependent blank compositor frames. */
+  html[data-talea-iphone-direct="true"] .causes-scene {
+    --causes-mobile-visual-w: var(--talea-causes-visual-width);
+    --causes-mobile-visual-h: var(--talea-causes-visual-height);
+  }
+
+  html[data-talea-iphone-direct="true"] .causes-stage {
+    height: 100svh;
+  }
+
+  html[data-talea-iphone-direct="true"] .causes-mobile-compare-stack {
+    gap: clamp(28px, 3svh, 38px);
+  }
+
+  html[data-talea-iphone-direct="true"]
+    .causes-mobile-compare-stack
+    .causes-compare-crop {
+    width: var(--talea-causes-compare-width);
+    height: var(--talea-causes-compare-height);
+  }
+
+  html[data-talea-iphone-direct="true"] .causes-panels {
+    margin-top: -100svh;
+    padding: clamp(140px, 20svh, 220px) 0 14svh;
+  }
+
+  html[data-talea-iphone-direct="true"] .causes-panel,
+  html[data-talea-iphone-direct="true"] .causes-panel--clue-green,
+  html[data-talea-iphone-direct="true"] .causes-panel--clue-materials,
+  html[data-talea-iphone-direct="true"] .causes-panel--compare,
+  html[data-talea-iphone-direct="true"]
+    .causes-panel--compare.causes-panel--last {
+    min-height: clamp(570px, 78svh, 820px);
+  }
+
+  html[data-talea-iphone-direct="true"]
+    .causes-panel--compare.causes-panel--last {
+    min-height: clamp(690px, 96svh, 960px);
+  }
+
+  html[data-talea-iphone-direct="true"] .sf-scene-map {
+    height: 100svh;
+  }
+
+  html[data-talea-iphone-direct="true"] .sf-scene-flow {
+    margin-top: -20svh;
+  }
+
+  html[data-talea-iphone-direct="true"] .sf-mobile-beat {
+    height: clamp(520px, 70svh, 740px);
+  }
+
+  html[data-talea-iphone-direct="true"] .sf-mobile-beat--closing {
+    height: clamp(460px, 60svh, 640px);
+  }
+
+  html[data-talea-iphone-direct="true"] .sf-mobile-track-tail {
+    height: clamp(44px, 6.5svh, 76px);
+  }
+
+  html[data-talea-legacy-viewport="true"] .hero-sticky,
+  html[data-talea-legacy-viewport="true"] .causes-stage,
+  html[data-talea-legacy-viewport="true"] .sf-scene-map,
+  html[data-talea-legacy-viewport="true"] .plan-stage,
+  html[data-talea-legacy-viewport="true"] .relief-map-sticky,
+  html[data-talea-legacy-viewport="true"] .relief-map-section--rifugi .relief-map-sticky,
+  html[data-talea-legacy-viewport="true"] .zones-scene .relief-map-sticky {
+    height: var(--talea-viewport-height);
+  }
+
+  html[data-talea-legacy-viewport="true"] .relief-explainer-stage {
+    height: calc(var(--talea-viewport-height) - var(--header-height));
+  }
+
+  html[data-talea-legacy-viewport="true"]
+    .relief-explainer--engaged
+    .relief-explainer-stage {
+    height: var(--talea-viewport-height);
+  }
+
+  html[data-talea-legacy-viewport="true"] .causes-scene {
+    --causes-mobile-visual-w: var(--talea-causes-visual-width);
+    --causes-mobile-visual-h: var(--talea-causes-visual-height);
+  }
+
+  html[data-talea-legacy-viewport="true"] .causes-stage {
+    min-height: 620px;
+  }
+
+  html[data-talea-legacy-viewport="true"]
+    .causes-mobile-compare-stack
+    .causes-compare-crop {
+    width: var(--talea-causes-compare-width);
+    height: var(--talea-causes-compare-height);
+  }
+
+  html[data-talea-legacy-viewport="true"] .causes-panels {
+    margin-top: calc(0px - var(--talea-viewport-height));
+    padding-top: var(--talea-causes-panels-pad-top);
+    padding-bottom: var(--talea-causes-panels-pad-bottom);
+  }
+
+  html[data-talea-legacy-viewport="true"] .causes-panel,
+  html[data-talea-legacy-viewport="true"] .causes-panel--clue-green,
+  html[data-talea-legacy-viewport="true"] .causes-panel--clue-materials,
+  html[data-talea-legacy-viewport="true"] .causes-panel--compare,
+  html[data-talea-legacy-viewport="true"]
+    .causes-panel--compare.causes-panel--last {
+    min-height: var(--talea-causes-panel-height);
+  }
+
+  html[data-talea-legacy-viewport="true"]
+    .causes-panel--compare.causes-panel--last {
+    min-height: var(--talea-causes-last-panel-height);
+  }
+
+  html[data-talea-legacy-viewport="true"] .sf-scene-panels--mobile {
+    margin-top: calc(0px - var(--talea-viewport-fifth));
+  }
+
+  html[data-talea-legacy-viewport="true"] .sf-scene-flow {
+    margin-top: calc(0px - var(--talea-viewport-fifth));
+  }
+
+  html[data-talea-legacy-viewport="true"] .sf-mobile-beat {
+    height: var(--talea-shadow-beat-height);
+  }
+
+  html[data-talea-legacy-viewport="true"] .sf-mobile-beat--closing {
+    height: var(--talea-shadow-closing-height);
+  }
+
+  html[data-talea-legacy-viewport="true"] .sf-mobile-track-tail {
+    height: var(--talea-shadow-tail-height);
+  }
+
+  /* Newsreader's ink extends beyond its nominal line box on WebKit. Reserve
+     that ink space without moving either heading in the document flow. The
+     transform/opacity reveal remains, so only the clipping mechanism changes. */
+  html[data-talea-iphone-direct="true"] .relief-intro-heading,
+  html[data-talea-iphone-direct="true"] .rifugi-intro-head {
+    padding-top: 0.16em;
+    padding-bottom: 0.2em;
+    margin-top: -0.16em;
+    margin-bottom: -0.2em;
+    overflow: visible;
+  }
+
+  html[data-talea-iphone-direct="true"] .relief-intro-heading {
+    clip-path: none;
+  }
+
+  html[data-talea-iphone-direct="true"] .relief-intro-heading .relief-title,
+  html[data-talea-iphone-direct="true"] .rifugi-title {
+    overflow: visible;
   }
 }

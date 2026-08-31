@@ -16,6 +16,7 @@ import {
 } from "../../lib/mapPerformance";
 import { useIOSFarOffscreenMount } from "../../hooks/useIOSFarOffscreenMount";
 import { requestIOSHeavyOffscreenRelease } from "../../lib/iosMemoryLifecycle";
+import { registerIPhoneMapRelease } from "../../lib/iphoneMapOwnership";
 
 const ZONES = zonesMap.zones;
 const STAGE_COUNT = ZONES.length + 1;
@@ -193,6 +194,7 @@ export function ZonesMapScene() {
     name: "Zones",
     prewarmViewports: 0.25,
     releaseViewports: 4,
+    exclusiveIPhoneMap: true,
   });
 
   const [ready, setReady] = useState(false);
@@ -322,6 +324,8 @@ export function ZonesMapScene() {
     if (!section || !mapMaterialized) return undefined;
 
     let initFrame = null;
+    let removeCurrentMap = () => {};
+    let unregisterIPhoneRelease = () => {};
     const init = () => {
       if (mapRef.current || !containerRef.current) return;
       logPerformanceEvent("zones:init-start", { section: "Zones" });
@@ -339,6 +343,24 @@ export function ZonesMapScene() {
       resizeControllerRef.current = createMapResizeController(map);
       unregisterPerformanceRef.current = registerMapPerformance(map, "Zones");
       mapRef.current = map;
+      let removed = false;
+      removeCurrentMap = (reason = "component-cleanup") => {
+        if (removed) return;
+        removed = true;
+        if (mapRef.current === map) mapRef.current = null;
+        map.stop();
+        resizeControllerRef.current?.destroy();
+        resizeControllerRef.current = null;
+        unregisterPerformanceRef.current?.();
+        unregisterPerformanceRef.current = null;
+        map.remove();
+        setReady(false);
+        logPerformanceEvent("map:remove", { mapName: "Zones", reason });
+      };
+      unregisterIPhoneRelease = registerIPhoneMapRelease(
+        "Zones",
+        removeCurrentMap,
+      );
       lockCamera(map);
       const mobileMap = window.matchMedia(MOBILE_LAYOUT_QUERY).matches;
       map.on("render", () => {
@@ -346,6 +368,7 @@ export function ZonesMapScene() {
       });
 
       map.on("load", () => {
+        if (removed || mapRef.current !== map) return;
         logPerformanceEvent("zones:map-load", { section: "Zones" });
         try {
           addOrthophoto(map);
@@ -428,14 +451,8 @@ export function ZonesMapScene() {
         window.clearTimeout(entryResizeTimerRef.current);
         entryResizeTimerRef.current = null;
       }
-      mapRef.current?.stop();
-      resizeControllerRef.current?.destroy();
-      resizeControllerRef.current = null;
-      unregisterPerformanceRef.current?.();
-      unregisterPerformanceRef.current = null;
-      mapRef.current?.remove();
-      mapRef.current = null;
-      setReady(false);
+      unregisterIPhoneRelease();
+      removeCurrentMap("component-cleanup");
     };
   }, [mapMaterialized]);
 

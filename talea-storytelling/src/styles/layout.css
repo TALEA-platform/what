@@ -262,6 +262,13 @@
   }
 }
 
+@media (max-width: 1279px) {
+  html[data-talea-iphone-direct="true"] .header-inner {
+    padding-left: max(var(--content-pad), var(--talea-safe-left));
+    padding-right: max(var(--content-pad), var(--talea-safe-right));
+  }
+}
+
 
 .scroll-stem {
   --stem-p: 0;

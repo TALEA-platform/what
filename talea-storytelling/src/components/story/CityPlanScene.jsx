@@ -34,7 +34,10 @@ import {
   updateMemoryDebugState,
 } from "../../lib/mapPerformance";
 import { runtimeProfile } from "../../lib/runtimeProfile";
-import { onIOSHeavyOffscreenRelease } from "../../lib/iosMemoryLifecycle";
+import {
+  onIOSHeavyOffscreenRelease,
+  requestIOSHeavyOffscreenRelease,
+} from "../../lib/iosMemoryLifecycle";
 
 // Stable objects stop React reinjecting SVG innerHTML and erasing animation classes.
 const PLAN_HTML = { __html: cityPlanSvg };
@@ -95,9 +98,17 @@ const MOBILE_PLAN_COMPOSITES = cityPlanMobileComposites.beats.map(
   (composite) => ({
     ...composite,
     src: `${MOBILE_ASSET_ROOT}/${composite.file}`,
+    fallbackSrc: `${MOBILE_ASSET_ROOT}/${composite.fallbackFile}`,
     style: mobileRasterStyle(composite.style),
   }),
 );
+const SUPPORTS_WEBP = (() => {
+  if (typeof document === "undefined") return true;
+  const canvas = document.createElement("canvas");
+  canvas.width = 1;
+  canvas.height = 1;
+  return canvas.toDataURL("image/webp").startsWith("data:image/webp");
+})();
 const MOBILE_VIGNETTE_LAYER_SPECS = {
   costruire: [
     { name: "context", kind: "context", delay: 0 },
@@ -444,7 +455,7 @@ function MobileIOSCompositePlan({ composite, failed, onLoad, onError }) {
       {composite && !failed ? (
         <img
           className="plan-mobile-map-state plan-mobile-map-base is-active"
-          src={composite.src}
+          src={SUPPORTS_WEBP ? composite.src : composite.fallbackSrc}
           style={composite.style}
           alt=""
           decoding="async"
@@ -455,6 +466,149 @@ function MobileIOSCompositePlan({ composite, failed, onLoad, onError }) {
           onError={() => onError(composite.beat)}
         />
       ) : null}
+    </figure>
+  );
+}
+
+function MobileIPhoneCanvasPlan({ composite, failed, onLoad, onError }) {
+  const canvasRef = useRef(null);
+  const generationRef = useRef(0);
+  const controllerRef = useRef(null);
+  const releaseTransientRef = useRef(null);
+
+  useEffect(() => {
+    if (!composite || failed) return undefined;
+    const canvas = canvasRef.current;
+    if (!canvas) return undefined;
+
+    const generation = generationRef.current + 1;
+    generationRef.current = generation;
+    const controller = new AbortController();
+    controllerRef.current = controller;
+    let sourceImage = null;
+    let objectUrl = null;
+    let live = true;
+
+    const releaseTransientSource = () => {
+      if (sourceImage) {
+        sourceImage.onload = null;
+        sourceImage.onerror = null;
+        sourceImage.src = "";
+        sourceImage = null;
+      }
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+        objectUrl = null;
+      }
+    };
+    releaseTransientRef.current = releaseTransientSource;
+
+    const sourceUrl = SUPPORTS_WEBP ? composite.src : composite.fallbackSrc;
+    fetch(sourceUrl, { signal: controller.signal })
+      .then((response) => {
+        if (!response.ok) throw new Error(`Unable to load ${sourceUrl}`);
+        return response.blob();
+      })
+      .then((blob) => {
+        if (!live || generationRef.current !== generation) return;
+        objectUrl = URL.createObjectURL(blob);
+        sourceImage = new Image();
+        sourceImage.decoding = "async";
+        sourceImage.onload = () => {
+          if (!live || generationRef.current !== generation) {
+            releaseTransientSource();
+            return;
+          }
+          const context = canvas.getContext("2d", { alpha: true });
+          if (!context) {
+            releaseTransientSource();
+            onError(composite.beat);
+            return;
+          }
+          // The old beat remains painted until this synchronous replacement.
+          // There is never an old/new pair of displayed raster elements.
+          context.clearRect(0, 0, canvas.width, canvas.height);
+          context.drawImage(sourceImage, 0, 0, canvas.width, canvas.height);
+          canvas.dataset.mobileMapCompositeBeat = String(composite.beat);
+          releaseTransientSource();
+          onLoad(composite.beat);
+        };
+        sourceImage.onerror = () => {
+          if (live && generationRef.current === generation) {
+            onError(composite.beat);
+          }
+          releaseTransientSource();
+        };
+        sourceImage.src = objectUrl;
+      })
+      .catch((error) => {
+        if (
+          live &&
+          generationRef.current === generation &&
+          error?.name !== "AbortError"
+        ) {
+          onError(composite.beat);
+        }
+      });
+
+    return () => {
+      live = false;
+      controller.abort();
+      releaseTransientSource();
+      if (controllerRef.current === controller) controllerRef.current = null;
+      if (releaseTransientRef.current === releaseTransientSource) {
+        releaseTransientRef.current = null;
+      }
+    };
+  }, [composite, failed, onError, onLoad]);
+
+  useEffect(
+    () =>
+      onIOSHeavyOffscreenRelease((reason) => {
+        if (
+          reason !== "zones-context-create" &&
+          reason !== "rifugi-context-create"
+        ) {
+          return;
+        }
+        generationRef.current += 1;
+        controllerRef.current?.abort();
+        controllerRef.current = null;
+        releaseTransientRef.current?.();
+        releaseTransientRef.current = null;
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        canvas.width = 1;
+        canvas.height = 1;
+      }),
+    [],
+  );
+
+  useEffect(
+    () => () => {
+      generationRef.current += 1;
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      // Resizing is the deterministic Canvas2D backing-store release.
+      canvas.width = 1;
+      canvas.height = 1;
+    },
+    [],
+  );
+
+  return (
+    <figure
+      className="plan-figure plan-figure--mobile-images plan-figure--ios-composite"
+      aria-hidden="true"
+    >
+      <canvas
+        ref={canvasRef}
+        className="plan-mobile-map-state plan-mobile-map-base plan-mobile-map-canvas is-active"
+        width={composite?.pixelWidth ?? cityPlanMobileComposites.canvas.width}
+        height={composite?.pixelHeight ?? cityPlanMobileComposites.canvas.height}
+        style={composite?.style ?? mobileRasterStyle(cityPlanMobileComposites.canvas)}
+        data-mobile-map-composite-beat="pending"
+      />
     </figure>
   );
 }
@@ -650,11 +804,15 @@ export function CityPlanScene() {
   const [link, setLink] = useState(null);
   const iosPrecomposedRasterActive =
     mobileCameraActive && runtimeProfile.isIOSWebKit;
+  const iphoneCanvasRasterActive =
+    mobileCameraActive && runtimeProfile.isIPhone;
 
   useLayoutEffect(() => {
     if (!mobileCameraActive) return;
     const rasterCount =
-      rootRef.current?.querySelectorAll(".plan-mobile-map-state[src]").length ?? 0;
+      rootRef.current?.querySelectorAll(
+        ".plan-mobile-map-state[src], canvas.plan-mobile-map-state",
+      ).length ?? 0;
     updateMemoryDebugState({
       cityPlanRasterCount: rasterCount,
       heavyScene: {
@@ -725,8 +883,11 @@ export function CityPlanScene() {
       requestedBeat,
       mountedRasterLayerCount,
       visibleRasterLayerCount,
-      cityplanRasterBackend:
-        iosPrecomposedRasterActive ? "ios-precomposed" : "stack",
+      cityplanRasterBackend: iphoneCanvasRasterActive
+        ? "iphone-canvas"
+        : iosPrecomposedRasterActive
+          ? "ios-precomposed"
+          : "stack",
       currentCompositeBeat: iosPrecomposedRasterActive ? beat : null,
     });
 
@@ -748,8 +909,11 @@ export function CityPlanScene() {
         scene: "cityplan",
         storyBeat: beat,
         requestedBeat,
-        cityplanRasterBackend:
-          iosPrecomposedRasterActive ? "ios-precomposed" : "stack",
+        cityplanRasterBackend: iphoneCanvasRasterActive
+          ? "iphone-canvas"
+          : iosPrecomposedRasterActive
+            ? "ios-precomposed"
+            : "stack",
         currentCompositeBeat: iosPrecomposedRasterActive ? beat : null,
       });
     });
@@ -757,6 +921,7 @@ export function CityPlanScene() {
   }, [
     beat,
     currentMobileComposite,
+    iphoneCanvasRasterActive,
     iosPrecomposedRasterActive,
     mobileCameraActive,
     mobileCompositeFailedBeat,
@@ -782,8 +947,11 @@ export function CityPlanScene() {
           scene: "cityplan",
           storyBeat: mobileCommittedBeatRef.current,
           requestedBeat: mobileRequestedBeatRef.current,
-          cityplanRasterBackend:
-            iosPrecomposedRasterActive ? "ios-precomposed" : "stack",
+          cityplanRasterBackend: iphoneCanvasRasterActive
+            ? "iphone-canvas"
+            : iosPrecomposedRasterActive
+              ? "ios-precomposed"
+              : "stack",
           currentCompositeBeat: iosPrecomposedRasterActive
             ? mobileCommittedBeatRef.current
             : null,
@@ -792,13 +960,21 @@ export function CityPlanScene() {
     });
     observer.observe(root);
     return () => observer.disconnect();
-  }, [iosPrecomposedRasterActive, mobileCameraActive]);
+  }, [iphoneCanvasRasterActive, iosPrecomposedRasterActive, mobileCameraActive]);
 
   useEffect(
     () =>
       onIOSHeavyOffscreenRelease((reason) => {
         const rect = rootRef.current?.getBoundingClientRect();
-        if (!rect || (rect.bottom > 0 && rect.top < window.innerHeight)) return;
+        const forceMapBoundary =
+          reason === "zones-context-create" ||
+          reason === "rifugi-context-create";
+        if (
+          !forceMapBoundary &&
+          (!rect || (rect.bottom > 0 && rect.top < window.innerHeight))
+        ) {
+          return;
+        }
         setMobileVignettesMounted((mounted) => {
           if (!mounted) return mounted;
           logPerformanceEvent("cityplan:rasters-release", {
@@ -1367,8 +1543,8 @@ export function CityPlanScene() {
     );
     const updateMode = () => setMobileCameraActive(media.matches);
     updateMode();
-    media.addEventListener("change", updateMode);
-    return () => media.removeEventListener("change", updateMode);
+    media.addEventListener?.("change", updateMode);
+    return () => media.removeEventListener?.("change", updateMode);
   }, []);
 
   useEffect(() => {
@@ -1398,8 +1574,9 @@ export function CityPlanScene() {
     let retentionObserver = null;
     const viewportHeight = window.innerHeight || 768;
     const rect = root.getBoundingClientRect();
-    mobileNearbyRef.current =
-      rect.top <= viewportHeight * 2 && rect.bottom >= -viewportHeight;
+    mobileNearbyRef.current = runtimeProfile.isIPhone
+      ? rect.top <= viewportHeight && rect.bottom >= 0
+      : rect.top <= viewportHeight * 2 && rect.bottom >= -viewportHeight;
     root.dataset.mobileNearby = String(mobileNearbyRef.current);
 
     const observer = new IntersectionObserver(
@@ -1407,7 +1584,14 @@ export function CityPlanScene() {
         const nextNearby = entry.isIntersecting;
         if (nextNearby === mobileNearbyRef.current) return;
         mobileNearbyRef.current = nextNearby;
-        if (nextNearby) setMobileVignettesMounted(true);
+        if (nextNearby) {
+          if (runtimeProfile.isIPhone) {
+            // Release the preceding MapLibre context before React is allowed
+            // to mount/decode the first CityPlan raster surface.
+            requestIOSHeavyOffscreenRelease("cityplan-approach");
+          }
+          setMobileVignettesMounted(true);
+        }
         root.dataset.mobileNearby = String(nextNearby);
         if (!nextNearby) return;
         if (syncFrame) cancelAnimationFrame(syncFrame);
@@ -1417,7 +1601,12 @@ export function CityPlanScene() {
           syncScrollStateRef.current?.();
         });
       },
-      { rootMargin: "1500px 0px 1500px 0px", threshold: 0 },
+      {
+        rootMargin: runtimeProfile.isIPhone
+          ? "0px"
+          : "1500px 0px 1500px 0px",
+        threshold: 0,
+      },
     );
     observer.observe(root);
     if (runtimeProfile.isIOSWebKit) {
@@ -1441,6 +1630,9 @@ export function CityPlanScene() {
     syncFrame = requestAnimationFrame(() => {
       syncFrame = null;
       if (mobileNearbyRef.current) {
+        if (runtimeProfile.isIPhone) {
+          requestIOSHeavyOffscreenRelease("cityplan-approach");
+        }
         setMobileVignettesMounted(true);
         syncScrollStateRef.current?.();
       }
@@ -2013,15 +2205,27 @@ export function CityPlanScene() {
             {mobileCameraActive ? (
               mobileVignettesMounted ? (
                 iosPrecomposedRasterActive ? (
-                  <MobileIOSCompositePlan
-                    composite={currentMobileComposite}
-                    failed={
-                      !currentMobileComposite ||
-                      mobileCompositeFailedBeat === beat
-                    }
-                    onLoad={handleMobileCompositeLoad}
-                    onError={handleMobileCompositeError}
-                  />
+                  iphoneCanvasRasterActive ? (
+                    <MobileIPhoneCanvasPlan
+                      composite={currentMobileComposite}
+                      failed={
+                        !currentMobileComposite ||
+                        mobileCompositeFailedBeat === beat
+                      }
+                      onLoad={handleMobileCompositeLoad}
+                      onError={handleMobileCompositeError}
+                    />
+                  ) : (
+                    <MobileIOSCompositePlan
+                      composite={currentMobileComposite}
+                      failed={
+                        !currentMobileComposite ||
+                        mobileCompositeFailedBeat === beat
+                      }
+                      onLoad={handleMobileCompositeLoad}
+                      onError={handleMobileCompositeError}
+                    />
+                  )
                 ) : mobileAssetFailure && !mobileVisualReady ? (
                   <figure
                     ref={figRef}

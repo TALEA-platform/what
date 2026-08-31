@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Generate lossless, precomposed CityPlan WebP states for iOS mobile.
+"""Generate lossless, precomposed CityPlan WebP and legacy PNG states.
 
 Run from the project root after the source mobile rasters are current:
     python scripts/generate_cityplan_mobile_composites.py
@@ -104,8 +104,9 @@ def main() -> None:
         ASSET_DIR / str(plan["base"]["file"])
     )
 
-    for stale in ASSET_DIR.glob(f"{OUTPUT_PREFIX}*.webp"):
-        stale.unlink()
+    for extension in ("webp", "png"):
+        for stale in ASSET_DIR.glob(f"{OUTPUT_PREFIX}*.{extension}"):
+            stale.unlink()
 
     generated_beats = []
     for beat, beat_id in enumerate(beat_ids):
@@ -141,12 +142,22 @@ def main() -> None:
             method=6,
             exact=True,
         )
+        fallback_filename = f"{OUTPUT_PREFIX}{beat}.png"
+        fallback_output_path = ASSET_DIR / fallback_filename
+        composite.save(
+            fallback_output_path,
+            format="PNG",
+            optimize=True,
+            compress_level=9,
+        )
         generated_beats.append(
             {
                 "beat": beat,
                 "id": beat_id,
                 "file": filename,
                 "bytes": output_path.stat().st_size,
+                "fallbackFile": fallback_filename,
+                "fallbackBytes": fallback_output_path.stat().st_size,
                 "pixelWidth": canvas_width,
                 "pixelHeight": canvas_height,
                 "decodedBytes": canvas_width * canvas_height * 4,
@@ -162,7 +173,7 @@ def main() -> None:
         )
 
     runtime_manifest = {
-        "format": "webp-lossless-alpha",
+        "format": "webp-lossless-alpha-with-png-fallback",
         "composition": "production-stable-state-source-over",
         "canvas": {
             "left": canvas_x,
@@ -182,10 +193,12 @@ def main() -> None:
         encoding="utf-8",
     )
     total_bytes = sum(int(item["bytes"]) for item in generated_beats)
+    fallback_bytes = sum(int(item["fallbackBytes"]) for item in generated_beats)
     print(
         f"{len(generated_beats)} lossless composites, "
         f"{canvas_width}x{canvas_height}, "
-        f"{total_bytes / (1024 * 1024):.2f} MiB -> {ASSET_DIR}"
+        f"{total_bytes / (1024 * 1024):.2f} MiB WebP / "
+        f"{fallback_bytes / (1024 * 1024):.2f} MiB PNG -> {ASSET_DIR}"
     )
 
 

@@ -13098,8 +13098,42 @@
 
   html[data-talea-iphone-direct="true"] .causes-stage {
     height: 100svh;
-    align-content: center;
+    padding-bottom: max(12px, var(--talea-safe-bottom));
+  }
+
+  /* A real iPhone can expose a shorter small viewport than desktop device
+     emulation. The longest hidden paragraph still contributes to this grid's
+     intrinsic row size; centering an overfull grid therefore moves the raster
+     into the progress rail and clips the copy at the bottom. Let the copy row
+     keep its measured font height and give the raster the remaining space. */
+  html[data-talea-iphone-direct="true"]
+    .causes-stage:not(.causes-stage--mobile-compare) {
+    grid-template-rows: minmax(0, 1fr) auto;
+    align-content: stretch;
     row-gap: clamp(14px, 2svh, 22px);
+  }
+
+  @supports (aspect-ratio: 1 / 1) {
+    html[data-talea-iphone-direct="true"]
+      .causes-stage:not(.causes-stage--mobile-compare)
+      .causes-crop {
+      align-self: center;
+      width: auto;
+      height: 100%;
+      min-height: 0;
+      max-width: var(--talea-causes-visual-width);
+      max-height: var(--talea-causes-visual-height);
+      aspect-ratio: var(--causes-mobile-visual-ratio);
+    }
+  }
+
+  /* Unlike the map stories, Hero has no negative sticky/panel handoff. Its
+     video surface can safely follow Safari's visible viewport while the bars
+     retract, preventing the svh-sized strip from exposing paper below it. */
+  @supports (height: 100dvh) {
+    html[data-talea-iphone-direct="true"] .hero-sticky {
+      height: 100dvh;
+    }
   }
 
   /* The production statistic scale is too tall for these two long narrative
@@ -13243,7 +13277,7 @@
      transform/opacity reveal remains, so only the clipping mechanism changes. */
   html[data-talea-iphone-direct="true"] .relief-intro-heading,
   html[data-talea-iphone-direct="true"] .rifugi-intro-head {
-    overflow: visible;
+    overflow: visible !important;
   }
 
   /* Both Rifugi headings used a vertical reveal. On short iPhone stages that
@@ -13269,8 +13303,8 @@
   }
 
   html[data-talea-iphone-direct="true"] .relief-intro-heading {
-    -webkit-clip-path: none;
-    clip-path: none;
+    -webkit-clip-path: none !important;
+    clip-path: none !important;
   }
 
   html[data-talea-iphone-direct="true"] .relief-intro-heading .relief-title,
@@ -13278,15 +13312,15 @@
     display: block;
     box-sizing: border-box;
     width: 100%;
-    padding: 0.16em 0.22em 0.24em;
+    padding: 0.24em 0.22em 0.24em;
     margin-top: 0;
     margin-right: auto;
     margin-bottom: 0;
     margin-left: auto;
     line-height: 1.14;
-    -webkit-clip-path: none;
-    clip-path: none;
-    overflow: visible;
+    -webkit-clip-path: none !important;
+    clip-path: none !important;
+    overflow: visible !important;
   }
 }
 

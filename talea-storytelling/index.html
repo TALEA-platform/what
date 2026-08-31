@@ -56,11 +56,12 @@
             var width = window.innerWidth || 390;
             var height =
               window.innerHeight || document.documentElement.clientHeight || 1;
-            // A fixed 325px reserve left only ~294px for the raster on a
-            // short 375x667 viewport. Keep the existing reserve on regular
-            // iPhones, but let compact-height phones use the available width;
-            // the sticky stage already has a 620px minimum and can contain the
-            // copy without shrinking the map to thumbnail size.
+            // Reserve the real vertical stack, not only a generic copy block.
+            // At 390px the topic labels and progress rail are stacked; on a
+            // short physical Safari viewport a full-width raster otherwise
+            // forces the grid to overflow above and below simultaneously.
+            // Modern Safari also refines this against the measured text via
+            // CSS grid; this conservative value is the iOS 13 fallback.
             var compactCauseViewport = width <= 430 && height <= 720;
             if (compactCauseViewport) {
               document.documentElement.setAttribute(
@@ -72,17 +73,15 @@
                 "data-talea-compact-cause"
               );
             }
-            var copyReserve = width <= 520 ? 325 : 270;
-            var causeWidth = compactCauseViewport
-              ? Math.max(1, Math.min(width - 24, 860))
-              : Math.max(
-                  1,
-                  Math.min(
-                    width - 24,
-                    860,
-                    (height - 68 - copyReserve) * 1.075
-                  )
-                );
+            var stackedCauseHeader = width >= 390;
+            var causeStageTop = 68 + (stackedCauseHeader ? 78 : 48);
+            var causeVerticalReserve = causeStageTop + 12 + 14 + 190;
+            var heightLimitedCauseWidth =
+              (height - causeVerticalReserve) * 1.075;
+            var causeWidth = Math.max(
+              1,
+              Math.min(width - 24, 860, heightLimitedCauseWidth)
+            );
             var compareWidth = compactCauseViewport
               ? Math.max(1, Math.min(width - 24, 860))
               : Math.max(

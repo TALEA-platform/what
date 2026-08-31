@@ -28,6 +28,14 @@ SOURCE_MANIFEST = ASSET_DIR / "manifest.json"
 BEAT_SOURCE = ROOT / "src" / "data" / "cityPlanScene.js"
 GENERATED_MODULE = ROOT / "src" / "generated" / "cityPlanMobileComposites.js"
 OUTPUT_PREFIX = "cityplan-mobile-composite-beat-"
+IPHONE_OUTPUT_PREFIX = "cityplan-iphone-composite-beat-"
+
+# All phone and phone-landscape camera paths stay inside this source-space
+# envelope, including the previous raster that can remain visible while a
+# skipped/latest beat is fetched. Cropping is pixel-for-pixel (no resize), so
+# the perceived map and camera framing are unchanged while each decoded iPhone
+# surface drops from 3530x2394 to 2240x2394.
+IPHONE_CANVAS = (-64, -308, 2240, 2394)
 
 
 def read_beat_ids() -> list[str]:
@@ -105,10 +113,12 @@ def main() -> None:
     )
 
     for extension in ("webp", "png"):
-        for stale in ASSET_DIR.glob(f"{OUTPUT_PREFIX}*.{extension}"):
-            stale.unlink()
+        for prefix in (OUTPUT_PREFIX, IPHONE_OUTPUT_PREFIX):
+            for stale in ASSET_DIR.glob(f"{prefix}*.{extension}"):
+                stale.unlink()
 
     generated_beats = []
+    generated_iphone_beats = []
     for beat, beat_id in enumerate(beat_ids):
         # Beat 2 temporarily keeps parking/gap DOM layers for its exit motion,
         # but both have opacity 0 at the stable endpoint represented here.
@@ -172,6 +182,60 @@ def main() -> None:
             }
         )
 
+        iphone_x, iphone_y, iphone_width, iphone_height = IPHONE_CANVAS
+        iphone_box = (
+            iphone_x - canvas_x,
+            iphone_y - canvas_y,
+            iphone_x - canvas_x + iphone_width,
+            iphone_y - canvas_y + iphone_height,
+        )
+        if (
+            iphone_box[0] < 0
+            or iphone_box[1] < 0
+            or iphone_box[2] > canvas_width
+            or iphone_box[3] > canvas_height
+        ):
+            raise RuntimeError("IPHONE_CANVAS falls outside the reference canvas")
+        iphone_composite = composite.crop(iphone_box)
+        iphone_filename = f"{IPHONE_OUTPUT_PREFIX}{beat}.webp"
+        iphone_output_path = ASSET_DIR / iphone_filename
+        iphone_composite.save(
+            iphone_output_path,
+            format="WEBP",
+            lossless=True,
+            method=6,
+            exact=True,
+        )
+        iphone_fallback_filename = f"{IPHONE_OUTPUT_PREFIX}{beat}.png"
+        iphone_fallback_output_path = ASSET_DIR / iphone_fallback_filename
+        iphone_composite.save(
+            iphone_fallback_output_path,
+            format="PNG",
+            optimize=True,
+            compress_level=9,
+        )
+        generated_iphone_beats.append(
+            {
+                "beat": beat,
+                "id": beat_id,
+                "file": iphone_filename,
+                "bytes": iphone_output_path.stat().st_size,
+                "fallbackFile": iphone_fallback_filename,
+                "fallbackBytes": iphone_fallback_output_path.stat().st_size,
+                "pixelWidth": iphone_width,
+                "pixelHeight": iphone_height,
+                "decodedBytes": iphone_width * iphone_height * 4,
+                "style": {
+                    "left": iphone_x,
+                    "top": iphone_y,
+                    "width": iphone_width,
+                    "height": iphone_height,
+                },
+                "layers": source_names,
+                "sourceFiles": source_files,
+            }
+        )
+
     runtime_manifest = {
         "format": "webp-lossless-alpha-with-png-fallback",
         "composition": "production-stable-state-source-over",
@@ -182,6 +246,13 @@ def main() -> None:
             "height": canvas_height,
         },
         "beats": generated_beats,
+        "iphoneCanvas": {
+            "left": IPHONE_CANVAS[0],
+            "top": IPHONE_CANVAS[1],
+            "width": IPHONE_CANVAS[2],
+            "height": IPHONE_CANVAS[3],
+        },
+        "iphoneBeats": generated_iphone_beats,
     }
     GENERATED_MODULE.parent.mkdir(parents=True, exist_ok=True)
     GENERATED_MODULE.write_text(
@@ -194,11 +265,18 @@ def main() -> None:
     )
     total_bytes = sum(int(item["bytes"]) for item in generated_beats)
     fallback_bytes = sum(int(item["fallbackBytes"]) for item in generated_beats)
+    iphone_total_bytes = sum(int(item["bytes"]) for item in generated_iphone_beats)
+    iphone_fallback_bytes = sum(
+        int(item["fallbackBytes"]) for item in generated_iphone_beats
+    )
     print(
         f"{len(generated_beats)} lossless composites, "
         f"{canvas_width}x{canvas_height}, "
         f"{total_bytes / (1024 * 1024):.2f} MiB WebP / "
-        f"{fallback_bytes / (1024 * 1024):.2f} MiB PNG -> {ASSET_DIR}"
+        f"{fallback_bytes / (1024 * 1024):.2f} MiB PNG; "
+        f"iPhone {IPHONE_CANVAS[2]}x{IPHONE_CANVAS[3]}, "
+        f"{iphone_total_bytes / (1024 * 1024):.2f} MiB WebP / "
+        f"{iphone_fallback_bytes / (1024 * 1024):.2f} MiB PNG -> {ASSET_DIR}"
     )
 
 

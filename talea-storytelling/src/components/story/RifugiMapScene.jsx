@@ -831,6 +831,8 @@ export function RifugiMapScene() {
     const section = sectionRef.current;
     if (!section) return undefined;
     const readyWaiters = readyWaitersRef.current;
+    let initFrame = null;
+    let recoveryFrame = null;
 
     const init = () => {
       if (mapRef.current || !containerRef.current) return;
@@ -1106,6 +1108,29 @@ export function RifugiMapScene() {
       });
     };
 
+    const isSectionVisible = () => {
+      const rect = section.getBoundingClientRect();
+      const viewportHeight = window.innerHeight || 768;
+      return rect.bottom > 0 && rect.top < viewportHeight;
+    };
+    const scheduleVisibleInit = () => {
+      if (mapRef.current || initFrame !== null) return;
+      initFrame = requestAnimationFrame(() => {
+        initFrame = null;
+        if (!isSectionVisible()) return;
+        init();
+      });
+    };
+    const requestVisibleRecovery = () => {
+      if (recoveryFrame !== null) return;
+      recoveryFrame = requestAnimationFrame(() => {
+        recoveryFrame = null;
+        if (isSectionVisible() && !mapRef.current) {
+          scheduleVisibleInit();
+        }
+      });
+    };
+
     const io = new IntersectionObserver(
       (entries) => {
         entries.forEach((e) => {
@@ -1113,7 +1138,11 @@ export function RifugiMapScene() {
             logPerformanceEvent("rifugi:proximity-trigger", {
               section: "Mappa Rifugi",
             });
-            init();
+            if (runtimeProfile.isIPhone) {
+              scheduleVisibleInit();
+            } else {
+              init();
+            }
             if (entryResizeTimerRef.current !== null) {
               window.clearTimeout(entryResizeTimerRef.current);
             }
@@ -1122,6 +1151,10 @@ export function RifugiMapScene() {
               resizeControllerRef.current?.request("rifugi-entry");
             }, 250);
           } else {
+            if (initFrame !== null) {
+              cancelAnimationFrame(initFrame);
+              initFrame = null;
+            }
             if (entryResizeTimerRef.current !== null) {
               window.clearTimeout(entryResizeTimerRef.current);
               entryResizeTimerRef.current = null;
@@ -1168,10 +1201,23 @@ export function RifugiMapScene() {
         });
       },
       runtimeProfile.isIPhone
-        ? { rootMargin: "100% 0px", threshold: 0 }
+        ? {
+            // Do not keep this MapLibre context in the one-viewport overlap
+            // with CityBuild. Entering the real Rifugi section recreates it
+            // from the serialized camera/selection state above.
+            rootMargin: "0px",
+            threshold: 0,
+          }
         : { threshold: 0.05 },
     );
     io.observe(section);
+    if (runtimeProfile.isIPhone) {
+      window.addEventListener("scroll", requestVisibleRecovery, {
+        passive: true,
+      });
+      window.addEventListener("resize", requestVisibleRecovery);
+      requestVisibleRecovery();
+    }
     const stopHeavyRelease = onIOSHeavyOffscreenRelease((reason) => {
       if (!runtimeProfile.isIPhone) return;
       // Never consume the event emitted by our own constructor. Only a real
@@ -1183,10 +1229,15 @@ export function RifugiMapScene() {
         return;
       }
       destroyRifugiMap(`heavy-boundary:${reason}`);
+      requestVisibleRecovery();
     });
     return () => {
       io.disconnect();
       stopHeavyRelease();
+      if (initFrame !== null) cancelAnimationFrame(initFrame);
+      if (recoveryFrame !== null) cancelAnimationFrame(recoveryFrame);
+      window.removeEventListener("scroll", requestVisibleRecovery);
+      window.removeEventListener("resize", requestVisibleRecovery);
       if (entryResizeTimerRef.current !== null) {
         window.clearTimeout(entryResizeTimerRef.current);
         entryResizeTimerRef.current = null;

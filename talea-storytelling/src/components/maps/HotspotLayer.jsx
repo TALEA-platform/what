@@ -14,7 +14,7 @@ export function HotspotLayer({
   visible,
   transitionMs = 1100,
 }) {
-  const loaded = useRef(false);
+  const configuredMap = useRef(null);
   const loadedVersion = useRef(null);
 
   useEffect(() => {
@@ -22,9 +22,14 @@ export function HotspotLayer({
 
     const sourceId = (threshold) => `hotspot-src-${id}-${threshold}`;
     const layerId = (threshold) => `hotspot-fill-${id}-${threshold}`;
+    const needsMapSetup = configuredMap.current !== map;
     const needsDataRefresh = loadedVersion.current !== HOTSPOT_DATA_VERSION;
 
-    if (!loaded.current || needsDataRefresh) {
+    // MapLibre sources and layers belong to one concrete map/style instance.
+    // iPhone destroys that instance when Ombra takes the single WebGL slot;
+    // a component-level boolean must therefore never suppress setup on the
+    // replacement map when the user scrolls backwards.
+    if (needsMapSetup || needsDataRefresh) {
       hotspotPersistenceThresholds.forEach((threshold) => {
         const source = sourceId(threshold);
         const layer = layerId(threshold);
@@ -54,7 +59,7 @@ export function HotspotLayer({
         }
       });
 
-      loaded.current = true;
+      configuredMap.current = map;
       loadedVersion.current = HOTSPOT_DATA_VERSION;
     }
 

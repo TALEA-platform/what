@@ -2428,6 +2428,52 @@
   }
 }
 
+/* Safari's browser bars can make a large iPhone miss the height-only rule
+   above. A portrait viewport wide enough for the full mobile composition has
+   room for the intended stacked header; compact 375px iPhones retain the
+   side-by-side layout. This is viewport-responsive, not device detection. */
+@media (min-width: 390px) and (max-width: 1279px) and (orientation: portrait) {
+  html[data-talea-iphone-direct="true"] .causes-stage {
+    padding-top: calc(var(--header-height) + 78px);
+  }
+
+  html[data-talea-iphone-direct="true"] .causes-topic-header {
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  html[data-talea-iphone-direct="true"] .causes-topic-header-labels {
+    justify-content: center;
+    width: 100%;
+    gap: clamp(18px, 4vw, 38px);
+  }
+
+  html[data-talea-iphone-direct="true"] .causes-topic-label {
+    width: clamp(98px, 17vw, 132px);
+    font-size: clamp(0.96rem, 1.8vw, 1.08rem);
+    opacity: 0.48;
+  }
+
+  html[data-talea-iphone-direct="true"] .causes-topic-divider {
+    width: clamp(22px, 4vw, 36px);
+  }
+
+  html[data-talea-iphone-direct="true"] .causes-local-progress {
+    justify-content: center;
+    gap: 9px;
+  }
+
+  html[data-talea-iphone-direct="true"] .causes-progress-segments {
+    width: clamp(96px, 20vw, 144px);
+    height: 4px;
+    gap: 4px;
+  }
+
+  html[data-talea-iphone-direct="true"] .causes-scroll-cue {
+    top: calc(100% + 7px);
+  }
+}
+
 @media (max-width: 520px) {
   .causes-scene {
     --causes-mobile-copy-reserve: 325px;
@@ -12935,6 +12981,15 @@
   html[data-talea-iphone-direct="true"] .causes-scene {
     --causes-mobile-visual-w: var(--talea-causes-visual-width);
     --causes-mobile-visual-h: var(--talea-causes-visual-height);
+  }
+
+  /* The camera, seven copy beats and annotations already update through
+     explicit transforms/opacity. Do not reserve separate long-lived WebKit
+     compositor layers for each of them on iPhone. */
+  html[data-talea-iphone-direct="true"] .plan-camera,
+  html[data-talea-iphone-direct="true"] .plan-beat,
+  html[data-talea-iphone-direct="true"] .plan-annotation {
+    will-change: auto;
   }
 
   /* Preserve the production Bridge -> Aria background overlap, but do not let

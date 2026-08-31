@@ -221,5 +221,224 @@ export const cityPlanMobileComposites = {
         "cityplan-layer-final-network.webp"
       ]
     }
+  ],
+  "iphoneCanvas": {
+    "left": -64,
+    "top": -308,
+    "width": 2240,
+    "height": 2394
+  },
+  "iphoneBeats": [
+    {
+      "beat": 0,
+      "id": "quartiere",
+      "file": "cityplan-iphone-composite-beat-0.webp",
+      "bytes": 680622,
+      "fallbackFile": "cityplan-iphone-composite-beat-0.png",
+      "fallbackBytes": 1136537,
+      "pixelWidth": 2240,
+      "pixelHeight": 2394,
+      "decodedBytes": 21450240,
+      "style": {
+        "left": -64,
+        "top": -308,
+        "width": 2240,
+        "height": 2394
+      },
+      "layers": [
+        "base",
+        "parking-state",
+        "initial-sites"
+      ],
+      "sourceFiles": [
+        "cityplan-base.webp",
+        "cityplan-layer-parking-state.webp",
+        "cityplan-layer-initial-sites.webp"
+      ]
+    },
+    {
+      "beat": 1,
+      "id": "buco",
+      "file": "cityplan-iphone-composite-beat-1.webp",
+      "bytes": 765716,
+      "fallbackFile": "cityplan-iphone-composite-beat-1.png",
+      "fallbackBytes": 1219517,
+      "pixelWidth": 2240,
+      "pixelHeight": 2394,
+      "decodedBytes": 21450240,
+      "style": {
+        "left": -64,
+        "top": -308,
+        "width": 2240,
+        "height": 2394
+      },
+      "layers": [
+        "base",
+        "parking-state",
+        "initial-sites",
+        "gap-emphasis",
+        "relief-sites"
+      ],
+      "sourceFiles": [
+        "cityplan-base.webp",
+        "cityplan-layer-parking-state.webp",
+        "cityplan-layer-initial-sites.webp",
+        "cityplan-layer-gap-emphasis.webp",
+        "cityplan-layer-relief-sites.webp"
+      ]
+    },
+    {
+      "beat": 2,
+      "id": "costruisce",
+      "file": "cityplan-iphone-composite-beat-2.webp",
+      "bytes": 693200,
+      "fallbackFile": "cityplan-iphone-composite-beat-2.png",
+      "fallbackBytes": 1151995,
+      "pixelWidth": 2240,
+      "pixelHeight": 2394,
+      "decodedBytes": 21450240,
+      "style": {
+        "left": -64,
+        "top": -308,
+        "width": 2240,
+        "height": 2394
+      },
+      "layers": [
+        "base",
+        "initial-sites",
+        "relief-sites",
+        "first-refuge-accent",
+        "first-refuge"
+      ],
+      "sourceFiles": [
+        "cityplan-base.webp",
+        "cityplan-layer-initial-sites.webp",
+        "cityplan-layer-relief-sites.webp",
+        "cityplan-layer-first-refuge-accent.webp",
+        "cityplan-layer-first-refuge.webp"
+      ]
+    },
+    {
+      "beat": 3,
+      "id": "nonuno",
+      "file": "cityplan-iphone-composite-beat-3.webp",
+      "bytes": 703390,
+      "fallbackFile": "cityplan-iphone-composite-beat-3.png",
+      "fallbackBytes": 1164853,
+      "pixelWidth": 2240,
+      "pixelHeight": 2394,
+      "decodedBytes": 21450240,
+      "style": {
+        "left": -64,
+        "top": -308,
+        "width": 2240,
+        "height": 2394
+      },
+      "layers": [
+        "base",
+        "first-refuge",
+        "extra-refuges-accent",
+        "extra-refuges"
+      ],
+      "sourceFiles": [
+        "cityplan-base.webp",
+        "cityplan-layer-first-refuge.webp",
+        "cityplan-layer-extra-refuges-accent.webp",
+        "cityplan-layer-extra-refuges.webp"
+      ]
+    },
+    {
+      "beat": 4,
+      "id": "corridoi",
+      "file": "cityplan-iphone-composite-beat-4.webp",
+      "bytes": 761668,
+      "fallbackFile": "cityplan-iphone-composite-beat-4.png",
+      "fallbackBytes": 1241421,
+      "pixelWidth": 2240,
+      "pixelHeight": 2394,
+      "decodedBytes": 21450240,
+      "style": {
+        "left": -64,
+        "top": -308,
+        "width": 2240,
+        "height": 2394
+      },
+      "layers": [
+        "base",
+        "first-refuge",
+        "extra-refuges",
+        "corridor-network"
+      ],
+      "sourceFiles": [
+        "cityplan-base.webp",
+        "cityplan-layer-first-refuge.webp",
+        "cityplan-layer-extra-refuges.webp",
+        "cityplan-layer-corridor-network.webp"
+      ]
+    },
+    {
+      "beat": 5,
+      "id": "portici",
+      "file": "cityplan-iphone-composite-beat-5.webp",
+      "bytes": 793060,
+      "fallbackFile": "cityplan-iphone-composite-beat-5.png",
+      "fallbackBytes": 1293295,
+      "pixelWidth": 2240,
+      "pixelHeight": 2394,
+      "decodedBytes": 21450240,
+      "style": {
+        "left": -64,
+        "top": -308,
+        "width": 2240,
+        "height": 2394
+      },
+      "layers": [
+        "base",
+        "first-refuge",
+        "extra-refuges",
+        "corridor-network",
+        "porticoes"
+      ],
+      "sourceFiles": [
+        "cityplan-base.webp",
+        "cityplan-layer-first-refuge.webp",
+        "cityplan-layer-extra-refuges.webp",
+        "cityplan-layer-corridor-network.webp",
+        "cityplan-layer-porticoes.webp"
+      ]
+    },
+    {
+      "beat": 6,
+      "id": "rete",
+      "file": "cityplan-iphone-composite-beat-6.webp",
+      "bytes": 944288,
+      "fallbackFile": "cityplan-iphone-composite-beat-6.png",
+      "fallbackBytes": 1470402,
+      "pixelWidth": 2240,
+      "pixelHeight": 2394,
+      "decodedBytes": 21450240,
+      "style": {
+        "left": -64,
+        "top": -308,
+        "width": 2240,
+        "height": 2394
+      },
+      "layers": [
+        "base",
+        "first-refuge",
+        "extra-refuges",
+        "corridor-network",
+        "porticoes",
+        "final-network"
+      ],
+      "sourceFiles": [
+        "cityplan-base.webp",
+        "cityplan-layer-first-refuge.webp",
+        "cityplan-layer-extra-refuges.webp",
+        "cityplan-layer-corridor-network.webp",
+        "cityplan-layer-porticoes.webp",
+        "cityplan-layer-final-network.webp"
+      ]
+    }
   ]
 };

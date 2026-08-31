@@ -28,14 +28,20 @@ SOURCE_MANIFEST = ASSET_DIR / "manifest.json"
 BEAT_SOURCE = ROOT / "src" / "data" / "cityPlanScene.js"
 GENERATED_MODULE = ROOT / "src" / "generated" / "cityPlanMobileComposites.js"
 OUTPUT_PREFIX = "cityplan-mobile-composite-beat-"
-IPHONE_OUTPUT_PREFIX = "cityplan-iphone-composite-beat-"
+# Keep each published iPhone resolution immutable. A new filename prevents a
+# CDN or Safari cache from ever pairing a new manifest with an older raster.
+IPHONE_OUTPUT_PREFIX = "cityplan-iphone-quarter-composite-beat-"
 
 # All phone and phone-landscape camera paths stay inside this source-space
 # envelope. It is the single persistent Canvas2D backing store used on iPhone.
 # Its CSS/world dimensions remain unchanged; only the iPhone raster backing
 # resolution is reduced to keep WebKit well below its graphics high-water mark.
 IPHONE_CANVAS = (-64, -308, 2240, 2394)
-IPHONE_RASTER_SCALE = 0.5
+IPHONE_RASTER_SCALE = 0.25
+
+
+def scaled_size(value: int) -> int:
+    return max(1, int(value * IPHONE_RASTER_SCALE + 0.5))
 
 
 def read_beat_ids() -> list[str]:
@@ -197,8 +203,8 @@ def main() -> None:
         ):
             raise RuntimeError("IPHONE_CANVAS falls outside the reference canvas")
         iphone_composite = composite.crop(iphone_box)
-        iphone_pixel_width = round(iphone_width * IPHONE_RASTER_SCALE)
-        iphone_pixel_height = round(iphone_height * IPHONE_RASTER_SCALE)
+        iphone_pixel_width = scaled_size(iphone_width)
+        iphone_pixel_height = scaled_size(iphone_height)
         iphone_composite = iphone_composite.resize(
             (iphone_pixel_width, iphone_pixel_height),
             Image.Resampling.LANCZOS,
@@ -257,8 +263,8 @@ def main() -> None:
             "top": IPHONE_CANVAS[1],
             "width": IPHONE_CANVAS[2],
             "height": IPHONE_CANVAS[3],
-            "pixelWidth": round(IPHONE_CANVAS[2] * IPHONE_RASTER_SCALE),
-            "pixelHeight": round(IPHONE_CANVAS[3] * IPHONE_RASTER_SCALE),
+            "pixelWidth": scaled_size(IPHONE_CANVAS[2]),
+            "pixelHeight": scaled_size(IPHONE_CANVAS[3]),
             "rasterScale": IPHONE_RASTER_SCALE,
         },
         "iphoneBeats": generated_iphone_beats,
@@ -284,8 +290,8 @@ def main() -> None:
         f"{total_bytes / (1024 * 1024):.2f} MiB WebP / "
         f"{fallback_bytes / (1024 * 1024):.2f} MiB PNG; "
         f"iPhone CSS {IPHONE_CANVAS[2]}x{IPHONE_CANVAS[3]} / raster "
-        f"{round(IPHONE_CANVAS[2] * IPHONE_RASTER_SCALE)}x"
-        f"{round(IPHONE_CANVAS[3] * IPHONE_RASTER_SCALE)}, "
+        f"{scaled_size(IPHONE_CANVAS[2])}x"
+        f"{scaled_size(IPHONE_CANVAS[3])}, "
         f"{iphone_total_bytes / (1024 * 1024):.2f} MiB WebP / "
         f"{iphone_fallback_bytes / (1024 * 1024):.2f} MiB PNG -> {ASSET_DIR}"
     )

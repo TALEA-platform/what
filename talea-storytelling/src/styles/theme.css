@@ -28,7 +28,7 @@
   --text-secondary: var(--ink);
   --text-muted: var(--ink-soft);
 
-  --border-soft: color-mix(in srgb, var(--ink) 16%, var(--paper));
+  --border-soft: rgba(27, 58, 41, 0.16);
   --shadow-soft: 0 8px 30px rgba(11, 42, 24, 0.10);
 
   --radius-md: 14px;
@@ -68,6 +68,12 @@
   --talea-safe-right: env(safe-area-inset-right, 0px);
   --talea-safe-bottom: env(safe-area-inset-bottom, 0px);
   --talea-safe-left: env(safe-area-inset-left, 0px);
+}
+
+@supports (color: color-mix(in srgb, white 50%, black)) {
+  :root {
+    --border-soft: color-mix(in srgb, var(--ink) 16%, var(--paper));
+  }
 }
 
 * {

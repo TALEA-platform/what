@@ -1681,6 +1681,7 @@
   width: 256px;
   padding: 12px 11px 11px;
   border-radius: 4px;
+  background: rgba(246, 244, 238, 0.96);
   background: color-mix(in srgb, var(--causes-cream) 78%, transparent);
   border: 0;
   box-shadow: none;
@@ -1713,6 +1714,7 @@
   gap: 8px;
   padding: 8px 13px;
   border-radius: 4px;
+  background: rgba(246, 244, 238, 0.96);
   background: color-mix(in srgb, var(--causes-cream) 78%, transparent);
   border: 0;
   box-shadow: none;
@@ -12935,6 +12937,71 @@
     --causes-mobile-visual-h: var(--talea-causes-visual-height);
   }
 
+  /* Preserve the production Bridge -> Aria background overlap, but do not let
+     Aria's copy travel underneath the bridge for the whole handoff. The copy
+     starts entering only as the Hero fade begins, avoiding both the premature
+     reveal and the blank paper interval introduced by removing the overlap. */
+  html[data-talea-iphone-direct="true"] {
+    --talea-trend-overlap: 85svh;
+    --talea-trend-content-delay: 40svh;
+  }
+
+  html[data-talea-iphone-direct="true"] .trend-section {
+    --talea-trend-base-padding-top: 92px;
+    margin-top: calc(0px - var(--talea-trend-overlap));
+    padding-top: calc(
+      var(--talea-trend-base-padding-top) + var(--talea-trend-content-delay)
+    );
+    isolation: isolate;
+  }
+
+  html[data-talea-legacy-viewport="true"] .trend-section {
+    margin-top: calc(0px - var(--talea-trend-overlap));
+    padding-top: calc(
+      var(--talea-trend-base-padding-top) + var(--talea-trend-content-delay)
+    );
+  }
+
+  /* Paper UI must stay chromatically neutral on iPhone. WebKit can promote
+     translucent backdrop-filter elements into separate surfaces and let the
+     map/video color bleed through much more strongly on compact screens. */
+  html[data-talea-iphone-direct="true"] .causes-maplegend,
+  html[data-talea-iphone-direct="true"] .causes-hotspot-legend,
+  html[data-talea-iphone-direct="true"] .sf-legend-toggle,
+  html[data-talea-iphone-direct="true"] .relief-map-dock,
+  html[data-talea-iphone-direct="true"] .relief-map-find,
+  html[data-talea-iphone-direct="true"]
+    .relief-map-section--rifugi
+    .relief-map-info-toggle,
+  html[data-talea-iphone-direct="true"]
+    .relief-map-section--rifugi
+    .relief-map-control-close,
+  html[data-talea-iphone-direct="true"] .zones-caption {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  html[data-talea-iphone-direct="true"] .causes-maplegend,
+  html[data-talea-iphone-direct="true"] .causes-hotspot-legend {
+    background: var(--causes-cream);
+  }
+
+  html[data-talea-iphone-direct="true"] .sf-legend-toggle {
+    background: #ffffff;
+  }
+
+  html[data-talea-iphone-direct="true"] .relief-map-dock,
+  html[data-talea-iphone-direct="true"] .relief-map-find,
+  html[data-talea-iphone-direct="true"]
+    .relief-map-section--rifugi
+    .relief-map-info-toggle,
+  html[data-talea-iphone-direct="true"]
+    .relief-map-section--rifugi
+    .relief-map-control-close,
+  html[data-talea-iphone-direct="true"] .zones-caption {
+    background: #fafdF6;
+  }
+
   html[data-talea-iphone-direct="true"] .causes-stage {
     height: 100svh;
   }
@@ -13070,19 +13137,77 @@
      transform/opacity reveal remains, so only the clipping mechanism changes. */
   html[data-talea-iphone-direct="true"] .relief-intro-heading,
   html[data-talea-iphone-direct="true"] .rifugi-intro-head {
-    padding-top: 0.16em;
-    padding-bottom: 0.2em;
-    margin-top: -0.16em;
-    margin-bottom: -0.2em;
     overflow: visible;
   }
 
+  /* Framer Motion reveals this heading from translateY(28px). Once WebKit's
+     glyph clipping is removed that travel reads as a late position correction.
+     Keep the existing opacity reveal, but make the iPhone heading stationary. */
+  html[data-talea-iphone-direct="true"] .rifugi-intro-head {
+    transform: none !important;
+  }
+
   html[data-talea-iphone-direct="true"] .relief-intro-heading {
+    -webkit-clip-path: none;
     clip-path: none;
   }
 
   html[data-talea-iphone-direct="true"] .relief-intro-heading .relief-title,
   html[data-talea-iphone-direct="true"] .rifugi-title {
+    display: block;
+    padding: 0.2em 0.1em 0.24em;
+    margin-top: -0.2em;
+    margin-right: auto;
+    margin-bottom: -0.24em;
+    margin-left: auto;
+    -webkit-clip-path: none;
+    clip-path: none;
     overflow: visible;
+  }
+}
+
+@media (max-width: 768px) {
+  html[data-talea-iphone-direct="true"] .trend-section {
+    --talea-trend-base-padding-top: 70px;
+  }
+}
+
+@media (max-width: 430px) {
+  /* Compact physical viewports (for example 375x667) keep the same raster
+     crop and copy, but the legend no longer dominates the visual surface. */
+  html[data-talea-iphone-direct="true"][data-talea-compact-cause="true"]
+    .causes-maplegend {
+    width: min(190px, 48%);
+    right: 8px;
+    bottom: 8px;
+    gap: 4px;
+    padding: 7px 8px 6px;
+  }
+
+  html[data-talea-iphone-direct="true"][data-talea-compact-cause="true"]
+    .causes-maplegend-bar {
+    height: 6px;
+  }
+
+  html[data-talea-iphone-direct="true"][data-talea-compact-cause="true"]
+    .causes-maplegend-labels {
+    gap: 5px;
+    font-size: 10px !important;
+    line-height: 1.1;
+  }
+
+  html[data-talea-iphone-direct="true"][data-talea-compact-cause="true"]
+    .causes-hotspot-legend {
+    right: 8px;
+    bottom: 8px;
+    max-width: min(190px, 48%);
+    gap: 6px;
+    padding: 6px 8px;
+  }
+
+  html[data-talea-iphone-direct="true"][data-talea-compact-cause="true"]
+    .causes-hotspot-legend-label {
+    font-size: 10px !important;
+    line-height: 1.15;
   }
 }

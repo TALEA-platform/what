@@ -56,15 +56,39 @@
             var width = window.innerWidth || 390;
             var height =
               window.innerHeight || document.documentElement.clientHeight || 1;
+            // A fixed 325px reserve left only ~294px for the raster on a
+            // short 375x667 viewport. Keep the existing reserve on regular
+            // iPhones, but let compact-height phones use the available width;
+            // the sticky stage already has a 620px minimum and can contain the
+            // copy without shrinking the map to thumbnail size.
+            var compactCauseViewport = width <= 430 && height <= 720;
+            if (compactCauseViewport) {
+              document.documentElement.setAttribute(
+                "data-talea-compact-cause",
+                "true"
+              );
+            } else {
+              document.documentElement.removeAttribute(
+                "data-talea-compact-cause"
+              );
+            }
             var copyReserve = width <= 520 ? 325 : 270;
-            var causeWidth = Math.max(
-              1,
-              Math.min(width - 24, 860, (height - 68 - copyReserve) * 1.075)
-            );
-            var compareWidth = Math.max(
-              1,
-              Math.min(width - 24, 860, (height - 305) * 1.075)
-            );
+            var causeWidth = compactCauseViewport
+              ? Math.max(1, Math.min(width - 24, 860))
+              : Math.max(
+                  1,
+                  Math.min(
+                    width - 24,
+                    860,
+                    (height - 68 - copyReserve) * 1.075
+                  )
+                );
+            var compareWidth = compactCauseViewport
+              ? Math.max(1, Math.min(width - 24, 860))
+              : Math.max(
+                  1,
+                  Math.min(width - 24, 860, (height - 305) * 1.075)
+                );
             document.documentElement.style.setProperty(
               "--talea-causes-visual-width",
               causeWidth + "px"
@@ -128,6 +152,18 @@
               document.documentElement.style.setProperty(
                 "--talea-viewport-fifth",
                 height / 5 + "px"
+              );
+              // Keep the Bridge -> Aria overlap deterministic on Safari
+              // versions without svh. The background overlaps by the same
+              // amount as mobile production; only the chapter content is
+              // delayed until the Hero has started fading.
+              document.documentElement.style.setProperty(
+                "--talea-trend-overlap",
+                height * 0.85 + "px"
+              );
+              document.documentElement.style.setProperty(
+                "--talea-trend-content-delay",
+                height * 0.4 + "px"
               );
               document.documentElement.style.setProperty(
                 "--talea-causes-panel-height",

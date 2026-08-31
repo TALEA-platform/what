@@ -2458,6 +2458,21 @@
   html[data-talea-iphone-direct="true"] .hotspot-scene-panels--mobile {
     margin-top: calc(-0.2 * var(--talea-viewport-height));
   }
+
+  /* Keep light controls opaque in the direct iPhone compositor. Their
+     desktop/iPad/Android glass treatment remains untouched. */
+  html[data-talea-iphone-direct="true"] .hotspot-legend-toggle,
+  html[data-talea-iphone-direct="true"] .hotspot-legend.hotspot-legend--mobile,
+  html[data-talea-iphone-direct="true"] .hotspot-mobile-story-card,
+  html[data-talea-iphone-direct="true"] .hotspot-mobile-story-nav,
+  html[data-talea-iphone-direct="true"] .hotspot-sequence-controls,
+  html[data-talea-iphone-direct="true"]
+    .hotspot-scene
+    .annotation-label--priority {
+    background: #ffffff;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

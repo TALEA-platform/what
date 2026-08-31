@@ -5,6 +5,7 @@
   top: 0;
   z-index: 100;
   min-height: var(--header-height);
+  background: rgba(246, 244, 238, 0.96);
   background: color-mix(in srgb, var(--paper) 82%, transparent);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
@@ -160,6 +161,7 @@
   }
 
   .header {
+    background: rgba(246, 244, 238, 0.98);
     background: color-mix(in srgb, var(--paper) 90%, transparent);
   }
 
@@ -259,6 +261,22 @@
     display: inline;
     min-width: 0;
     text-align: left;
+  }
+}
+
+@media (max-width: 1279px) {
+  html[data-talea-iphone-direct="true"] .header {
+    background: var(--paper);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  html[data-talea-iphone-direct="true"] .mobile-shell-reopen,
+  html[data-talea-iphone-direct="true"] .scroll-stem,
+  html[data-talea-iphone-direct="true"] .mobile-experience-notice__card {
+    background: var(--paper-hi);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
   }
 }
 
@@ -490,6 +508,7 @@
     border: 1px solid color-mix(in srgb, var(--ink) 16%, transparent);
     border-radius: 9px;
     color: var(--talea-dark-green);
+    background: rgba(255, 255, 255, 0.96);
     background: color-mix(in srgb, var(--paper-hi) 82%, transparent);
     box-shadow: 0 4px 14px rgba(24, 50, 57, 0.1);
     backdrop-filter: blur(10px);
@@ -520,6 +539,7 @@
     overflow: visible;
     border: 1px solid color-mix(in srgb, var(--ink) 11%, transparent);
     border-radius: 11px;
+    background: rgba(255, 255, 255, 0.96);
     background: color-mix(in srgb, var(--paper-hi) 78%, transparent);
     box-shadow: 0 5px 15px rgba(24, 50, 57, 0.08);
     backdrop-filter: blur(11px);
@@ -1001,6 +1021,7 @@
     border-radius: 16px;
     color: var(--ink);
     text-align: center;
+    background: rgba(255, 255, 255, 0.98);
     background: color-mix(in srgb, var(--paper-hi) 96%, transparent);
     box-shadow: 0 18px 48px rgba(11, 42, 24, 0.2);
     backdrop-filter: blur(14px);

@@ -185,7 +185,7 @@ closing:
       - id: historysuhi
         name: "Il caldo, estate dopo estate"
         tag: "HistorySUHI"
-        description: "Dove Bologna scalda di più, e come è cambiato dal 2013 al 2025."
+        description: "Dove Bologna scalda di più, e come è cambiato dal 2013 al 2026."
         linkId: history-suhi
       - id: sci
         name: "Quanta ombra c’è nelle strade"

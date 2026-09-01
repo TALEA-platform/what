@@ -31,6 +31,9 @@ BOLOGNA_BOUNDARY_PATH = ROOT / "public" / "data" / "vectors" / "bologna_boundary
 NDVI_PATH = resolve_data_input("ndvi2025Raster")
 ALBEDO_PATH = resolve_data_input("albedo2025Raster")
 HOTSPOT_MIN_SUMMERS = 9
+HOTSPOT_START_YEAR = 2013
+HOTSPOT_END_YEAR = 2026
+HOTSPOT_SUMMER_COUNT = HOTSPOT_END_YEAR - HOTSPOT_START_YEAR + 1
 HOTSPOT_PATH = (
     ROOT / "public" / "data" / "hotspots" / f"hotspots_ge_{HOTSPOT_MIN_SUMMERS}.geojson"
 )
@@ -227,6 +230,9 @@ def main() -> None:
                 hotspot_pct,
                 bologna_hotspot_pct,
                 min_summers=HOTSPOT_MIN_SUMMERS,
+                summer_count=HOTSPOT_SUMMER_COUNT,
+                start_year=HOTSPOT_START_YEAR,
+                end_year=HOTSPOT_END_YEAR,
             ),
             "ndvi": metric_with_bologna(ndvi_pct, bologna_ndvi_pct),
             "albedo": metric_with_bologna(albedo_pct, bologna_albedo_pct),
@@ -242,11 +248,14 @@ def main() -> None:
             "la loro superficie. Non è una media semplice delle zone. Gli "
             "indicatori non vanno sommati. "
             f"Superfici molto calde: nel 10 % più caldo di Bologna in almeno "
-            f"{HOTSPOT_MIN_SUMMERS} estati su 13; vegetazione: indice ≥ 0,45; "
+            f"{HOTSPOT_MIN_SUMMERS} estati su {HOTSPOT_SUMMER_COUNT}; "
+            "vegetazione: indice ≥ 0,45; "
             "superfici assorbenti: albedo < 0,165."
         ),
         "source": (
-            "Fonte: superfici osservate da satellite (estati dal 2013 al 2025); "
+            f"Fonte: hotspot da superfici osservate da satellite (estati dal "
+            f"{HOTSPOT_START_YEAR} al {HOTSPOT_END_YEAR}); "
+            "vegetazione e albedo da osservazioni satellitari (estate 2025); "
             "ombra dalle simulazioni del Comune di Bologna (estate 2025)."
         ),
     }
@@ -266,7 +275,7 @@ def main() -> None:
         f"{albedo_pct:.1f} % / {bologna_albedo_pct:.1f} %"
     )
     print(
-        f"  Hotspot >={HOTSPOT_MIN_SUMMERS}/13: "
+        f"  Hotspot >={HOTSPOT_MIN_SUMMERS}/{HOTSPOT_SUMMER_COUNT}: "
         f"{hotspot_pct:.1f} % / {bologna_hotspot_pct:.1f} %"
     )
     print(f"  Ombra media:   {shadow_pct:.1f} % / {bologna_shadow_pct:.1f} %")

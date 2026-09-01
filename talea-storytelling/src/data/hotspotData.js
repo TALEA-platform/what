@@ -1,9 +1,9 @@
 import { assetUrl } from "../lib/assetUrl";
 
-export const HOTSPOT_DATA_VERSION = "top10pct-bologna-20260702";
+export const HOTSPOT_DATA_VERSION = "top10pct-bologna-2013-2026-f2dc5136";
 
 export const hotspotPersistenceThresholds = Array.from(
-  { length: 13 },
+  { length: 14 },
   (_, index) => index + 1
 );
 

@@ -18,8 +18,8 @@ progressive:
   showRead: "Show only the chapters already read"
 highlights:
   - id: observed-summers
-    value: "13"
-    label: "summers, from 2013 to 2025"
+    value: "14"
+    label: "summers, from 2013 to 2026"
   - id: hottest-surfaces-threshold
     value: "10 %"
     label: "the threshold for the hottest surfaces"
@@ -41,7 +41,7 @@ This story uses data from the City of Bologna's TALEA web apps. Here you will fi
 
 ## Observation period
 
-The analyses cover thirteen summers, from 2013 to 2025, during June, July and August.
+The period highlighted for air temperature and hotspots covers fourteen summers, from 2013 to 2026, during June, July and August. The air-temperature chart also lets readers extend the view back to 1961.
 
 ## Air and surface
 
@@ -49,7 +49,7 @@ The opening chart uses the summer average of daily maximum air temperatures: it 
 
 ## What is a climate hotspot?
 
-It is an area that falls within the hottest 10% of Bologna's surfaces in multiple summers. Recurrence indicates how many of the thirteen summers an area fell within that range.
+It is an area that falls within the hottest 10% of Bologna's surfaces in multiple summers. Recurrence indicates how many of the fourteen summers an area fell within that range.
 
 ## Shade data
 

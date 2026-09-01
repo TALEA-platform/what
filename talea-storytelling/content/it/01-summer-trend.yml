@@ -20,31 +20,31 @@ chart:
   id: summer-trend-chart
   meta:
     id: summer-trend-meta
-    collapsed: "Estati dal 2013 al 2025"
-    expanded: "Estati dal 1961 al 2025"
+    collapsed: "Estati dal 2013 al 2026"
+    expanded: "Estati dal 1961 al 2026"
     value: "Media delle massime giornaliere"
     unit: "°C, aria, centro di Bologna"
   zoomInvite:
     id: summer-trend-zoom-invite
     collapsed:
       id: summer-trend-zoom-collapsed
-      lead: "Le ultime tredici estati."
+      lead: "Le ultime quattordici estati."
       action: "Guardale tutte, dal 1961"
     expanded:
       id: summer-trend-zoom-expanded
-      lead: "Sessantacinque estati, dal 1961."
+      lead: "Sessantasei estati, dal 1961."
       action: "Torna agli ultimi anni"
   tooltip:
     id: summer-trend-tooltip
     versusMean: "vs media"
   reference:
     id: summer-trend-reference
-    label: "media dal 1961 al 2025"
+    label: "media dal 1961 al 2026"
   source:
     id: summer-trend-source
     prefix: "Fonte:"
     label: "ARPAE Eraclito61, cella ERG5 centrale 01421"
-    meanLabel: "media storica delle massime, dal 1961 al 2025"
+    meanLabel: "media storica delle massime, dal 1961 al 2026"
     variable: "Media delle massime giornaliere dell’aria (°C)"
-    period: "giugno-agosto, 1961-2025"
+    period: "giugno-agosto, 1961-2026"
     area: "Bologna centro, quota media cella 69 m"

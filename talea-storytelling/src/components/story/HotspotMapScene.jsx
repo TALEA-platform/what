@@ -15,6 +15,7 @@ import {
 } from "../../lib/motion";
 import { applyPaperBasemap } from "../../lib/basemapPaper";
 import { getHotspotPersistenceColor } from "../../data/hotspotPalette";
+import { hotspotPersistenceThresholds } from "../../data/hotspotData";
 import { useIOSFarOffscreenMount } from "../../hooks/useIOSFarOffscreenMount";
 import {
   buildHotspotSteps,
@@ -27,8 +28,12 @@ import {
   NARROW_ZOOM_SHIFT,
 } from "../../data/hotspotSteps";
 
-const sliderMarks = [3, 5, 9, 13];
-const sliderThresholds = Array.from({ length: 13 }, (_, index) => index + 1);
+const sliderMarks = [3, 5, 9, 14];
+const sliderThresholds = hotspotPersistenceThresholds;
+const sliderMin = sliderThresholds[0];
+const sliderMax = sliderThresholds.at(-1);
+const sliderSpan = sliderMax - sliderMin;
+const normalizeSliderValue = (value) => (value - sliderMin) / sliderSpan;
 const fillNumberTemplate = (template, value) =>
   template.replaceAll("{n}", String(value));
 
@@ -900,7 +905,7 @@ export function HotspotMapScene() {
     [goTo, hotspotSteps.length],
   );
   const legendStyle = {
-    "--legend-t": String((narrativeMinYears - 1) / 12),
+    "--legend-t": String(normalizeSliderValue(narrativeMinYears)),
     "--tier": activeTier,
   };
   const legendBody = (
@@ -1041,7 +1046,7 @@ export function HotspotMapScene() {
   const sliderControl = (
     <div
       className="hotspot-slider"
-      style={{ "--slider-t": String((sliderValue - 1) / 12) }}
+      style={{ "--slider-t": String(normalizeSliderValue(sliderValue)) }}
     >
       <div className="hotspot-slider-head">
         <label className="hotspot-slider-label" htmlFor="ricorrenza-slider">
@@ -1055,8 +1060,8 @@ export function HotspotMapScene() {
         <input
           id="ricorrenza-slider"
           type="range"
-          min={1}
-          max={13}
+          min={sliderMin}
+          max={sliderMax}
           step={1}
           value={sliderValue}
           onChange={(e) => onSliderPick(Number(e.target.value))}
@@ -1070,7 +1075,7 @@ export function HotspotMapScene() {
             key={mark}
             type="button"
             className={`hotspot-slider-mark${sliderValue === mark ? " hotspot-slider-mark--active" : ""}`}
-            style={{ "--mark-t": String((mark - 1) / 12) }}
+            style={{ "--mark-t": String(normalizeSliderValue(mark)) }}
             onClick={() => onSliderPick(mark)}
             aria-label={fillNumberTemplate(
               hotspotMapCopy.slider.markLabelTemplate,

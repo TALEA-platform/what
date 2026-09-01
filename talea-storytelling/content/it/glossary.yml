@@ -13,7 +13,7 @@ terms:
     trail: true
     definition:
       - "In questa webapp indica un’area che rientra nel 10% delle superfici più calde di Bologna in più estati osservate. Il dato si basa sulla temperatura di superficie, non sulla temperatura dell’aria."
-      - "Quando un hotspot climatico ritorna più volte tra il 2013 e il 2025, diventa un segnale di ricorrenza del calore superficiale."
+      - "Quando un hotspot climatico ritorna più volte tra il 2013 e il 2026, diventa un segnale di ricorrenza del calore superficiale."
   - id: climate-refuge
     term: "rifugio climatico"
     trail: true

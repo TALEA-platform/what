@@ -18,8 +18,8 @@ progressive:
   showRead: "Mostra solo i capitoli letti"
 highlights:
   - id: observed-summers
-    value: "13"
-    label: "estati, dal 2013 al 2025"
+    value: "14"
+    label: "estati, dal 2013 al 2026"
   - id: hottest-surfaces-threshold
     value: "10 %"
     label: "la soglia delle superfici più calde"
@@ -41,7 +41,7 @@ Questa storia usa i dati delle webapp TALEA del Comune di Bologna. Qui trovi, in
 
 ## Periodo osservato
 
-Le elaborazioni coprono tredici estati, dal 2013 al 2025, nei mesi di giugno, luglio e agosto.
+Il periodo messo a fuoco per l’aria e per gli hotspot copre quattordici estati, dal 2013 al 2026, nei mesi di giugno, luglio e agosto. Il grafico dell’aria permette inoltre di estendere lo sguardo fino al 1961.
 
 ## Aria e superficie
 
@@ -49,7 +49,7 @@ Il grafico iniziale usa la media estiva delle massime giornaliere dell'aria: rac
 
 ## Cos'è un hotspot climatico
 
-È un'area che, in più estati, rientra nel 10% delle superfici più calde di Bologna. La ricorrenza indica in quante estati su tredici un'area è rientrata in quella fascia.
+È un'area che, in più estati, rientra nel 10% delle superfici più calde di Bologna. La ricorrenza indica in quante estati su quattordici un'area è rientrata in quella fascia.
 
 ## I dati sull'ombra
 

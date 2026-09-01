@@ -53,7 +53,7 @@ statistics:
       note: "nelle ore più calde, fra le 12 e le 15"
     - metricId: hotspot
       label: "ricade negli hotspot climatici"
-      note: "nel 10% più caldo dell’intero Comune, in almeno 9 estati su 13"
+      note: "nel 10% più caldo dell’intero Comune, in almeno 9 estati su 14"
     - metricId: vegetation
       label: "di verde"
     - metricId: absorbing-surfaces

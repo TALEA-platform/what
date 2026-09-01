@@ -60,7 +60,7 @@ map:
         - id: threshold-pattern
           segments:
             - id: threshold-pattern-body
-              text: " Osservando le ultime 13 estati, il calore si concentra lungo specifici assi della città, risparmiando colli, parchi e campagna."
+              text: " Osservando le ultime 14 estati, il calore si concentra lungo specifici assi della città, risparmiando colli, parchi e campagna."
         - id: threshold-narrow
           segments:
             - id: threshold-narrow-body
@@ -131,25 +131,25 @@ map:
     title: "Aree di ricorrenza climatica"
     active:
       id: hotspot-legend-active
-      one: "Rientrano nel 10% in almeno {n} anno su 13"
-      other: "Rientrano nel 10% in almeno {n} anni su 13"
+      one: "Rientrano nel 10% in almeno {n} anno su 14"
+      other: "Rientrano nel 10% in almeno {n} anni su 14"
     scale:
       id: hotspot-legend-scale
       min: "1 estate"
-      max: "13 estati"
-    caption: "In quante delle 13 estati (dal 2013 al 2025) l’area è rientrata nel 10% di superfici più calde di Bologna."
+      max: "14 estati"
+    caption: "In quante delle 14 estati (dal 2013 al 2026) l’area è rientrata nel 10% di superfici più calde di Bologna."
     sourceLink:
       id: hotspot-source-link
       label: "Esplora i dati tecnici in dettaglio"
   sequence:
     id: hotspot-sequence
-    playing: "13 estati, una sopra l’altra"
+    playing: "14 estati, una sopra l’altra"
     done: "Tocca una frase per rivederla, o scorri per continuare"
   slider:
     id: hotspot-slider
     label: "Cambia la soglia di ricorrenza"
-    valueTemplate: "≥ {n}/13"
-    markLabelTemplate: "Imposta {n} estati su 13"
+    valueTemplate: "≥ {n}/14"
+    markLabelTemplate: "Imposta {n} estati su 14"
   handoff:
     id: hotspot-handoff
     question: "Perché proprio lì?"

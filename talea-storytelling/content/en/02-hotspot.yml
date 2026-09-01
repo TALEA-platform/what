@@ -60,7 +60,7 @@ map:
         - id: threshold-pattern
           segments:
             - id: threshold-pattern-body
-              text: " Over the last 13 summers, heat has concentrated along specific corridors through the city, sparing the hills, parks and countryside."
+              text: " Over the last 14 summers, heat has concentrated along specific corridors through the city, sparing the hills, parks and countryside."
         - id: threshold-narrow
           segments:
             - id: threshold-narrow-body
@@ -131,25 +131,25 @@ map:
     title: "Areas of recurring heat"
     active:
       id: hotspot-legend-active
-      one: "Among the hottest 10% in at least {n} summer out of 13"
-      other: "Among the hottest 10% in at least {n} summers out of 13"
+      one: "Among the hottest 10% in at least {n} summer out of 14"
+      other: "Among the hottest 10% in at least {n} summers out of 14"
     scale:
       id: hotspot-legend-scale
       min: "1 summer"
-      max: "13 summers"
-    caption: "Number of the 13 summers (from 2013 to 2025) in which the area ranked among Bologna’s hottest 10% of surfaces."
+      max: "14 summers"
+    caption: "Number of the 14 summers (from 2013 to 2026) in which the area ranked among Bologna’s hottest 10% of surfaces."
     sourceLink:
       id: hotspot-source-link
       label: "Explore the technical data in detail"
   sequence:
     id: hotspot-sequence
-    playing: "13 summers, layered one over another"
+    playing: "14 summers, layered one over another"
     done: "Select a sentence to revisit it, or scroll to continue"
   slider:
     id: hotspot-slider
     label: "Change the recurrence threshold"
-    valueTemplate: "≥ {n}/13"
-    markLabelTemplate: "Set {n} summers out of 13"
+    valueTemplate: "≥ {n}/14"
+    markLabelTemplate: "Set {n} summers out of 14"
   handoff:
     id: hotspot-handoff
     question: "Why there in particular?"

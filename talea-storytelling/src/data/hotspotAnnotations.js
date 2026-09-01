@@ -50,7 +50,7 @@ const hotspotAnnotationGeometry = [
   {
     id: "roveri",
     narrative: false,
-    coord: [11.4065, 44.5024],
+    coord: [11.404326, 44.50243],
     anchor: [11.393, 44.5005],
   },
 ];

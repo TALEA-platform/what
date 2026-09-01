@@ -53,7 +53,7 @@ statistics:
       note: "during the hottest hours, from 12:00 to 15:00"
     - metricId: hotspot
       label: "falls within climate hotspots"
-      note: "within the hottest 10% of the entire municipality, in at least 9 summers out of 13"
+      note: "within the hottest 10% of the entire municipality, in at least 9 summers out of 14"
     - metricId: vegetation
       label: "greenery"
     - metricId: absorbing-surfaces

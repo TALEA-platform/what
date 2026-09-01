@@ -6,12 +6,15 @@ const projectRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "..",
 );
+const firstYear = 1961;
+const lastYear = 2026;
+const sourceFileName = `central_air_temperature_${firstYear}_${lastYear}.csv`;
 const inputPath = path.join(
   projectRoot,
   "public",
   "data",
   "summer-trend",
-  "central_air_temperature_1961_2025.csv",
+  sourceFileName,
 );
 const outputPath = path.join(
   projectRoot,
@@ -27,8 +30,6 @@ const expectedHeader = [
   "source",
   "notes",
 ];
-const firstYear = 1961;
-const lastYear = 2025;
 const expectedRowCount = lastYear - firstYear + 1;
 
 function dataError(message) {
@@ -154,7 +155,7 @@ const rawMean =
 const mean = Math.round((rawMean + Number.EPSILON) * 1000) / 1000;
 const output = {
   schemaVersion: 1,
-  source: "public/data/summer-trend/central_air_temperature_1961_2025.csv",
+  source: `public/data/summer-trend/${sourceFileName}`,
   metric: "summer_mean_daily_tmax",
   series,
   mean,

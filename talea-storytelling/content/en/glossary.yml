@@ -13,7 +13,7 @@ terms:
     trail: true
     definition:
       - "In this web app, it means an area that falls within the hottest 10% of Bologna’s surfaces in multiple observed summers. The data is based on surface temperature, not air temperature."
-      - "When a climate hotspot recurs several times between 2013 and 2025, it becomes a sign of recurring surface heat."
+      - "When a climate hotspot recurs several times between 2013 and 2026, it becomes a sign of recurring surface heat."
   - id: climate-refuge
     term: "climate refuge"
     trail: true

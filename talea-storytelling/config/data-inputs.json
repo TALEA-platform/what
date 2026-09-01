@@ -2,7 +2,8 @@
   "schemaVersion": 1,
   "inputs": {
     "hotspotPersistenceRaster": {
-      "path": "hotspot_10/hotspot_structural_persistence_2013_2025_top10pct.tif"
+      "path": "new_hotspotdata_2026/hotspots/hotspot_structural_persistence_2013_2026_top10pct.tif",
+      "sha256": "f2dc5136dc2a0bba376b7e799fefc1761dcb00fec1e828d714f86c84a14328a7"
     },
     "ndvi2025Raster": {
       "path": "historysuhi/webapp/data/webapp_rasters/NDVI_2025_summer_30m.tif"

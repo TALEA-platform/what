@@ -97,7 +97,7 @@ legends:
       to: "reflects sunlight"
   hotspot:
     id: physical-drivers-hotspot-legend
-    label: "Hotspot in the hottest 10% in at least 9 of 13 summers"
+    label: "Hotspot in the hottest 10% in at least 9 of 14 summers"
 
 comparison:
   id: physical-drivers-comparison

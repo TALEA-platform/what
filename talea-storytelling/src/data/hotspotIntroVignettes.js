@@ -379,7 +379,7 @@ export function renderRicorrenzaSvg({ ariaLabel, description, labels }) {
 </g>
 
 <g class="labels">
-  <text class="lab-year" x="118" y="106" text-anchor="end">2025</text>
+  <text class="lab-year" x="118" y="106" text-anchor="end">2026</text>
   <circle class="lab-dot" cx="96" cy="222" r="2.6"/>
   <circle class="lab-dot" cx="107" cy="222" r="2.6"/>
   <circle class="lab-dot" cx="118" cy="222" r="2.6"/>

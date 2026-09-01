@@ -20,31 +20,31 @@ chart:
   id: summer-trend-chart
   meta:
     id: summer-trend-meta
-    collapsed: "Summers from 2013 to 2025"
-    expanded: "Summers from 1961 to 2025"
+    collapsed: "Summers from 2013 to 2026"
+    expanded: "Summers from 1961 to 2026"
     value: "Mean daily maximum temperature"
     unit: "°C, air, central Bologna"
   zoomInvite:
     id: summer-trend-zoom-invite
     collapsed:
       id: summer-trend-zoom-collapsed
-      lead: "The last thirteen summers."
+      lead: "The last fourteen summers."
       action: "See them all, from 1961"
     expanded:
       id: summer-trend-zoom-expanded
-      lead: "Sixty-five summers, from 1961."
+      lead: "Sixty-six summers, from 1961."
       action: "Return to recent years"
   tooltip:
     id: summer-trend-tooltip
     versusMean: "vs mean"
   reference:
     id: summer-trend-reference
-    label: "mean from 1961 to 2025"
+    label: "mean from 1961 to 2026"
   source:
     id: summer-trend-source
     prefix: "Source:"
     label: "ARPAE Eraclito61, central ERG5 cell 01421"
-    meanLabel: "historical mean of daily maxima, from 1961 to 2025"
+    meanLabel: "historical mean of daily maxima, from 1961 to 2026"
     variable: "Mean daily maximum air temperature (°C)"
-    period: "June–August, 1961–2025"
+    period: "June–August, 1961–2026"
     area: "Central Bologna, mean cell elevation 69 m"

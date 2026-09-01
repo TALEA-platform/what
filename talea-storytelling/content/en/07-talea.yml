@@ -185,7 +185,7 @@ closing:
       - id: historysuhi
         name: "Heat, summer after summer"
         tag: "HistorySUHI"
-        description: "Where Bologna gets hottest, and how this changed from 2013 to 2025."
+        description: "Where Bologna gets hottest, and how this changed from 2013 to 2026."
         linkId: history-suhi
       - id: sci
         name: "How much shade is there on the streets"

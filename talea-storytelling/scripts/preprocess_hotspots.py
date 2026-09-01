@@ -19,6 +19,10 @@ SRC_PATH = resolve_data_input("hotspotPersistenceRaster")
 OUT_DIR = os.path.join("public", "data", "hotspots")
 BOUNDARY_PATH = ROOT / "public" / "data" / "vectors" / "bologna_boundary_outline.geojson"
 
+HOTSPOT_START_YEAR = 2013
+HOTSPOT_END_YEAR = 2026
+HOTSPOT_SUMMER_COUNT = HOTSPOT_END_YEAR - HOTSPOT_START_YEAR + 1
+
 THRESHOLDS = [
     {
         "name": f"hotspots_ge_{value}",
@@ -26,7 +30,7 @@ THRESHOLDS = [
         "threshold": f"ge_{value}",
         "label": f">= {value} {'estate' if value == 1 else 'estati'}",
     }
-    for value in range(1, 14)
+    for value in range(1, HOTSPOT_SUMMER_COUNT + 1)
 ]
 
 SIMPLIFY_TOLERANCE = 0.00005
@@ -71,7 +75,7 @@ def feature_from_polygon(poly, threshold):
         "properties": {
             "threshold": threshold["threshold"],
             "source": "HistorySUHI",
-            "period": "2013-2025",
+            "period": f"{HOTSPOT_START_YEAR}-{HOTSPOT_END_YEAR}",
             "hotspot_percentile": "top_10_pct",
             "label": threshold["label"],
         },

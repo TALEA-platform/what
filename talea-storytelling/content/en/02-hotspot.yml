@@ -26,6 +26,10 @@ intro:
               glossary: surface-temperature
             - id: surface-definition
               text: ": the heat absorbed by asphalt, roofs and squares during the day and released long after sunset."
+        - id: surface-temperature-clarification
+          segments:
+            - id: surface-temperature-clarification-body
+              text: "It is a measure that corresponds to neither air temperature nor the heat experienced by people."
     - id: ricorrenza
       figureLabel: "Three overlapping sheets show the same part of the city from above, one for each summer. Some areas are among the hottest on every sheet, but only two recur on all of them."
       visual:
@@ -37,16 +41,16 @@ intro:
         - id: recurring-pattern
           segments:
             - id: recurring-pattern-body
-              text: " Measured over several summers, this value reveals a recurring pattern: the same parts of Bologna are among the hottest almost every year."
+              text: " Comparing summers over time reveals a recurring pattern: some areas of Bologna repeatedly reappear among the hottest."
         - id: hotspot-definition
           segments:
             - id: hotspot-definition-intro
               text: "These are "
             - id: hotspot-definition-term
-              text: "climate hotspots"
+              text: "surface heat hotspots"
               glossary: climate-hotspot
             - id: hotspot-definition-body
-              text: ": surfaces that fall within the hottest 10% of the city, summer after summer."
+              text: ": areas where surface temperature falls, in multiple summers, within the highest 10% of values measured across the city."
   closer:
     id: hotspot-intro-closer
     text: "Let’s find them on the map."
@@ -60,7 +64,7 @@ map:
         - id: threshold-pattern
           segments:
             - id: threshold-pattern-body
-              text: " Over the last 14 summers, heat has concentrated along specific corridors through the city, sparing the hills, parks and countryside."
+              text: " By overlaying the last 14 summers, we can see how heat concentrates along specific corridors through the city, sparing the hills, parks and countryside."
         - id: threshold-narrow
           segments:
             - id: threshold-narrow-body
@@ -70,7 +74,7 @@ map:
         - id: recurrence-pattern
           segments:
             - id: recurrence-pattern-body
-              text: " The areas where heat peaks occur most often emerge: proof that this pattern has now become a permanent feature."
+              text: " The areas where heat peaks occur most often emerge: a sign that this phenomenon tends to recur in the same areas."
     - id: persistence
       paragraphs:
         - id: persistence-definition
@@ -78,10 +82,10 @@ map:
             - id: persistence-definition-intro
               text: "Here are Bologna’s "
             - id: persistence-definition-term
-              text: "climate hotspots"
+              text: "hotspots"
               kw: true
             - id: persistence-definition-body
-              text: ": surfaces that accumulate and retain heat year after year, struggling to cool down."
+              text: ": surfaces that consistently rank among the most critical in terms of surface heat."
         - id: persistence-question
           segments:
             - id: persistence-question-body
@@ -128,16 +132,21 @@ map:
         context: "logistics warehouses and yards, with almost no shade"
   legend:
     id: hotspot-legend
-    title: "Areas of recurring heat"
+    title: "Recurrence among the hottest surfaces"
     active:
       id: hotspot-legend-active
-      one: "Among the hottest 10% in at least {n} summer out of 14"
-      other: "Among the hottest 10% in at least {n} summers out of 14"
+      one: "Area in the highest 10% of thermal values in at least {n} of 14 summers"
+      other: "Area in the highest 10% of thermal values in at least {n} of 14 summers"
     scale:
       id: hotspot-legend-scale
       min: "1 summer"
       max: "14 summers"
-    caption: "Number of the 14 summers (from 2013 to 2026) in which the area ranked among Bologna’s hottest 10% of surfaces."
+    caption: "The colour indicates in how many of the 14 observed summers (2013–2026) the surface temperature of each area ranked within the highest 10% of values measured in Bologna."
+    details:
+      openLabel: "How to read the map"
+      closeLabel: "Hide explanation"
+      color: "The more the colour tends towards red, the greater the recurrence."
+      unhighlighted: "In areas that are not highlighted, surface heat never ranked within the highest 10% of values, or did so in fewer summers than the selected threshold."
     sourceLink:
       id: hotspot-source-link
       label: "Explore the technical data in detail"

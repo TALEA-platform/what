@@ -4,32 +4,29 @@ locale: en
 opening:
   id: hero-opening
   ariaLabel: "Introduction"
-  title: "Bologna is heating up."
+  title: |-
+    Bologna is experiencing
+    increasingly hot summers
   subtitle:
     - id: opening-trend
-      text: "In recent years, summers have grown increasingly intense. "
+      text: "Heat does not build up everywhere with the same intensity."
     - id: opening-daily-life
-      text: "Heat has become part of"
-      keep: true
-    - id: opening-consequence
-      text: " everyday life, leaving its mark on the city and changing the way it is inhabited."
+      text: "\n Some surfaces retain more heat than others: identifying the areas in which it concentrates and the spaces that can offer relief is the first step towards deciding where to intervene."
   scrollLabel: "Scroll to begin"
 
 bridge:
   id: hero-bridge
   body:
+    - id: bridge-project
+      text: "TALEA"
+      kw: true
     - id: bridge-intro
-      text: "Exploring the "
+      text: " studies the "
     - id: urban-microclimate
       text: "urban microclimate"
       kw: true
-    - id: bridge-exposure
-      text: " makes it possible to identify the "
-    - id: exposed-neighbourhoods
-      text: "neighbourhoods most exposed"
-      kw: true
-    - id: bridge-actions
-      text: " to heatwaves, strengthen areas that offer relief, and plan concrete solutions to make the city more liveable."
+    - id: bridge-method
+      text: " by linking climate data with the characteristics of public space to guide the city's transformation."
   callout:
     id: hero-bridge-callout
     lead: "This is not just about observing change:"

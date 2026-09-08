@@ -134,13 +134,19 @@ refuges:
       return: "Scroll to return to the city"
     counts:
       id: climate-refuges-counts
-      officialLabel: "officially recognised by the Municipality"
-      officialSub: "sixteen indoors, thirteen outdoors"
-      compatibleLabel: "parks and gardens with compatible characteristics"
+      officialLabel: "officially recognised climate refuges"
+      officialDescription: "Places included in the Municipality’s official list:"
+      officialSub: "sixteen indoors and thirteen outdoors."
+      compatibleLabel: "potentially suitable green spaces"
+      compatibleDescription: "Places with compatible characteristics, but not necessarily equipped or officially recognised."
+      compatibleScale:
+        description: "Compatibility considers vegetation, size, accessibility and amenities."
+        from: "Lower compatibility"
+        to: "Higher compatibility"
     links:
       id: climate-refuges-links
       municipalLabel: "The Municipality’s climate refuge map"
-      taleaLabel: "Explore the analysis of parks and gardens with compatible characteristics"
+      taleaLabel: "Explore green space data"
     loadError: "Climate refuge data is currently unavailable."
     search:
       id: climate-refuges-search

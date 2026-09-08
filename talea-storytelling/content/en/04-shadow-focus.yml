@@ -37,7 +37,7 @@ map:
 closing:
   id: shadow-focus-closing
   pivot: "There is shade, but the heat remains."
-  body: "An urban paradox: protection from the sun offers apparent relief, while the surrounding environment continues to absorb and release heat."
+  body: "It offers real relief from direct sunlight, but it is not enough when the surrounding surfaces continue to absorb and release heat."
 
 statistics:
   id: shadow-focus-statistics
@@ -52,7 +52,7 @@ statistics:
       label: "is in shade"
       note: "during the hottest hours, from 12:00 to 15:00"
     - metricId: hotspot
-      label: "falls within climate hotspots"
+      label: "falls within surface heat hotspots"
       note: "within the hottest 10% of the entire municipality, in at least 9 summers out of 14"
     - metricId: vegetation
       label: "greenery"

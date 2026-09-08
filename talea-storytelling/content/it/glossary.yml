@@ -9,11 +9,11 @@ terms:
       - "È il calore registrato dal satellite sulle superfici urbane: asfalto, tetti, piazze, suoli e aree verdi."
       - "Non coincide con la temperatura dell’aria e non descrive da sola il caldo percepito da una persona, ma aiuta a capire dove la città accumula calore."
   - id: climate-hotspot
-    term: "hotspot climatico"
+    term: "hotspot di calore superficiale"
     trail: true
     definition:
-      - "In questa webapp indica un’area che rientra nel 10% delle superfici più calde di Bologna in più estati osservate. Il dato si basa sulla temperatura di superficie, non sulla temperatura dell’aria."
-      - "Quando un hotspot climatico ritorna più volte tra il 2013 e il 2026, diventa un segnale di ricorrenza del calore superficiale."
+      - "In questa webapp indica un’area in cui la temperatura di superficie rientra, in più estati osservate, nel 10% dei valori più elevati rilevati a Bologna. Il dato riguarda la temperatura delle superfici e non coincide con la temperatura dell’aria né con il caldo percepito."
+      - "La ricorrenza indica quante volte questa condizione si ripete tra il 2013 e il 2026."
   - id: climate-refuge
     term: "rifugio climatico"
     trail: true

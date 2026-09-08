@@ -2,7 +2,7 @@
    component styles because this file has no rules outside the mobile regime. */
 @media (max-width: 1279px) {
   :root {
-    --type-hero: clamp(3.25rem, calc(2.7016rem + 2.25vw), 4.5rem);
+    --type-hero: clamp(2.75rem, calc(2rem + 2vw), 3.75rem);
     --type-chapter: clamp(2.5rem, calc(2.2258rem + 1.125vw), 3.125rem);
     --type-section: clamp(2rem, calc(1.8903rem + 0.45vw), 2.25rem);
     --type-card-title: clamp(1.5rem, calc(1.4452rem + 0.225vw), 1.625rem);
@@ -117,8 +117,8 @@
   .vulnerability-person,
   .vulnerability-handoff,
   .vulnerability-source,
-  .vulnerability-statistic-qualifier,
-  .vulnerability-statistic-label-line,
+  .vulnerability-source-detail,
+  .vulnerability-finding,
   .vulnerability-closing,
   .relief-lead,
   .relief-body,
@@ -134,6 +134,11 @@
   .footer-label {
     font-size: var(--type-body);
     line-height: 1.6;
+  }
+
+  .hero-subtitle {
+    font-size: clamp(1.0625rem, calc(1rem + 0.35vw), 1.25rem);
+    line-height: 1.45;
   }
 
   .trend-chart-meta-value,
@@ -172,6 +177,7 @@
   .hotspot-legend-toggle,
   .hotspot-legend--mobile .hotspot-legend-active,
   .hotspot-legend--mobile .hotspot-legend-caption,
+  .hotspot-legend--mobile .hotspot-legend-details,
   .hotspot-legend--mobile .hotspot-legend-link,
   .hotspot-slider-badge,
   .hotspot-slider-mark,
@@ -212,6 +218,16 @@
   .glossary-trail-term {
     font-size: var(--type-ui);
     line-height: 1.4;
+  }
+
+  .relief-count-description {
+    font-size: var(--type-body-compact);
+    line-height: 1.45;
+  }
+
+  .relief-csi-scale-description {
+    font-size: var(--type-ui);
+    line-height: 1.45;
   }
 
   .mobile-progress-hint,
@@ -268,11 +284,6 @@
   .glossary-trail-count {
     font-size: var(--type-caption);
     line-height: 1.4;
-  }
-
-  .vulnerability-statistic-value {
-    font-size: var(--type-stat-large);
-    line-height: 0.96;
   }
 
   .sf-lead-value,
@@ -353,6 +364,8 @@
   .sf-chapter-handoff,
   .vulnerability-handoff,
   .vulnerability-source,
+  .vulnerability-source-detail,
+  .vulnerability-finding,
   .vulnerability-closing,
   .relief-lead,
   .relief-body,
@@ -411,6 +424,8 @@
   .sf-chapter-handoff,
   .vulnerability-handoff,
   .vulnerability-source,
+  .vulnerability-source-detail,
+  .vulnerability-finding,
   .vulnerability-closing,
   .relief-lead,
   .relief-body,

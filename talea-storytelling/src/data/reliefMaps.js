@@ -555,6 +555,7 @@ export function nearbyCardHTML({ label, ufficiale, verdi, copy, locale }) {
 
 
 let rifugiData = null;
+let rifugiCsiDomain = null;
 
 export function getRifugiData() {
   return rifugiData;
@@ -563,6 +564,12 @@ export function getRifugiData() {
 export async function loadRifugiData() {
   if (rifugiData) return rifugiData;
   const parks = asGeoJSON(await fetchJSON(csiUrl));
+  const csiValues = parks.features
+    .map((feature) => toFiniteNumber(feature.properties?.CSI))
+    .filter(Number.isFinite);
+  rifugiCsiDomain = csiValues.length
+    ? { min: Math.min(...csiValues), max: Math.max(...csiValues) }
+    : null;
   rifugiData = selectCsiFeatures(parks);
   if (!rifugiData.features.length) {
     rifugiData = null;
@@ -589,21 +596,71 @@ export function countRifugi(geojson) {
 }
 
 
-// A flat fill avoids implying readable precision in the highly skewed CSI distribution (D11).
-const RIFUGI_FILL_COLOR = COLORS.green;
+// Match the CRAF park map: the light-to-dark green sequence is interpolated
+// linearly across the actual minimum and maximum Climate Shelter Index values.
+const RIFUGI_CSI_COLORS = ["#ecfdf3", "#bbf7d0", "#86efac", "#22c55e", "#166534"];
+const RIFUGI_CSI_BORDER_COLORS = ["#789b83", "#52956a", "#2f814d", "#176d39", "#073f20"];
+
+function rifugiCsiColorExpression(geojson, colors = RIFUGI_CSI_COLORS) {
+  const values = (geojson?.features || [])
+    .map((feature) => toFiniteNumber(feature.properties?.CSI))
+    .filter(Number.isFinite)
+    .sort((a, b) => a - b);
+
+  if (values.length < 2) return colors[2];
+
+  // The map only displays the selected candidates, but CRAF derives its color
+  // domain from the complete csi.geojson dataset. Keeping that domain here
+  // means a given CSI value has the same color in both applications.
+  const min = rifugiCsiDomain?.min ?? values[0];
+  const max = rifugiCsiDomain?.max ?? values[values.length - 1];
+  if (min === max) return colors[2];
+
+  const span = max - min;
+  const stops = [min, min + span * 0.25, min + span * 0.5, min + span * 0.75, max];
+  return [
+    "interpolate",
+    ["linear"],
+    ["to-number", ["get", "CSI"], min],
+    stops[0], colors[0],
+    stops[1], colors[1],
+    stops[2], colors[2],
+    stops[3], colors[3],
+    stops[4], colors[4],
+  ];
+}
 
 export function addRifugiLayers(map, geojson, prefix, options = {}) {
   const sourceId = `${prefix}-rifugi`;
   if (map.getSource(sourceId)) return;
   const lineWidth = options.lineWidth ?? 2.2;
+  const lineWidthByZoom = [
+    "interpolate",
+    ["linear"],
+    ["zoom"],
+    9, lineWidth * 0.55,
+    12, lineWidth * 0.82,
+    15, lineWidth,
+  ];
+  const casingWidthByZoom = [
+    "interpolate",
+    ["linear"],
+    ["zoom"],
+    9, lineWidth * 1.05,
+    12, lineWidth * 1.55,
+    15, lineWidth + 2.2,
+  ];
+  const fillColor = rifugiCsiColorExpression(geojson);
+  const lineColor = rifugiCsiColorExpression(geojson, RIFUGI_CSI_BORDER_COLORS);
   map._rifugiFillTarget = options.fillOpacity ?? 0.5;
+  map._rifugiFillColor = fillColor;
   map.addSource(sourceId, { type: "geojson", data: geojson });
   map.addLayer({
     id: `${prefix}-rifugi-fill`,
     type: "fill",
     source: sourceId,
     paint: {
-      "fill-color": RIFUGI_FILL_COLOR,
+      "fill-color": fillColor,
       "fill-opacity": options.fillOpacity ?? 0.5,
     },
   });
@@ -613,7 +670,7 @@ export function addRifugiLayers(map, geojson, prefix, options = {}) {
     source: sourceId,
     paint: {
       "line-color": "rgba(255,255,255,.9)",
-      "line-width": lineWidth + 2.2,
+      "line-width": casingWidthByZoom,
       "line-opacity": options.lineOpacity ?? 0.85,
     },
   });
@@ -622,8 +679,8 @@ export function addRifugiLayers(map, geojson, prefix, options = {}) {
     type: "line",
     source: sourceId,
     paint: {
-      "line-color": COLORS.darkGreen,
-      "line-width": lineWidth,
+      "line-color": lineColor,
+      "line-width": lineWidthByZoom,
       "line-opacity": options.lineOpacity ?? 1,
     },
   });
@@ -878,7 +935,7 @@ export function addRifugiFocusLayers(map, prefix) {
         id: `${prefix}-rifugi-cutout`,
         type: "fill",
         source: sourceId,
-        paint: { "fill-color": RIFUGI_FILL_COLOR, "fill-opacity": 0 },
+        paint: { "fill-color": map._rifugiFillColor ?? COLORS.green, "fill-opacity": 0 },
       },
       map.getLayer(`${prefix}-rifugi-line-casing`) ? `${prefix}-rifugi-line-casing` : undefined,
     );

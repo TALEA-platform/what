@@ -295,6 +295,7 @@ function validateHotspot(document, location) {
   const legend = requireObject(map.legend, `${location}.map.legend`);
   const active = requireObject(legend.active, `${location}.map.legend.active`);
   const scale = requireObject(legend.scale, `${location}.map.legend.scale`);
+  const details = requireObject(legend.details, `${location}.map.legend.details`);
   const sourceLink = requireObject(
     legend.sourceLink,
     `${location}.map.legend.sourceLink`,
@@ -406,6 +407,24 @@ function validateHotspot(document, location) {
             max: requireString(scale.max, `${location}.map.legend.scale.max`),
           },
           caption: requireString(legend.caption, `${location}.map.legend.caption`),
+          details: {
+            openLabel: requireString(
+              details.openLabel,
+              `${location}.map.legend.details.openLabel`,
+            ),
+            closeLabel: requireString(
+              details.closeLabel,
+              `${location}.map.legend.details.closeLabel`,
+            ),
+            color: requireString(
+              details.color,
+              `${location}.map.legend.details.color`,
+            ),
+            unhighlighted: requireString(
+              details.unhighlighted,
+              `${location}.map.legend.details.unhighlighted`,
+            ),
+          },
           sourceLink: {
             id: requireString(sourceLink.id, `${location}.map.legend.sourceLink.id`),
             label: requireString(
@@ -746,21 +765,20 @@ const vulnerabilityHandoffSegmentIds = [
   "vulnerability-handoff-keyword",
   "vulnerability-handoff-after",
 ];
-const vulnerabilityStatisticLabelIds = [
-  "vulnerability-statistic-label-primary",
-  "vulnerability-statistic-label-context",
-];
-
 function validateVulnerability(document, location) {
   const chapter = requireObject(document.chapter, `${location}.chapter`);
   const intro = requireObject(document.intro, `${location}.intro`);
   const vignette = requireObject(intro.vignette, `${location}.intro.vignette`);
   const study = requireObject(document.study, `${location}.study`);
   const handoff = requireObject(study.handoff, `${location}.study.handoff`);
-  const statistic = requireObject(study.statistic, `${location}.study.statistic`);
+  const evidence = requireObject(study.evidence, `${location}.study.evidence`);
   const source = requireObject(
-    statistic.source,
-    `${location}.study.statistic.source`,
+    evidence.source,
+    `${location}.study.evidence.source`,
+  );
+  const finding = requireObject(
+    evidence.finding,
+    `${location}.study.evidence.finding`,
   );
   const closing = requireObject(document.closing, `${location}.closing`);
 
@@ -800,19 +818,6 @@ function validateVulnerability(document, location) {
     }
   });
 
-  const labelLines = requireOrderedIds(
-    statistic.labelLines,
-    vulnerabilityStatisticLabelIds,
-    `${location}.study.statistic.labelLines`,
-  ).map((rawLine, index) => {
-    const lineLocation = `${location}.study.statistic.labelLines[${index}]`;
-    const line = requireObject(rawLine, lineLocation);
-    return {
-      id: requireString(line.id, `${lineLocation}.id`),
-      text: requireString(line.text, `${lineLocation}.text`),
-    };
-  });
-
   return {
     vulnerability: {
       id: requireString(chapter.id, `${location}.chapter.id`),
@@ -841,29 +846,30 @@ function validateVulnerability(document, location) {
           id: requireString(handoff.id, `${location}.study.handoff.id`),
           segments: handoffSegments,
         },
-        statistic: {
-          id: requireString(statistic.id, `${location}.study.statistic.id`),
+        evidence: {
+          id: requireString(evidence.id, `${location}.study.evidence.id`),
           source: {
-            id: requireString(source.id, `${location}.study.statistic.source.id`),
+            id: requireString(source.id, `${location}.study.evidence.source.id`),
             before: requireString(
               source.before,
-              `${location}.study.statistic.source.before`,
+              `${location}.study.evidence.source.before`,
             ),
             linkLabel: requireString(
               source.linkLabel,
-              `${location}.study.statistic.source.linkLabel`,
+              `${location}.study.evidence.source.linkLabel`,
             ),
             afterLink: requireString(
               source.afterLink,
-              `${location}.study.statistic.source.afterLink`,
+              `${location}.study.evidence.source.afterLink`,
             ),
           },
-          qualifier: requireString(
-            statistic.qualifier,
-            `${location}.study.statistic.qualifier`,
-          ),
-          value: requireString(statistic.value, `${location}.study.statistic.value`),
-          labelLines,
+          finding: {
+            id: requireString(finding.id, `${location}.study.evidence.finding.id`),
+            text: requireString(
+              finding.text,
+              `${location}.study.evidence.finding.text`,
+            ),
+          },
         },
       },
       closing: {
@@ -938,6 +944,10 @@ function validateClimateRelief(document, location) {
   const refugesMap = requireObject(refuges.map, `${location}.refuges.map`);
   const hints = requireObject(refugesMap.hints, `${location}.refuges.map.hints`);
   const counts = requireObject(refugesMap.counts, `${location}.refuges.map.counts`);
+  const compatibleScale = requireObject(
+    counts.compatibleScale,
+    `${location}.refuges.map.counts.compatibleScale`,
+  );
   const links = requireObject(refugesMap.links, `${location}.refuges.map.links`);
   const search = requireObject(refugesMap.search, `${location}.refuges.map.search`);
   const cards = requireObject(refugesMap.cards, `${location}.refuges.map.cards`);
@@ -1199,6 +1209,10 @@ function validateClimateRelief(document, location) {
               counts.officialLabel,
               `${location}.refuges.map.counts.officialLabel`,
             ),
+            officialDescription: requireString(
+              counts.officialDescription,
+              `${location}.refuges.map.counts.officialDescription`,
+            ),
             officialSub: requireString(
               counts.officialSub,
               `${location}.refuges.map.counts.officialSub`,
@@ -1207,6 +1221,24 @@ function validateClimateRelief(document, location) {
               counts.compatibleLabel,
               `${location}.refuges.map.counts.compatibleLabel`,
             ),
+            compatibleDescription: requireString(
+              counts.compatibleDescription,
+              `${location}.refuges.map.counts.compatibleDescription`,
+            ),
+            compatibleScale: {
+              description: requireString(
+                compatibleScale.description,
+                `${location}.refuges.map.counts.compatibleScale.description`,
+              ),
+              from: requireString(
+                compatibleScale.from,
+                `${location}.refuges.map.counts.compatibleScale.from`,
+              ),
+              to: requireString(
+                compatibleScale.to,
+                `${location}.refuges.map.counts.compatibleScale.to`,
+              ),
+            },
           },
           links: {
             id: requireString(links.id, `${location}.refuges.map.links.id`),

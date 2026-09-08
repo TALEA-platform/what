@@ -1459,7 +1459,8 @@ export function RifugiMapScene() {
                         <span className="relief-count-dot relief-count-dot--ufficiale" aria-hidden="true" />
                         {reliefMapContent.counts.officialLabel}
                       </span>
-                      <span className="relief-count-sub">
+                      <span className="relief-count-description">
+                        {reliefMapContent.counts.officialDescription}{" "}
                         {reliefMapContent.counts.officialSub}
                       </span>
                     </div>
@@ -1474,6 +1475,23 @@ export function RifugiMapScene() {
                         <span className="relief-count-label">
                           <span className="relief-count-dot relief-count-dot--verde" aria-hidden="true" />
                           {reliefMapContent.counts.compatibleLabel}
+                        </span>
+                        <span className="relief-count-description">
+                          {reliefMapContent.counts.compatibleDescription}
+                        </span>
+                      </div>
+                      <div
+                        className="relief-csi-scale"
+                        role="img"
+                        aria-label={`${reliefMapContent.counts.compatibleScale.description} ${reliefMapContent.counts.compatibleScale.from} – ${reliefMapContent.counts.compatibleScale.to}.`}
+                      >
+                        <span className="relief-csi-scale-bar" aria-hidden="true" />
+                        <span className="relief-csi-scale-labels" aria-hidden="true">
+                          <span>{reliefMapContent.counts.compatibleScale.from}</span>
+                          <span>{reliefMapContent.counts.compatibleScale.to}</span>
+                        </span>
+                        <span className="relief-csi-scale-description">
+                          {reliefMapContent.counts.compatibleScale.description}
                         </span>
                       </div>
                       <a className="relief-map-link" href={editorialLinks.climateRelief.crafMap} target="_blank" rel="noopener noreferrer">

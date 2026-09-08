@@ -115,6 +115,7 @@ export function HotspotMapScene() {
   );
   const [narrowFrame, setNarrowFrame] = useState(false);
   const [legendOpen, setLegendOpen] = useState(false);
+  const [legendDetailsOpen, setLegendDetailsOpen] = useState(false);
   const [mobilePhase, setMobilePhase] = useState(0);
   const [renderedMobilePhase, setRenderedMobilePhase] = useState(0);
   const [renderedMobileStep, setRenderedMobileStep] = useState(0);
@@ -927,6 +928,34 @@ export function HotspotMapScene() {
       <span className="hotspot-legend-caption">
         {hotspotMapCopy.legend.caption}
       </span>
+      {mobileLayout ? (
+        <div className="hotspot-legend-details">
+          <p>{hotspotMapCopy.legend.details.color}</p>
+          <p>{hotspotMapCopy.legend.details.unhighlighted}</p>
+        </div>
+      ) : (
+        <>
+          <button
+            type="button"
+            className="hotspot-legend-details-toggle"
+            aria-expanded={legendDetailsOpen}
+            aria-controls="hotspot-legend-details"
+            onClick={() => setLegendDetailsOpen((open) => !open)}
+          >
+            {legendDetailsOpen
+              ? hotspotMapCopy.legend.details.closeLabel
+              : hotspotMapCopy.legend.details.openLabel}
+          </button>
+          <div
+            id="hotspot-legend-details"
+            className="hotspot-legend-details"
+            hidden={!legendDetailsOpen}
+          >
+            <p>{hotspotMapCopy.legend.details.color}</p>
+            <p>{hotspotMapCopy.legend.details.unhighlighted}</p>
+          </div>
+        </>
+      )}
       <a
         className="hotspot-legend-link"
         href={editorialLinks.hotspot.data}

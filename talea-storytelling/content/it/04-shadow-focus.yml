@@ -37,7 +37,7 @@ map:
 closing:
   id: shadow-focus-closing
   pivot: "L’ombra c’è, ma il calore rimane."
-  body: "Un paradosso urbano: la protezione dal sole dona un sollievo apparente, mentre l’ambiente circostante continua ad assorbire e rilasciare calore."
+  body: "Offre un sollievo reale dal sole diretto, ma non basta quando le superfici circostanti continuano ad accumulare e rilasciare calore."
 
 statistics:
   id: shadow-focus-statistics
@@ -52,7 +52,7 @@ statistics:
       label: "è in ombra"
       note: "nelle ore più calde, fra le 12 e le 15"
     - metricId: hotspot
-      label: "ricade negli hotspot climatici"
+      label: "ricade negli hotspot di calore superficiale"
       note: "nel 10% più caldo dell’intero Comune, in almeno 9 estati su 14"
     - metricId: vegetation
       label: "di verde"

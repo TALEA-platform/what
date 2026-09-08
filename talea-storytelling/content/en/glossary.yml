@@ -9,11 +9,11 @@ terms:
       - "The heat recorded by satellites on urban surfaces: asphalt, roofs, squares, soil and green areas."
       - "It is not the same as air temperature and cannot, on its own, describe the heat a person feels, but it helps show where the city accumulates heat."
   - id: climate-hotspot
-    term: "climate hotspot"
+    term: "surface heat hotspot"
     trail: true
     definition:
-      - "In this web app, it means an area that falls within the hottest 10% of Bologna’s surfaces in multiple observed summers. The data is based on surface temperature, not air temperature."
-      - "When a climate hotspot recurs several times between 2013 and 2026, it becomes a sign of recurring surface heat."
+      - "In this web app, it means an area where surface temperature falls, in multiple observed summers, within the highest 10% of values measured in Bologna. The data concerns surface temperatures and does not correspond to air temperature or the heat experienced by people."
+      - "Recurrence indicates how many times this condition repeats between 2013 and 2026."
   - id: climate-refuge
     term: "climate refuge"
     trail: true

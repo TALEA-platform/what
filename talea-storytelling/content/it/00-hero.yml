@@ -4,32 +4,29 @@ locale: it
 opening:
   id: hero-opening
   ariaLabel: "Introduzione"
-  title: "Bologna si sta scaldando."
+  title: |-
+    Bologna sta vivendo
+    estati sempre più calde
   subtitle:
     - id: opening-trend
-      text: "Negli ultimi anni le estati sono sempre più intense. "
+      text: "Il calore non si accumula ovunque con la stessa intensità."
     - id: opening-daily-life
-      text: "Il caldo è entrato"
-      keep: true
-    - id: opening-consequence
-      text: " nella vita quotidiana, lasciando tracce sulla città e cambiando il modo in cui viene abitata."
+      text: "\n Alcune superfici lo trattengono più di altre: individuare le zone in cui si concentra\n e gli spazi che possono offrire sollievo è il primo passo per decidere dove intervenire."
   scrollLabel: "Scorri per iniziare"
 
 bridge:
   id: hero-bridge
   body:
+    - id: bridge-project
+      text: "TALEA"
+      kw: true
     - id: bridge-intro
-      text: "Esplorare il "
+      text: " studia il "
     - id: urban-microclimate
       text: "microclima urbano"
       kw: true
-    - id: bridge-exposure
-      text: " permette di individuare i "
-    - id: exposed-neighbourhoods
-      text: "quartieri più esposti"
-      kw: true
-    - id: bridge-actions
-      text: " alle ondate di calore, valorizzare le aree di sollievo e pianificare soluzioni concrete per la vivibilità della città."
+    - id: bridge-method
+      text: " mettendo in relazione\n i dati climatici con le caratteristiche dello spazio pubblico,\n per orientare la trasformazione della città."
   callout:
     id: hero-bridge-callout
     lead: "Non si tratta solo di osservare il cambiamento:"

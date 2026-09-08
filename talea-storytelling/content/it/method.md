@@ -41,15 +41,16 @@ Questa storia usa i dati delle webapp TALEA del Comune di Bologna. Qui trovi, in
 
 ## Periodo osservato
 
-Il periodo messo a fuoco per l’aria e per gli hotspot copre quattordici estati, dal 2013 al 2026, nei mesi di giugno, luglio e agosto. Il grafico dell’aria permette inoltre di estendere lo sguardo fino al 1961.
+Il periodo messo a fuoco per l’aria e per gli hotspot di calore superficiale copre quattordici estati, dal 2013 al 2026, nei mesi di giugno, luglio e agosto. Il grafico dell’aria permette inoltre di estendere lo sguardo fino al 1961.
 
 ## Aria e superficie
 
 Il grafico iniziale usa la media estiva delle massime giornaliere dell'aria: racconta quanto diventano calde le giornate. La temperatura di superficie, registrata dai satelliti, racconta invece dove i materiali urbani accumulano calore. Sono due cose diverse: questa storia parla soprattutto di superfici.
 
-## Cos'è un hotspot climatico
+## Cos'è un hotspot di calore superficiale
 
-È un'area che, in più estati, rientra nel 10% delle superfici più calde di Bologna. La ricorrenza indica in quante estati su quattordici un'area è rientrata in quella fascia.
+Per ciascuna estate viene individuato il 10% dei valori di temperatura di superficie più elevati rilevati a Bologna. Un’area è considerata hotspot quando la sua temperatura di superficie rientra in questa fascia in più estati.
+La ricorrenza indica in quante delle 14 estati osservate tra il 2013 e il 2026 questa condizione si verifica nella stessa area.
 
 ## I dati sull'ombra
 
@@ -57,7 +58,7 @@ Sono simulazioni basate sul modello tridimensionale della città, calcolate a in
 
 ## Chi è più esposto
 
-La fragilità climatica non si legge solo sul termometro: mette insieme quanto un'area si scalda, chi la abita e quante possibilità offre di trovare riparo. Il 75% citato nella storia viene da uno studio pubblicato su Bologna, che trovi linkato nel testo, non da un'elaborazione di questa webapp.
+La fragilità climatica non si legge solo sul termometro: mette insieme quanto un'area si scalda, chi la abita e le risorse disponibili per affrontare il caldo. Lo studio su Bologna citato nella storia ha analizzato parchi e giardini pubblici e gratuiti, mettendone a confronto le caratteristiche.
 
 ## Come si contano i rifugi climatici
 

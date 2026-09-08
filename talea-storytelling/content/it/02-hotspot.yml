@@ -26,6 +26,10 @@ intro:
               glossary: surface-temperature
             - id: surface-definition
               text: ": il calore accumulato da asfalto, tetti e piazze durante il giorno e rilasciato a lungo dopo il tramonto."
+        - id: surface-temperature-clarification
+          segments:
+            - id: surface-temperature-clarification-body
+              text: "È una misura che non coincide né con la temperatura dell’aria né con il caldo percepito dalle persone."
     - id: ricorrenza
       figureLabel: "Tre fogli sovrapposti mostrano la stessa porzione di città vista dall’alto, uno per estate. In ognuno alcune zone sono fra le più calde, ma solo due tornano su tutti i fogli."
       visual:
@@ -37,16 +41,16 @@ intro:
         - id: recurring-pattern
           segments:
             - id: recurring-pattern-body
-              text: " Misurato su più estati, questo valore fa emergere un disegno ricorrente: le stesse zone di Bologna finiscono quasi sempre tra le più calde ogni anno."
+              text: " Confrontando le estati nel tempo, emerge un disegno ricorrente: alcune zone di Bologna ricompaiono più volte tra le più calde."
         - id: hotspot-definition
           segments:
             - id: hotspot-definition-intro
               text: "Sono gli "
             - id: hotspot-definition-term
-              text: "hotspot climatici"
+              text: "hotspot di calore superficiale"
               glossary: climate-hotspot
             - id: hotspot-definition-body
-              text: ": le superfici che rientrano nel 10% con le temperature più alte della città, estate dopo estate."
+              text: ": quelle aree in cui la temperatura di superficie rientra, in più estati, nel 10% dei valori più elevati rilevati in città."
   closer:
     id: hotspot-intro-closer
     text: "Andiamo a cercarli sulla mappa."
@@ -60,7 +64,7 @@ map:
         - id: threshold-pattern
           segments:
             - id: threshold-pattern-body
-              text: " Osservando le ultime 14 estati, il calore si concentra lungo specifici assi della città, risparmiando colli, parchi e campagna."
+              text: " Sovrapponendo le ultime 14 estati, osserviamo come il calore si concentra lungo specifici assi della città, risparmiando colli, parchi e campagna."
         - id: threshold-narrow
           segments:
             - id: threshold-narrow-body
@@ -70,7 +74,7 @@ map:
         - id: recurrence-pattern
           segments:
             - id: recurrence-pattern-body
-              text: " Emergono le zone dove i picchi termici sono più frequenti: la prova che questo comportamento sia ormai una caratteristica fissa."
+              text: " Emergono le zone dove i picchi termici sono più frequenti: il segno che questo fenomeno tende a ripresentarsi nelle stesse aree."
     - id: persistence
       paragraphs:
         - id: persistence-definition
@@ -78,10 +82,10 @@ map:
             - id: persistence-definition-intro
               text: "Ecco gli "
             - id: persistence-definition-term
-              text: "hotspot climatici"
+              text: "hotspot"
               kw: true
             - id: persistence-definition-body
-              text: " di Bologna: superfici che ogni anno accumulano e trattengono calore, faticando a raffreddarsi."
+              text: " di Bologna: superfici che si confermano tra le più critiche dal punto di vista del calore superficiale."
         - id: persistence-question
           segments:
             - id: persistence-question-body
@@ -128,16 +132,21 @@ map:
         context: "capannoni e piazzali della logistica, quasi senza ombra"
   legend:
     id: hotspot-legend
-    title: "Aree di ricorrenza climatica"
+    title: "Ricorrenza tra le superfici più calde"
     active:
       id: hotspot-legend-active
-      one: "Rientrano nel 10% in almeno {n} anno su 14"
-      other: "Rientrano nel 10% in almeno {n} anni su 14"
+      one: "Area nel 10% dei valori termici più elevati in almeno {n} estati su 14"
+      other: "Area nel 10% dei valori termici più elevati in almeno {n} estati su 14"
     scale:
       id: hotspot-legend-scale
       min: "1 estate"
       max: "14 estati"
-    caption: "In quante delle 14 estati (dal 2013 al 2026) l’area è rientrata nel 10% di superfici più calde di Bologna."
+    caption: "Il colore indica in quante delle 14 estati osservate (2013–2026) la temperatura di superficie di ogni area è rientrata nel 10% dei valori più elevati rilevati a Bologna."
+    details:
+      openLabel: "Come leggere la mappa"
+      closeLabel: "Nascondi spiegazione"
+      color: "Più il colore tende al rosso, maggiore è la ricorrenza."
+      unhighlighted: "Nelle aree non evidenziate, la temperatura superficiale non è mai rientrata nel 10% dei valori più elevati, oppure vi è rientrata in meno estati rispetto alla soglia selezionata."
     sourceLink:
       id: hotspot-source-link
       label: "Esplora i dati tecnici in dettaglio"

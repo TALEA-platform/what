@@ -134,13 +134,19 @@ refuges:
       return: "Scorri per tornare alla città"
     counts:
       id: climate-refuges-counts
-      officialLabel: "riconosciuti dal Comune"
-      officialSub: "sedici al chiuso, tredici all’aperto"
-      compatibleLabel: "parchi e giardini con caratteristiche compatibili"
+      officialLabel: "rifugi climatici riconosciuti"
+      officialDescription: "Luoghi inclusi nell’elenco ufficiale del Comune:"
+      officialSub: "sedici al chiuso e tredici all’aperto."
+      compatibleLabel: "spazi verdi potenzialmente adatti"
+      compatibleDescription: "Luoghi con caratteristiche compatibili, ma non necessariamente attrezzati o riconosciuti."
+      compatibleScale:
+        description: "La compatibilità considera vegetazione, dimensioni, accessibilità e dotazioni."
+        from: "Compatibilità minore"
+        to: "Compatibilità maggiore"
     links:
       id: climate-refuges-links
       municipalLabel: "La mappa dei rifugi climatici del Comune"
-      taleaLabel: "Esplora l'analisi di parchi e giardini con caratteristiche compatibili"
+      taleaLabel: "Esplora i dati sugli spazi verdi"
     loadError: "Dati dei rifugi climatici non caricati al momento."
     search:
       id: climate-refuges-search

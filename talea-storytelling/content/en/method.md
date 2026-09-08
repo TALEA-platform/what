@@ -41,15 +41,16 @@ This story uses data from the City of Bologna's TALEA web apps. Here you will fi
 
 ## Observation period
 
-The period highlighted for air temperature and hotspots covers fourteen summers, from 2013 to 2026, during June, July and August. The air-temperature chart also lets readers extend the view back to 1961.
+The period highlighted for air temperature and surface heat hotspots covers fourteen summers, from 2013 to 2026, during June, July and August. The air-temperature chart also lets readers extend the view back to 1961.
 
 ## Air and surface
 
 The opening chart uses the summer average of daily maximum air temperatures: it shows how hot the days become. Surface temperature, recorded by satellites, shows where urban materials accumulate heat. They are two different things: this story is mainly about surfaces.
 
-## What is a climate hotspot?
+## What is a surface heat hotspot?
 
-It is an area that falls within the hottest 10% of Bologna's surfaces in multiple summers. Recurrence indicates how many of the fourteen summers an area fell within that range.
+For each summer, the highest 10% of surface-temperature values measured in Bologna is identified. An area is considered a hotspot when its surface temperature falls within this range in multiple summers.
+Recurrence indicates in how many of the 14 summers observed between 2013 and 2026 this condition occurs in the same area.
 
 ## Shade data
 
@@ -57,7 +58,7 @@ These simulations are based on the city's three-dimensional model and calculated
 
 ## Who is most exposed
 
-Climate vulnerability cannot be read from the thermometer alone: it brings together how much an area heats up, who lives there and how many opportunities it offers to find relief. The 75% cited in the story comes from a published study on Bologna, linked in the text, rather than from an analysis produced by this web app.
+Climate vulnerability cannot be read from the thermometer alone: it brings together how much an area heats up, who lives there and the resources available to cope with the heat. The study of Bologna cited in the story analysed public parks and gardens that are free to access, comparing their characteristics.
 
 ## How climate refuges are counted
 

@@ -1,15 +1,12 @@
 import { useEffect } from "react";
 import { assetUrl } from "../../lib/assetUrl";
+import { hasLiveMapStyle } from "../../lib/mapLifecycle";
 
 const bolognaBoundaryUrl = assetUrl("/data/vectors/bologna_boundary_outline.geojson");
 
 const sourceId = "bologna-boundary-outline-src";
 const casingLayerId = "bologna-boundary-outline-casing";
 const lineLayerId = "bologna-boundary-outline-line";
-
-function hasLiveStyle(map) {
-  return Boolean(map && !map._removed && map.style);
-}
 
 function addLayerBeforeLabels(map, layer) {
   const firstSymbolLayer = map
@@ -25,7 +22,7 @@ function addLayerBeforeLabels(map, layer) {
 
 export function BolognaBoundaryLayer({ map, visible = true }) {
   useEffect(() => {
-    if (!hasLiveStyle(map)) return;
+    if (!hasLiveMapStyle(map)) return;
 
     if (!map.getSource(sourceId)) {
       map.addSource(sourceId, {
@@ -65,7 +62,7 @@ export function BolognaBoundaryLayer({ map, visible = true }) {
     return () => {
       // A far-offscreen iOS teardown can outlive the React commit that cleared
       // this prop. MapLibre nulls `style` during remove(); do not query it then.
-      if (!hasLiveStyle(map)) return;
+      if (!hasLiveMapStyle(map)) return;
       if (map.getLayer(lineLayerId)) map.removeLayer(lineLayerId);
       if (map.getLayer(casingLayerId)) map.removeLayer(casingLayerId);
       if (map.getSource(sourceId)) map.removeSource(sourceId);
@@ -73,7 +70,7 @@ export function BolognaBoundaryLayer({ map, visible = true }) {
   }, [map]);
 
   useEffect(() => {
-    if (!hasLiveStyle(map)) return;
+    if (!hasLiveMapStyle(map)) return;
 
     const opacity = visible ? 1 : 0;
     if (map.getLayer(casingLayerId)) {

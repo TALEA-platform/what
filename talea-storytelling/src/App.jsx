@@ -17,6 +17,7 @@ import {
 } from "./components/story/TaleaProjectSection";
 import { ZonesMapScene } from "./components/story/ZonesMapScene";
 import { ClosingSection } from "./components/story/ClosingSection";
+import { StoryCredits } from "./components/story/StoryCredits";
 import { GlossaryDrawer, GlossaryTrailProvider } from "./components/ui/GlossaryDrawer";
 import { MethodDrawer } from "./components/ui/MethodDrawer";
 import { MobileExperienceNotice } from "./components/ui/MobileExperienceNotice";
@@ -70,6 +71,7 @@ function App() {
         <TaleaPartnersSection />
         <ClosingSection />
       </main>
+      <StoryCredits />
       <Footer onOpenMethod={openMethod} />
       <GlossaryDrawer
         activeId={glossaryId}

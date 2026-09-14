@@ -1537,6 +1537,7 @@ function validateTalea(document, location) {
   const closing = requireObject(document.closing, `${location}.closing`);
   const closingFinal = requireObject(closing.final, `${location}.closing.final`);
   const sources = requireObject(closing.sources, `${location}.closing.sources`);
+  const credits = requireObject(document.credits, `${location}.credits`);
   const footer = requireObject(document.footer, `${location}.footer`);
   const footerBrand = requireObject(footer.brand, `${location}.footer.brand`);
   const footerNavigation = requireObject(
@@ -1744,6 +1745,32 @@ function validateTalea(document, location) {
     };
   });
 
+  const creditPersonIds = new Set();
+  const creditPeople = requireArray(credits.people, `${location}.credits.people`).map(
+    (rawPerson, index) => {
+      const personLocation = `${location}.credits.people[${index}]`;
+      const person = requireObject(rawPerson, personLocation);
+      const id = requireString(person.id, `${personLocation}.id`);
+      if (creditPersonIds.has(id)) {
+        throw new Error(`${location}.credits.people contains duplicate id: ${id}`);
+      }
+      creditPersonIds.add(id);
+      const github =
+        person.github === undefined
+          ? undefined
+          : requireHttpUrl(person.github, `${personLocation}.github`);
+      return {
+        id,
+        name: requireString(person.name, `${personLocation}.name`),
+        description: requireString(
+          person.description,
+          `${personLocation}.description`,
+        ),
+        ...(github ? { github } : {}),
+      };
+    },
+  );
+
   const footerLinkIds = [
     "talea-footer-platform",
     "talea-footer-project",
@@ -1918,6 +1945,33 @@ function validateTalea(document, location) {
           ),
           apps: sourceApps,
         },
+      },
+      credits: {
+        id: requireString(credits.id, `${location}.credits.id`),
+        title: requireString(credits.title, `${location}.credits.title`),
+        shortTitle: requireString(
+          credits.shortTitle,
+          `${location}.credits.shortTitle`,
+        ),
+        openLabel: requireString(
+          credits.openLabel,
+          `${location}.credits.openLabel`,
+        ),
+        closeLabel: requireString(
+          credits.closeLabel,
+          `${location}.credits.closeLabel`,
+        ),
+        group: requireString(credits.group, `${location}.credits.group`),
+        shortGroup: requireString(
+          credits.shortGroup,
+          `${location}.credits.shortGroup`,
+        ),
+        linkId: requireExactString(
+          credits.linkId,
+          "digital-commons-lab",
+          `${location}.credits.linkId`,
+        ),
+        people: creditPeople,
       },
       footer: {
         id: requireString(footer.id, `${location}.footer.id`),
@@ -2528,6 +2582,10 @@ function validateLinks(raw) {
       europeanUrbanInitiative: requireHttpUrl(
         talea.europeanUrbanInitiative,
         "links.talea.europeanUrbanInitiative",
+      ),
+      digitalCommonsLab: requireHttpUrl(
+        talea.digitalCommonsLab,
+        "links.talea.digitalCommonsLab",
       ),
     },
   };

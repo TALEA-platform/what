@@ -5,6 +5,7 @@ import {
   hotspotPersistenceThresholds,
 } from "../../data/hotspotData";
 import { getHotspotPersistenceColor } from "../../data/hotspotPalette";
+import { hasLiveMapStyle } from "../../lib/mapLifecycle";
 
 export function HotspotLayer({
   map,
@@ -18,7 +19,7 @@ export function HotspotLayer({
   const loadedVersion = useRef(null);
 
   useEffect(() => {
-    if (!map) return;
+    if (!hasLiveMapStyle(map)) return;
 
     const sourceId = (threshold) => `hotspot-src-${id}-${threshold}`;
     const layerId = (threshold) => `hotspot-fill-${id}-${threshold}`;

@@ -10,6 +10,7 @@ const TALEA_LINK_TARGETS = {
   "shadow-focus-data": editorialLinks.shadowFocus.data,
   "craf-map": editorialLinks.climateRelief.crafMap,
   "european-urban-initiative": editorialLinks.talea.europeanUrbanInitiative,
+  "digital-commons-lab": editorialLinks.talea.digitalCommonsLab,
 };
 
 export function resolveTaleaLink(linkId) {

@@ -17,6 +17,7 @@ import { applyPaperBasemap } from "../../lib/basemapPaper";
 import { getHotspotPersistenceColor } from "../../data/hotspotPalette";
 import { hotspotPersistenceThresholds } from "../../data/hotspotData";
 import { useIOSFarOffscreenMount } from "../../hooks/useIOSFarOffscreenMount";
+import { hasLiveMapStyle } from "../../lib/mapLifecycle";
 import {
   buildHotspotSteps,
   hotspotStepSpecs,
@@ -108,6 +109,7 @@ export function HotspotMapScene() {
     [uiContent],
   );
   const [map, setMap] = useState(null);
+  const [mapGeneration, setMapGeneration] = useState(0);
   const [mobileLayout, setMobileLayout] = useState(
     () =>
       typeof window !== "undefined" &&
@@ -261,7 +263,7 @@ export function HotspotMapScene() {
     setMap(m);
   }, []);
 
-  const onMapRemoved = useCallback((removedMap) => {
+  const onMapRemoved = useCallback((removedMap, reason) => {
     if (mobileCameraTouchedRef.current) {
       const center = removedMap.getCenter?.();
       mobileCameraSnapshotRef.current = center
@@ -278,6 +280,9 @@ export function HotspotMapScene() {
     }
     lastZoomRef.current = null;
     setMap((current) => (current === removedMap ? null : current));
+    if (reason !== "component-cleanup") {
+      setMapGeneration((current) => current + 1);
+    }
   }, []);
 
   const sceneReady = mapEngaged && Boolean(map);
@@ -658,10 +663,10 @@ export function HotspotMapScene() {
   ]);
 
   const zoomShift = narrowFrame ? NARROW_ZOOM_SHIFT : 0;
-  const renderedMap = mapMaterialized ? map : null;
+  const renderedMap = mapMaterialized && hasLiveMapStyle(map) ? map : null;
 
   useEffect(() => {
-    if (!map) return;
+    if (!hasLiveMapStyle(map)) return;
     if (mobileLayout) {
       if (mobileCameraConfigRef.current?.map === map) return;
       const originalMinZoom = map.getMinZoom();
@@ -712,11 +717,11 @@ export function HotspotMapScene() {
   }, [map, mobileLayout, zoomShift]);
 
   useEffect(() => {
-    if (map && !mapEngaged) map.stop();
+    if (hasLiveMapStyle(map) && !mapEngaged) map.stop();
   }, [map, mapEngaged]);
 
   useEffect(() => {
-    if (!map || !mobileLayout) return undefined;
+    if (!hasLiveMapStyle(map) || !mobileLayout) return undefined;
 
     const onUserCameraChange = (event) => {
       if (!event.originalEvent) return;
@@ -735,7 +740,7 @@ export function HotspotMapScene() {
   }, [map, mobileLayout, mobilePhase]);
 
   useEffect(() => {
-    if (!map || !mapEngaged || !veilLifted) return;
+    if (!hasLiveMapStyle(map) || !mapEngaged || !veilLifted) return;
     const step = hotspotStepSpecs[activeIndex];
     if (mobileLayout) {
       if (
@@ -785,7 +790,7 @@ export function HotspotMapScene() {
 
   useEffect(() => {
     if (
-      !map ||
+      !hasLiveMapStyle(map) ||
       !mobileLayout ||
       mobilePhase !== MOBILE_HANDOFF_PHASE ||
       !mobileCameraConfigRef.current
@@ -866,7 +871,7 @@ export function HotspotMapScene() {
   );
 
   useEffect(() => {
-    if (!map) return;
+    if (!hasLiveMapStyle(map)) return;
     const legacyIds = ["hotspot-slider-src", "hotspot-slider-fill"];
     legacyIds.forEach((id) => {
       if (map.getLayer(id)) map.removeLayer(id);
@@ -1239,6 +1244,7 @@ export function HotspotMapScene() {
       >
         {mapMaterialized ? (
           <MapLibreCanvas
+            key={mapGeneration}
             onMapReady={onMapReady}
             onMapRemoved={onMapRemoved}
             mapName="Hotspot"

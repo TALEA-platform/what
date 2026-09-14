@@ -8,6 +8,10 @@ import {
 } from "../../lib/mapPerformance";
 import { runtimeProfile } from "../../lib/runtimeProfile";
 import { registerIPhoneMapRelease } from "../../lib/iphoneMapOwnership";
+import {
+  hasLiveMapStyle,
+  markMapRemoved,
+} from "../../lib/mapLifecycle";
 
 const DEFAULT_OPENFREEMAP_STYLE = "https://tiles.openfreemap.org/styles/positron";
 
@@ -60,8 +64,9 @@ export function MapLibreCanvas({
       if (removed) return;
       removed = true;
       mapRef.current = null;
+      markMapRemoved(map);
       map.stop();
-      onMapRemoved?.(map);
+      onMapRemoved?.(map, reason);
       unregisterPerformance();
       map.remove();
       logPerformanceEvent("map:remove", { mapName, reason });
@@ -72,7 +77,7 @@ export function MapLibreCanvas({
     );
 
     map.on("load", () => {
-      if (removed) return;
+      if (removed || !hasLiveMapStyle(map)) return;
       logPerformanceEvent("map:load", { mapName });
       if (collapseAttribution) {
         containerRef.current
@@ -97,8 +102,9 @@ export function MapLibreCanvas({
         return;
       }
       mapRef.current = null;
+      markMapRemoved(map);
       map.stop();
-      onMapRemoved?.(map);
+      onMapRemoved?.(map, "component-cleanup");
       // React layer siblings receive the parent's cleared map state during the
       // same passive-effect flush. Let those cleanups finish before destroying
       // the MapLibre style they still reference.
@@ -112,7 +118,7 @@ export function MapLibreCanvas({
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !locale) return;
+    if (!hasLiveMapStyle(map) || !locale) return;
 
     // MapLibre has no public runtime locale setter. Updating its locale table
     // keeps the existing camera/layers alive while language-specific gesture

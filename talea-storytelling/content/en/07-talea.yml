@@ -153,13 +153,13 @@ partners:
       role: "company"
     - partnerId: cluj-napoca
       name: "Cluj-Napoca"
-      role: "replication city"
+      role: "transfer"
     - partnerId: marseille
       name: "Marseille"
-      role: "replication city"
+      role: "transfer"
     - partnerId: riga
       name: "Riga"
-      role: "replication city"
+      role: "transfer"
   funding:
     id: talea-partners-funding
     text: "Co-funded by the European Union through the European Urban Initiative."
@@ -197,6 +197,35 @@ closing:
         tag: "CRAF"
         description: "Places to take shelter from the heat, and the neighbourhoods where they are needed most."
         linkId: craf-map
+
+credits:
+  id: story-credits
+  title: "By"
+  shortTitle: "By"
+  openLabel: "The team"
+  closeLabel: "Close"
+  group: "Digital Commons Lab · FBK"
+  shortGroup: "DCL · FBK"
+  linkId: digital-commons-lab
+  people:
+    - id: leonardo-bridi
+      name: "Leonardo Bridi"
+      description: "Developer"
+      github: "https://github.com/ilLeoo"
+    - id: maurizio-napolitano
+      name: "Maurizio Napolitano"
+      description: "Data Designer"
+      github: "https://github.com/napo"
+    - id: eleonora-andreotti
+      name: "Eleonora Andreotti"
+      description: "Data Scientist"
+      github: "https://github.com/eleonoraandreotti"
+    - id: alice-barsanti
+      name: "Alice Barsanti"
+      description: "UX Designer"
+    - id: pietro-bizzaro
+      name: "Pietro Bizzaro"
+      description: "Data Curation"
 
 footer:
   id: talea-footer

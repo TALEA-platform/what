@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useContent } from "../../content";
 import { chapterSpecs } from "../../data/chapters";
 import { BRANCH_WIDTH, branchLeaves, branchPath, branchX } from "../../lib/branch";
+import { announceProgressNavigation } from "../../lib/progressNavigation";
 
 const CHAPTERS = chapterSpecs;
 
@@ -380,6 +381,7 @@ export function ScrollStem({
       ),
     };
 
+    announceProgressNavigation(top);
     window.scrollTo({ top, behavior: "instant" });
   };
 
@@ -402,7 +404,9 @@ export function ScrollStem({
       mobileTipRef.current.style.left = `${(progress * 100).toFixed(3)}%`;
       mobileTipRef.current.style.top = `${mobileStemY(progress).toFixed(3)}%`;
     }
-    window.scrollTo({ top: start + progress * scrollable, behavior: "instant" });
+    const top = start + progress * scrollable;
+    announceProgressNavigation(top);
+    window.scrollTo({ top, behavior: "instant" });
   };
 
   const handleMobilePointerDown = (event) => {

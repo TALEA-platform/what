@@ -14,6 +14,7 @@ import {
   registerMapPerformance,
 } from "../../lib/mapPerformance";
 import { runtimeProfile } from "../../lib/runtimeProfile";
+import { PROGRESS_NAVIGATION_EVENT } from "../../lib/progressNavigation";
 import {
   onIOSHeavyOffscreenRelease,
   requestIOSHeavyOffscreenRelease,
@@ -1259,6 +1260,15 @@ export function RifugiMapScene() {
 
   useEffect(() => {
     let frame = null;
+    const handleProgressNavigation = (event) => {
+      const targetScrollY = Number(event.detail?.targetScrollY);
+      // A progress jump owns this scroll: do not let the selected-refuge
+      // dezoom consume it and pull the page back to the map.
+      scrollResetUntilRef.current = 0;
+      lastScrollRef.current = Number.isFinite(targetScrollY)
+        ? targetScrollY
+        : window.scrollY;
+    };
     const update = () => {
       frame = null;
       const vh = window.innerHeight || 768;
@@ -1331,6 +1341,7 @@ export function RifugiMapScene() {
     requestMapResizeUpdateRef.current = requestUpdate;
     lastScrollRef.current = window.scrollY;
     update();
+    window.addEventListener(PROGRESS_NAVIGATION_EVENT, handleProgressNavigation);
     window.addEventListener("scroll", requestUpdate, { passive: true });
     window.addEventListener("resize", handleResize);
     return () => {
@@ -1338,6 +1349,7 @@ export function RifugiMapScene() {
       if (requestMapResizeUpdateRef.current === requestUpdate) {
         requestMapResizeUpdateRef.current = null;
       }
+      window.removeEventListener(PROGRESS_NAVIGATION_EVENT, handleProgressNavigation);
       window.removeEventListener("scroll", requestUpdate);
       window.removeEventListener("resize", handleResize);
     };

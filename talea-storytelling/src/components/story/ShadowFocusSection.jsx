@@ -28,6 +28,7 @@ import { assetUrl } from "../../lib/assetUrl";
 import { editorialLinks, useContent } from "../../content";
 import { isMapSizeSynchronized } from "../../lib/mapResize";
 import { useIOSFarOffscreenMount } from "../../hooks/useIOSFarOffscreenMount";
+import { hasLiveMapStyle } from "../../lib/mapLifecycle";
 
 const bolognaBoundaryUrl = assetUrl("/data/vectors/bologna_boundary_outline.geojson");
 
@@ -65,6 +66,7 @@ function getShadowMobileCameraPadding() {
 }
 
 function refitShadowMobileCamera(map, cameraKey) {
+  if (!hasLiveMapStyle(map)) return;
   map.fitBounds(
     cameraKey === "centro" ? MOBILE_CENTRO_BOUNDS : MOBILE_BOLOGNA_BOUNDS,
     { padding: getShadowMobileCameraPadding(), duration: 0 },
@@ -325,6 +327,7 @@ function SceneDarkMap({
   materialized,
 }) {
   const [map, setMap] = useState(null);
+  const [mapGeneration, setMapGeneration] = useState(0);
   const handleReady = useCallback((m) => setMap(m), []);
 
   const centroProminent = cameraKey === "centro";
@@ -337,7 +340,7 @@ function SceneDarkMap({
   const mobileRefitCameraKeyRef = useRef(null);
   const mobileCameraSnapshotRef = useRef(null);
 
-  const handleRemoved = useCallback((removedMap) => {
+  const handleRemoved = useCallback((removedMap, reason) => {
     if (mobileCameraTouchedRef.current) {
       const center = removedMap.getCenter?.();
       mobileCameraSnapshotRef.current = center
@@ -355,13 +358,16 @@ function SceneDarkMap({
       mobileCameraLimitsRef.current = null;
     }
     setMap((current) => (current === removedMap ? null : current));
+    if (reason !== "component-cleanup") {
+      setMapGeneration((current) => current + 1);
+    }
   }, []);
   useEffect(() => {
     playbackRateRef.current = playbackRate;
   }, [playbackRate]);
 
   useEffect(() => {
-    if (!map) return;
+    if (!hasLiveMapStyle(map)) return;
 
     if (!map.getSource("scene-boundary-src")) {
       map.addSource("scene-boundary-src", { type: "geojson", data: bolognaBoundaryUrl });
@@ -465,7 +471,7 @@ function SceneDarkMap({
   }, [map]);
 
   useEffect(() => {
-    if (!map) return;
+    if (!hasLiveMapStyle(map)) return;
     if (map.getLayer("scene-shadow-street-fill")) {
       map.setPaintProperty("scene-shadow-street-fill", "fill-opacity-transition", {
         duration: 900 / playbackRate,
@@ -483,7 +489,7 @@ function SceneDarkMap({
   }, [map, engaged, playbackRate]);
 
   useEffect(() => {
-    if (!map) return;
+    if (!hasLiveMapStyle(map)) return;
 
     if (mobileLayout) {
       if (mobileCameraLimitsRef.current?.map === map) return;
@@ -520,11 +526,11 @@ function SceneDarkMap({
   }, [map, mobileLayout]);
 
   useEffect(() => {
-    if (map && !engaged) map.stop();
+    if (hasLiveMapStyle(map) && !engaged) map.stop();
   }, [map, engaged]);
 
   useEffect(() => {
-    if (!map) return;
+    if (!hasLiveMapStyle(map)) return;
     if (mobileLayout) {
       const nextKey = cameraKey === "centro" ? "centro" : "overview";
       if (mobileCameraKeyRef.current !== nextKey) {
@@ -568,7 +574,7 @@ function SceneDarkMap({
   }, [map, cameraKey, centroProminent, playbackRate, mobileLayout]);
 
   useEffect(() => {
-    if (!map || !mobileLayout) return undefined;
+    if (!hasLiveMapStyle(map) || !mobileLayout) return undefined;
 
     const markCameraTouched = (event) => {
       if (event.originalEvent) mobileCameraTouchedRef.current = true;
@@ -578,6 +584,7 @@ function SceneDarkMap({
       if (
         !mobileRefitPendingRef.current ||
         !engaged ||
+        !hasLiveMapStyle(map) ||
         !isMapSizeSynchronized(map)
       ) {
         return;
@@ -620,7 +627,7 @@ function SceneDarkMap({
 
   useLayoutEffect(() => {
     if (
-      !map ||
+      !hasLiveMapStyle(map) ||
       !mobileLayout ||
       !engaged ||
       !mobileRefitPendingRef.current ||
@@ -636,7 +643,9 @@ function SceneDarkMap({
   }, [map, mobileLayout, cameraKey, engaged]);
 
   useEffect(() => {
-    if (!map || !map.getLayer("scene-centro-fill")) return undefined;
+    if (!hasLiveMapStyle(map) || !map.getLayer("scene-centro-fill")) {
+      return undefined;
+    }
     const rate = playbackRateRef.current;
 
     if (!centroProminent || prefersReducedMotion()) {
@@ -652,7 +661,12 @@ function SceneDarkMap({
     });
     map.setPaintProperty("scene-centro-fill", "fill-opacity", CENTRO_VEIL_OPACITY);
     const veilOut = window.setTimeout(() => {
-      if (!map.getLayer("scene-centro-fill")) return;
+      if (
+        !hasLiveMapStyle(map) ||
+        !map.getLayer("scene-centro-fill")
+      ) {
+        return;
+      }
       map.setPaintProperty("scene-centro-fill", "fill-opacity-transition", {
         duration: CENTRO_VEIL_OUT_MS / rate,
       });
@@ -663,6 +677,7 @@ function SceneDarkMap({
 
   return materialized ? (
     <MapLibreCanvas
+      key={mapGeneration}
       onMapReady={handleReady}
       onMapRemoved={handleRemoved}
       mapName="Ombra"

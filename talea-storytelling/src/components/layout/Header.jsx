@@ -5,6 +5,7 @@ import {
   supportedLocales,
   useContent,
 } from "../../content";
+import { PROGRESS_NAVIGATION_EVENT } from "../../lib/progressNavigation";
 
 const logoUrl = new URL("/assets/talea-logo.png", import.meta.url).href;
 const { platformUrl } = siteConfig;
@@ -87,21 +88,37 @@ export function Header({
       onVisibilityChange?.(nextHidden);
       if (nextHidden) {
         setMenuOpen(false);
+        if (progressOpen) onProgressOpenChange?.(false);
       }
     };
     const requestUpdate = () => {
       if (frame) return;
       frame = requestAnimationFrame(update);
     };
+    const handleProgressNavigation = () => {
+      // Reopening the progress control from an immersive map temporarily keeps
+      // the shell visible. A jump belongs to the progress control, so release
+      // that override before evaluating the destination map.
+      forcedVisibleRef.current = false;
+      requestUpdate();
+    };
     update();
+    window.addEventListener(PROGRESS_NAVIGATION_EVENT, handleProgressNavigation);
     window.addEventListener("scroll", requestUpdate, { passive: true });
     window.addEventListener("resize", requestUpdate);
     return () => {
       if (frame) cancelAnimationFrame(frame);
+      window.removeEventListener(PROGRESS_NAVIGATION_EVENT, handleProgressNavigation);
       window.removeEventListener("scroll", requestUpdate);
       window.removeEventListener("resize", requestUpdate);
     };
-  }, [mobileScrubbing, mobileScrubbingRef, onProgressOpenChange, onVisibilityChange]);
+  }, [
+    mobileScrubbing,
+    mobileScrubbingRef,
+    onProgressOpenChange,
+    onVisibilityChange,
+    progressOpen,
+  ]);
 
   return (
     <>

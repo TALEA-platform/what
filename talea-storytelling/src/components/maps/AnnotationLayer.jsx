@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useContent } from "../../content";
 import { buildHotspotAnnotations } from "../../data/hotspotAnnotations";
+import { hasLiveMapStyle } from "../../lib/mapLifecycle";
 
 const HOVER_RADIUS = 72;
 const MOBILE_PRIORITY_ZONE_IDS = [
@@ -49,8 +50,9 @@ export function AnnotationLayer({
   );
 
   useEffect(() => {
-    if (!map) return;
+    if (!hasLiveMapStyle(map)) return;
     const update = () => {
+      if (!hasLiveMapStyle(map)) return;
       setPositions(
         hotspotAnnotations.map((a) => ({
           dot: map.project(a.coord),
@@ -77,7 +79,7 @@ export function AnnotationLayer({
   }, [active, showNarrative]);
 
   useEffect(() => {
-    if (!map || !active) return;
+    if (!hasLiveMapStyle(map) || !active) return;
     const pickNearest = (point) => {
       let best = null;
       let bestDist = HOVER_RADIUS;
@@ -125,7 +127,7 @@ export function AnnotationLayer({
     narrativeShown && (!mobile || !hoverId);
   const hoverAlreadyShown =
     !mobile && narrativeShown && Boolean(hoverZone?.narrative);
-  const canvas = map?.getCanvas();
+  const canvas = hasLiveMapStyle(map) ? map.getCanvas() : null;
   const canvasWidth = canvas?.clientWidth ?? 0;
   const canvasHeight = canvas?.clientHeight ?? 0;
   const narrowMobile = mobile && canvasWidth < 600;

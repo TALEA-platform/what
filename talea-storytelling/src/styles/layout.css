@@ -460,6 +460,17 @@
   opacity: 1;
 }
 
+/* Area cliccabile invisibile più ampia: non cambia il disegno. */
+.scroll-stem-node::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  width: 44px;
+  top: calc(50% - var(--hit-up, 22px));
+  bottom: calc(50% - var(--hit-down, 22px));
+  transform: translateX(-50%);
+}
+
 .scroll-stem-node-label {
   position: absolute;
   left: calc(100% + 2px);

@@ -88,6 +88,21 @@ zones:
         - id: historic-centre-rosselli
           text: "via Fratelli Rosselli"
           emphasis: true
+        - id: historic-centre-before-fava
+          text: ", fino al "
+        - id: historic-centre-fava
+          text: "Giardino Graziella Fava"
+          emphasis: true
+        - id: historic-centre-before-porto
+          text: ", a "
+        - id: historic-centre-porto
+          text: "via del Porto"
+          emphasis: true
+        - id: historic-centre-before-cavaticcio
+          text: " e al "
+        - id: historic-centre-cavaticcio
+          text: "Parco del Cavaticcio"
+          emphasis: true
         - id: historic-centre-after-streets
           text: ", il progetto mette al centro vegetazione, suolo e spazio pubblico, in un’area densa, priva di terreno capace di assorbire la pioggia."
   loadError: "Mappa non caricata al momento."
@@ -250,7 +265,7 @@ footer:
   funding:
     id: talea-footer-funding
     emblemAlt: "Cofinanziato dall’Unione Europea"
-    text: "Il progetto TALEA - Green cells leading the Green transition (EUI102-064) è cofinanziato dall’Unione Europea nell’ambito del programma European Urban Initiative - Innovative Actions (EUI-IA). Coinvolge il Comune di Bologna come Main Urban Authority, la Fondazione IU Rusconi Ghigi, l’Università di Bologna, la Fondazione Bruno Kessler, R2M Solutions, R3GIS e CINECA come partner italiani, e le città di Marsiglia, Riga e Cluj-Napoca come città di replica."
+    text: "Il progetto TALEA - Green cells leading the Green transition (EUI02-064) è cofinanziato dall’Unione Europea nell’ambito del programma European Urban Initiative - Innovative Actions (EUI-IA). Coinvolge il Comune di Bologna come Main Urban Authority, la Fondazione IU Rusconi Ghigi, l’Università di Bologna, la Fondazione Bruno Kessler, R2M Solutions, R3GIS e CINECA come partner italiani, e le città di Marsiglia, Riga e Cluj-Napoca come città di replica."
     disclaimer: "Le opinioni espresse appartengono unicamente agli autori e non riflettono necessariamente quelle dell’Unione Europea o della European Urban Initiative (EUI). Né l’Unione Europea né la EUI possono esserne ritenute responsabili."
     euiLabel: "European Urban Initiative"
     linkId: european-urban-initiative

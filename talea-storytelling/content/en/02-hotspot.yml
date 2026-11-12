@@ -147,6 +147,24 @@ map:
       closeLabel: "Hide explanation"
       color: "The more the colour tends towards red, the greater the recurrence."
       unhighlighted: "In areas that are not highlighted, surface heat never ranked within the highest 10% of values, or did so in fewer summers than the selected threshold."
+    guide:
+      id: hotspot-guide
+      title: "How to read the map"
+      sections:
+        - title: "What it shows"
+          paragraphs:
+            - "The map shows how often an area of Bologna has been among the hottest surfaces in the city."
+            - "In each summer, from 2013 to 2026, the areas with the highest surface temperatures were identified, that is, those falling within the hottest 10% of that summer."
+            - "For each area, it was then calculated in how many of the 14 summers it fell within this hottest 10%."
+            - "The colour shows this number: the deeper the red, the more summers the area fell within the hottest 10%. Areas without colour fell within it fewer times than the legend indicates, or never."
+            - "It shows how often an area ranks among the hottest in Bologna: where this happens in more years, heat is a recurring feature of that place."
+        - title: "How it is calculated"
+          paragraphs:
+            - "Surface temperature is recorded by satellite. For each summer, from June to August, a representative value is derived for every 30 × 30 metre area, leaving out readings covered by clouds. The hottest 10% is calculated over Bologna and its surroundings."
+      source:
+        label: "Source"
+        text: "Landsat 8 and 9 satellites (NASA/USGS) · summers 2013–2026 · 30 m resolution"
+      linkLabel: "Explore the technical data in detail"
     sourceLink:
       id: hotspot-source-link
       label: "Explore the technical data in detail"

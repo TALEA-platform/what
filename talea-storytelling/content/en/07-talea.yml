@@ -88,6 +88,21 @@ zones:
         - id: historic-centre-rosselli
           text: "via Fratelli Rosselli"
           emphasis: true
+        - id: historic-centre-before-fava
+          text: ", extending to the "
+        - id: historic-centre-fava
+          text: "Graziella Fava Garden"
+          emphasis: true
+        - id: historic-centre-before-porto
+          text: ", "
+        - id: historic-centre-porto
+          text: "via del Porto"
+          emphasis: true
+        - id: historic-centre-before-cavaticcio
+          text: " and the "
+        - id: historic-centre-cavaticcio
+          text: "Cavaticcio Park"
+          emphasis: true
         - id: historic-centre-after-streets
           text: ", the project focuses on vegetation, soil and public space in a dense area with no ground capable of absorbing rainwater."
   loadError: "The map is currently unavailable."
@@ -250,7 +265,7 @@ footer:
   funding:
     id: talea-footer-funding
     emblemAlt: "Co-funded by the European Union"
-    text: "The TALEA - Green cells leading the Green transition project (EUI102-064) is co-funded by the European Union under the European Urban Initiative - Innovative Actions (EUI-IA) programme. It brings together Comune di Bologna as the Main Urban Authority, Fondazione IU Rusconi Ghigi, Università di Bologna, Fondazione Bruno Kessler, R2M Solutions, R3GIS and CINECA as Italian partners, and the cities of Marseille, Riga and Cluj-Napoca as replication cities."
+    text: "The TALEA - Green cells leading the Green transition project (EUI02-064) is co-funded by the European Union under the European Urban Initiative - Innovative Actions (EUI-IA) programme. It brings together Comune di Bologna as the Main Urban Authority, Fondazione IU Rusconi Ghigi, Università di Bologna, Fondazione Bruno Kessler, R2M Solutions, R3GIS and CINECA as Italian partners, and the cities of Marseille, Riga and Cluj-Napoca as replication cities."
     disclaimer: "The views expressed are those of the authors alone and do not necessarily reflect those of the European Union or the European Urban Initiative (EUI). Neither the European Union nor the EUI can be held responsible for them."
     euiLabel: "European Urban Initiative"
     linkId: european-urban-initiative

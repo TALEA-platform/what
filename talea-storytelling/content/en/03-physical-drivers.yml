@@ -88,13 +88,40 @@ narrative:
 
 legends:
   id: physical-drivers-legends
+  guideLabel: "How to read the map"
   lenses:
     - id: green
       from: "less vegetation"
       to: "more vegetation"
+      guide:
+        id: green-guide
+        title: "How to read the map"
+        sections:
+          - title: "What it shows"
+            paragraphs:
+              - "The map shows where vegetation is found in Bologna and how dense it is."
+              - "The colour shows the amount of green: the deeper the green, the denser and lusher the vegetation. Light tones mark the areas where vegetation is sparse."
+              - "It shows how green is distributed across the city, from the most built-up areas to the parks and the hills."
+        source:
+          label: "Source"
+          text: "Sentinel-2 satellite (Copernicus) · summer 2026 · 10 m resolution"
+        linkLabel: "Explore the technical data in detail"
     - id: materials
       from: "absorbs sunlight"
       to: "reflects sunlight"
+      guide:
+        id: materials-guide
+        title: "How to read the map"
+        sections:
+          - title: "What it shows"
+            paragraphs:
+              - "The map shows how much sunlight is reflected by the surfaces of Bologna."
+              - "The colour shows this capacity: the darker the tone, the more the surface absorbs sunlight and tends to heat up. Light tones mark the surfaces that reflect the most light."
+              - "It shows where, in the city, the surfaces that absorb the most sunlight are concentrated."
+        source:
+          label: "Source"
+          text: "Sentinel-2 satellite (Copernicus) · summer 2026 · 10 m resolution"
+        linkLabel: "Explore the technical data in detail"
   hotspot:
     id: physical-drivers-hotspot-legend
     label: "Hotspot in the hottest 10% in at least 9 of 14 summers"

@@ -3,6 +3,10 @@ schemaVersion: 1
 hotspot:
   data: "https://talea.comune.bologna.it/historysuhi/#2.v1.yc.l0"
 
+physicalDrivers:
+  green: "https://talea.comune.bologna.it/historysuhi/#2.v3.l3"
+  materials: "https://talea.comune.bologna.it/historysuhi/#2.v3.l4"
+
 shadowFocus:
   data: "https://talea.comune.bologna.it/sci/"
 

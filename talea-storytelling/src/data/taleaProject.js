@@ -78,9 +78,15 @@ export const zonesMap = {
     },
     {
       id: 1,
-      center: [11.341, 44.5038],
+      // Task 19: centro spostato e cerchio ingrandito per comprendere via
+      // Boldrini, via Fratelli Rosselli, Giardino Graziella Fava, via del Porto
+      // e Parco del Cavaticcio (circa 370 m reali). radius_m è il valore che
+      // la scena converte in pixel: il cerchio disegnato è metà di radius_m.
+      // frame_m mantiene l'inquadratura mobile di prima (fitBounds).
+      center: [11.3396, 44.5034],
       zoom: 15.25,
-      radius_m: 420,
+      radius_m: 740,
+      frame_m: 420,
     },
   ],
 };

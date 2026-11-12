@@ -935,6 +935,139 @@
   overflow: hidden;
 }
 
+/* ── Etichette delle zone (punti di riferimento) ─────────────────────────
+   Sotto le schede (z 3), il velo (z 4) e i pannelli (z 5+). Testo scuro con
+   contorno bianco: si legge sia sulla base chiara sia sopra i dati. */
+.place-labels {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.place-label {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-text);
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translate(-4px, calc(-50% + 4px));
+  transition:
+    opacity var(--dur-fast) var(--ease-ui),
+    transform var(--dur-fast) var(--ease-ui);
+}
+
+.place-label--left {
+  flex-direction: row-reverse;
+  transform: translate(calc(-100% + 4px), calc(-50% + 4px));
+}
+
+.place-label--on {
+  opacity: 1;
+  transform: translate(-4px, -50%);
+  transition:
+    opacity 600ms var(--ease-cine),
+    transform 600ms var(--ease-cine);
+  transition-delay: calc(var(--place-i, 0) * 30ms);
+}
+
+.place-label--left.place-label--on {
+  transform: translate(calc(-100% + 4px), -50%);
+}
+
+/* Stati scritti da PlaceLabels come attributi (React non li sovrascrive). */
+.place-label[data-clipped],
+.place-label[data-covered],
+.place-labels[data-zoomed-out] .place-label,
+.place-labels[data-zoomed-in] .place-label {
+  opacity: 0;
+  transition:
+    opacity var(--dur-fast) var(--ease-ui),
+    transform var(--dur-fast) var(--ease-ui);
+}
+
+.place-label-dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ink-deep);
+  box-shadow: 0 0 0 1.5px var(--paper-hi);
+}
+
+.place-label-name {
+  color: var(--ink-deep);
+  -webkit-text-stroke: 3px var(--paper-hi);
+  paint-order: stroke fill;
+}
+
+/* Variante "carta geografica" (desktop): nome centrato sulla zona, senza
+   pallino, maiuscoletto spaziato e tono attenuato, come i nomi dei quartieri
+   sulle mappe stampate. Fa parte dello sfondo, non sembra cliccabile. */
+.place-labels--map .place-label {
+  transform: translate(-50%, calc(-50% + 4px));
+}
+
+.place-labels--map .place-label--on {
+  transform: translate(-50%, -50%);
+}
+
+.place-labels--map .place-label-dot {
+  display: none;
+}
+
+.place-labels--map .place-label-name {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  /* Le mappe con un raster pieno (es. NDVI) cambiano testo e alone. */
+  color: var(--place-label-ink, var(--ink-soft));
+  -webkit-text-stroke: 3px var(--place-label-halo, var(--paper-hi));
+}
+
+@media (max-width: 1279px) {
+  .place-label {
+    gap: 4px;
+    font-size: var(--type-caption);
+  }
+
+  .place-label-dot {
+    width: 5px;
+    height: 5px;
+  }
+
+  /* Su schermi piccoli i nomi delle zone restano discreti. */
+  .place-labels--map .place-label-name {
+    font-size: 8px;
+    letter-spacing: 0.12em;
+    -webkit-text-stroke-width: 2.5px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .place-label,
+  .place-label--on {
+    transform: translate(-4px, -50%);
+  }
+
+  .place-label--left,
+  .place-label--left.place-label--on {
+    transform: translate(calc(-100% + 4px), -50%);
+  }
+
+  .place-labels--map .place-label,
+  .place-labels--map .place-label--on {
+    transform: translate(-50%, -50%);
+  }
+}
+
 .annotation-lines {
   position: absolute;
   inset: 0;
@@ -3293,4 +3426,298 @@
     max-height: min(78dvh, 620px);
     padding: 24px 20px 22px;
   }
+}
+
+/* ---------------------------------------------------------------------------
+   "Come leggere la mappa": pulsante nelle legende e popup riutilizzabile.
+   Su desktop il popup è una finestra al centro; sotto i 1280px un pannello
+   che sale dal basso.
+   ------------------------------------------------------------------------- */
+.map-guide-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  width: 100%;
+  margin: 14px 0 0;
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 12px;
+  background: rgba(0, 77, 25, 0.08);
+  color: var(--talea-dark-green);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.3;
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-ui);
+}
+
+.map-guide-button:hover {
+  background: rgba(0, 77, 25, 0.13);
+}
+
+.map-guide-button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--talea-green) 55%, transparent);
+  outline-offset: 3px;
+}
+
+.map-guide-button-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+  font-family: Georgia, serif;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+@media (min-width: 1280px) {
+  .map-guide-button {
+    font-size: 15px;
+  }
+}
+
+.map-guide-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  place-items: center;
+  padding: 48px 24px;
+}
+
+.map-guide-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(11, 42, 24, 0.34);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  animation: drawer-veil var(--dur-fast) var(--ease-ui) both;
+}
+
+.map-guide {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(560px, 100%);
+  max-height: 100%;
+  overflow: hidden;
+  background: linear-gradient(
+    180deg,
+    var(--paper-hi),
+    color-mix(in srgb, var(--paper) 55%, var(--paper-hi))
+  );
+  border: 1px solid color-mix(in srgb, var(--ink) 12%, transparent);
+  border-radius: 20px;
+  box-shadow:
+    0 34px 80px -26px rgba(11, 42, 24, 0.42),
+    0 2px 10px rgba(11, 42, 24, 0.07);
+  outline: none;
+  animation: map-guide-in 380ms var(--ease-cine) both;
+}
+
+@keyframes map-guide-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.985); }
+  to { opacity: 1; transform: none; }
+}
+
+.map-guide-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 18px 16px 28px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.map-guide-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--talea-dark-green);
+}
+
+.map-guide-close {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--paper-soft);
+  color: var(--ink-soft);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    color var(--dur-fast) var(--ease-ui),
+    background-color var(--dur-fast) var(--ease-ui);
+}
+
+.map-guide-close:hover {
+  background: var(--talea-dark-green);
+  color: var(--paper-hi);
+}
+
+.map-guide-close:focus-visible,
+.map-guide-link:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--talea-green) 55%, transparent);
+  outline-offset: 3px;
+}
+
+.map-guide-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  padding: 20px 28px 22px;
+  color: var(--text-secondary);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.map-guide-body p {
+  margin: 0;
+}
+
+.map-guide-section {
+  display: grid;
+  gap: 8px;
+}
+
+.map-guide-section + .map-guide-section {
+  margin-top: 6px;
+}
+
+.map-guide-section-title {
+  margin: 0;
+  color: var(--talea-dark-green);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.map-guide-source {
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-soft);
+  color: var(--text-muted);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.map-guide-source strong {
+  font-weight: 700;
+}
+
+.map-guide-note {
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--paper-soft);
+  color: var(--text-muted);
+  font-size: 13px;
+  font-style: italic;
+}
+
+.map-guide-foot {
+  flex: none;
+  padding: 14px 28px 22px;
+  border-top: 1px solid var(--border-soft);
+}
+
+.map-guide-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 12px 18px;
+  border-radius: 12px;
+  background: var(--talea-dark-green);
+  color: var(--paper-hi);
+  font-size: 15px;
+  font-weight: 700;
+  text-align: center;
+  transition: background-color var(--dur-fast) var(--ease-ui);
+}
+
+.map-guide-link:hover {
+  background: var(--talea-green);
+  color: var(--paper-hi);
+}
+
+@media (max-width: 1279px) {
+  .map-guide-layer {
+    place-items: end stretch;
+    padding: 0;
+  }
+
+  .map-guide {
+    width: 100%;
+    max-height: 85svh;
+    border-bottom: 0;
+    border-radius: 20px 20px 0 0;
+    animation-name: map-guide-sheet-in;
+  }
+
+  .map-guide-head {
+    padding: 16px 14px 12px 20px;
+  }
+
+  .map-guide-title {
+    font-size: 1.25rem;
+  }
+
+  .map-guide-body {
+    padding: 16px 20px 18px;
+    font-size: 14px;
+  }
+
+  .map-guide-foot {
+    padding: 12px 20px max(16px, env(safe-area-inset-bottom));
+  }
+}
+
+@keyframes map-guide-sheet-in {
+  from { transform: translateY(100%); }
+  to { transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-guide,
+  .map-guide-backdrop {
+    animation: drawer-veil var(--dur-fast) linear both;
+  }
+}
+
+/* Fonte del dato sulla mappa degli hotspot (desktop), nello stile della fonte
+   del grafico dell'aria (.trend-source). */
+.hotspot-map-source {
+  position: absolute;
+  right: 24px;
+  bottom: 12px;
+  z-index: 5;
+  max-width: 46%;
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.74rem;
+  line-height: 1.4;
+  text-align: right;
+  text-shadow:
+    0 0 3px var(--paper-hi),
+    0 0 6px var(--paper-hi);
+  pointer-events: none;
+  animation: hotspot-ui-in var(--ui-in-ms) var(--ease-cine) both;
 }

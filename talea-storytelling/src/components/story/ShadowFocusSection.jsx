@@ -7,6 +7,8 @@ import {
   useRef,
 } from "react";
 import { MapLibreCanvas } from "../maps/MapLibreCanvas";
+import { PlaceLabels } from "../maps/PlaceLabels";
+import { bolognaZoneLabels } from "../../data/zoneLabels";
 import { useTimedSequence } from "../../hooks/useTimedSequence";
 import {
   CAMERA_MS,
@@ -16,6 +18,7 @@ import {
 import { SequenceStepper } from "../ui/SequenceStepper";
 import { ScrollCue } from "../ui/ScrollCue";
 import { LocalStoryProgress } from "../ui/LocalStoryProgress";
+import { MapGuideButton, MapGuideDialog } from "../ui/MapGuide";
 import { CountUp } from "../ui/CountUp";
 import { prefersReducedMotion, useCountUpRun } from "../../hooks/useCountUpRun";
 import {
@@ -44,6 +47,12 @@ const MOBILE_READ_MS_MULTIPLIER = 1.18;
 const MOBILE_PANEL_OUT_MS = 280;
 const MOBILE_GESTURE_HINT_MS = 4800;
 const MOBILE_MAX_ZOOM = 16;
+// Su mobile i nomi delle zone compaiono solo dopo aver ingrandito di tanti
+// livelli rispetto alla vista iniziale della città (come negli hotspot).
+const MOBILE_ZONE_LABELS_ZOOM = 1.5;
+// Pannelli sopra la mappa sotto cui i nomi delle zone non devono finire.
+const ZONE_LABELS_AVOID =
+  ".sf-scene-legend, .sf-seq-item, .sf-sequence-foot, .sf-mobile-story-card, .sf-mobile-story-nav, .sf-legend-toggle, .sf-mobile-gesture-hint, .sf-page-scroll-cue, .sf-map-source";
 
 const MOBILE_BOLOGNA_BOUNDS = [
   [11.229655388117, 44.421112955943],
@@ -293,28 +302,9 @@ const darkOpenfreemapStyle = {
         "line-width": ["interpolate", ["linear"], ["zoom"], 10, 0.4, 13, 0.9, 16, 2.0],
       },
     },
-    {
-      id: "place-label",
-      type: "symbol",
-      source: "openmaptiles",
-      "source-layer": "place",
-      filter: ["any",
-        ["==", ["get", "class"], "city"],
-        ["==", ["get", "class"], "town"],
-        ["==", ["get", "class"], "suburb"],
-      ],
-      layout: {
-        "text-field": ["get", "name"],
-        "text-size": ["interpolate", ["linear"], ["zoom"], 9, 10, 14, 13],
-        "text-font": ["Noto Sans Regular"],
-        "text-padding": 6,
-      },
-      paint: {
-        "text-color": "rgba(255, 255, 255, 0.42)",
-        "text-halo-color": "rgba(0, 0, 0, 0.75)",
-        "text-halo-width": 1.6,
-      },
-    },
+    // I nomi dei quartieri di OpenStreetMap sono sostituiti dalle 18 zone
+    // ufficiali del Comune (PlaceLabels in SceneDarkMap), come nelle altre
+    // mappe.
   ],
 };
 
@@ -325,6 +315,7 @@ function SceneDarkMap({
   mobileLayout,
   locale,
   materialized,
+  labelsAvoidKey = "",
 }) {
   const [map, setMap] = useState(null);
   const [mapGeneration, setMapGeneration] = useState(0);
@@ -676,6 +667,7 @@ function SceneDarkMap({
   }, [map, centroProminent]);
 
   return materialized ? (
+    <>
     <MapLibreCanvas
       key={mapGeneration}
       onMapReady={handleReady}
@@ -692,6 +684,25 @@ function SceneDarkMap({
       locale={locale}
       collapseAttribution={mobileLayout}
     />
+    {/* Nomi delle 18 zone in stile carta geografica, versione per mappa
+        scura; su mobile solo quando si ingrandisce. Si nascondono sotto
+        pannelli e legenda. Su desktop, nella vista della città intera (più
+        lontana di quella degli hotspot), i nomi sono un po' più piccoli. */}
+    <div
+      className={`sf-zone-labels${!mobileLayout && cameraKey !== "centro" ? " sf-zone-labels--far" : ""}`}
+    >
+      <PlaceLabels
+        map={map}
+        places={bolognaZoneLabels}
+        visible
+        variant="map"
+        zoomReveal={mobileLayout ? MOBILE_ZONE_LABELS_ZOOM : null}
+        avoidSelector={ZONE_LABELS_AVOID}
+        avoidScope=".sf-scene-map"
+        avoidKey={labelsAvoidKey}
+      />
+    </div>
+    </>
   ) : null;
 }
 
@@ -744,6 +755,9 @@ export function ShadowFocusSection() {
   const [mobileScrollCueDismissed, setMobileScrollCueDismissed] = useState(false);
   const [mobileGestureHintVisible, setMobileGestureHintVisible] = useState(false);
   const [legendOpen, setLegendOpen] = useState(false);
+  // Popup "Come leggere la mappa": mette in pausa la sequenza come la legenda.
+  const [guideOpen, setGuideOpen] = useState(false);
+  const closeGuide = useCallback(() => setGuideOpen(false), []);
 
   const sectionRef = useRef(null);
   const sceneRef = useRef(null);
@@ -780,7 +794,7 @@ export function ShadowFocusSection() {
     getPlaybackSnapshot,
   } = useTimedSequence({
     count: stages.length,
-    engaged: engaged && !legendOpen,
+    engaged: engaged && !legendOpen && !guideOpen,
     startDelay: START_DELAY,
     readMs: mobileLayout ? mobileStepReadMs : shadowStageReadMs,
     tailMs: TAIL_MS,
@@ -857,6 +871,7 @@ export function ShadowFocusSection() {
       !engaged ||
       !mobileScrollCueDismissed ||
       legendOpen ||
+      guideOpen ||
       mobileGestureHintShownRef.current
     ) {
       return undefined;
@@ -875,7 +890,7 @@ export function ShadowFocusSection() {
       mapBox?.removeEventListener("touchstart", dismissHint);
       setMobileGestureHintVisible(false);
     };
-  }, [engaged, legendOpen, mobileLayout, mobileScrollCueDismissed]);
+  }, [engaged, guideOpen, legendOpen, mobileLayout, mobileScrollCueDismissed]);
 
   useEffect(() => {
     if (!mobileLayout || !engaged) return undefined;
@@ -900,7 +915,7 @@ export function ShadowFocusSection() {
           String(withinStepProgress),
         );
       }
-      if (!legendOpen && !complete && selected == null) {
+      if (!legendOpen && !guideOpen && !complete && selected == null) {
         frame = window.requestAnimationFrame(updateProgress);
       }
     };
@@ -909,7 +924,7 @@ export function ShadowFocusSection() {
     return () => {
       if (frame) window.cancelAnimationFrame(frame);
     };
-  }, [activeIndex, complete, engaged, getPlaybackSnapshot, legendOpen, mobileLayout, selected]);
+  }, [activeIndex, complete, engaged, getPlaybackSnapshot, guideOpen, legendOpen, mobileLayout, selected]);
 
   useEffect(() => {
     if (!mobileLayout || renderedMobileIndex === activeIndex) {
@@ -989,7 +1004,10 @@ export function ShadowFocusSection() {
         setExitVeil(nextExitVeil);
         engagedRef.current = nextEngaged;
         setEngaged(nextEngaged);
-        if (!nextEngaged || nextExitVeil) setLegendOpen(false);
+        if (!nextEngaged || nextExitVeil) {
+          setLegendOpen(false);
+          setGuideOpen(false);
+        }
         return;
       }
 
@@ -1019,6 +1037,7 @@ export function ShadowFocusSection() {
 
       setEngaged(nextEngaged);
       setExitVeil(nextExitVeil);
+      if (!nextEngaged) setGuideOpen(false);
     };
     const requestUpdate = () => {
       if (frame) return;
@@ -1050,6 +1069,15 @@ export function ShadowFocusSection() {
         <span className="sf-scene-legend-label">{shadowScene.legend.from}</span>
         <span className="sf-scene-legend-label">{shadowScene.legend.to}</span>
       </div>
+      <MapGuideButton
+        label={shadowScene.legend.guideLabel}
+        open={guideOpen}
+        controls={shadowScene.legend.guide.id}
+        onClick={() => {
+          setLegendOpen(false);
+          setGuideOpen(true);
+        }}
+      />
       <a
         className="sf-scene-legend-link"
         href={editorialLinks.shadowFocus.data}
@@ -1095,6 +1123,7 @@ export function ShadowFocusSection() {
             mobileLayout={mobileLayout}
             locale={mapLibreLocale}
             materialized={mapMaterialized}
+            labelsAvoidKey={`${engaged}-${sequenceVisible}-${revealed}-${renderedMobileIndex}-${mobilePanelExiting}-${legendOpen}`}
           />
           <div className="sf-scene-frame" aria-hidden="true" />
           <div className="sf-scene-exit-veil" aria-hidden="true" />
@@ -1106,6 +1135,12 @@ export function ShadowFocusSection() {
               <span className="sf-scene-legend-label">{shadowScene.legend.from}</span>
               <span className="sf-scene-legend-label">{shadowScene.legend.to}</span>
             </div>
+            <MapGuideButton
+              label={shadowScene.legend.guideLabel}
+              open={guideOpen}
+              controls={shadowScene.legend.guide.id}
+              onClick={() => setGuideOpen(true)}
+            />
             <a
               className="sf-scene-legend-link"
               href={editorialLinks.shadowFocus.data}
@@ -1115,6 +1150,14 @@ export function ShadowFocusSection() {
               {shadowScene.legend.sourceLink.label} →
             </a>
           </div>}
+          {/* Fonte del dato in basso a destra (solo desktop: su mobile è nel
+              popup "Come leggere la mappa"). */}
+          {!mobileLayout && shadowScene.legend.guide.source && (
+            <p className="sf-map-source">
+              {shadowScene.legend.guide.source.label}:{" "}
+              {shadowScene.legend.guide.source.text}
+            </p>
+          )}
 
           {engaged && !mobileLayout && (
             <div
@@ -1162,7 +1205,7 @@ export function ShadowFocusSection() {
             </div>
           )}
 
-          {engaged && mobileLayout && mobileScrollCueVisible && !legendOpen && (
+          {engaged && mobileLayout && mobileScrollCueVisible && !legendOpen && !guideOpen && (
             <div className="sf-page-scroll-cue" role="status" aria-live="polite">
               <span aria-hidden="true">↓</span>
               <span>{uiContent.localStory.scrollPage}</span>
@@ -1222,7 +1265,7 @@ export function ShadowFocusSection() {
             </div>
           )}
 
-          {mobileLayout && mobileGestureHintVisible && !legendOpen && (
+          {mobileLayout && mobileGestureHintVisible && !legendOpen && !guideOpen && (
             <div className="sf-mobile-gesture-hint" role="status" aria-live="polite">
               <span>{uiContent.map.cooperativeGestures.mobile}</span>
             </div>
@@ -1295,6 +1338,13 @@ export function ShadowFocusSection() {
           <p className="sf-final">{shadowFinal.body}</p>
         </div>
       </div>
+
+      <MapGuideDialog
+        open={guideOpen}
+        onClose={closeGuide}
+        guide={shadowScene.legend.guide}
+        href={editorialLinks.shadowFocus.data}
+      />
 
       <div className="sf-handoff" aria-hidden="true" />
 

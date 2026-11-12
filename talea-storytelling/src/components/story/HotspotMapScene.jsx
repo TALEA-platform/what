@@ -2,9 +2,15 @@ import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { MapLibreCanvas } from "../maps/MapLibreCanvas";
 import { HotspotLayer } from "../maps/HotspotLayer";
 import { AnnotationLayer } from "../maps/AnnotationLayer";
+import { PlaceLabels } from "../maps/PlaceLabels";
+import {
+  bolognaZoneLabels,
+  zonesHiddenByHotspotCards,
+} from "../../data/zoneLabels";
 import { BolognaBoundaryLayer } from "../maps/BolognaBoundaryLayer";
 import { ScrollCue } from "../ui/ScrollCue";
 import { LocalStoryProgress } from "../ui/LocalStoryProgress";
+import { MapGuideButton, MapGuideDialog } from "../ui/MapGuide";
 import { CopySegments } from "./CopySegments";
 import { useTimedSequence } from "../../hooks/useTimedSequence";
 import { editorialLinks, useContent } from "../../content";
@@ -62,6 +68,14 @@ const MOBILE_READ_MS_MULTIPLIER = 1.18;
 const MOBILE_PANEL_OUT_MS = 280;
 const MOBILE_MAX_ZOOM = 16;
 const MOBILE_GESTURE_HINT_MS = 4800;
+// Su mobile le zone compaiono solo dopo aver ingrandito di tanti livelli
+// rispetto alla vista iniziale della città.
+const MOBILE_ZONE_LABELS_ZOOM = 1.5;
+// Su mobile le zone arrivano quando la dissolvenza degli hotspot è finita.
+const ZONE_LABELS_DELAY_MS = 1100;
+// Elementi delle schede sotto cui le etichette delle zone non devono finire.
+const ZONE_LABELS_AVOID =
+  ".annotation-label--visible, .annotation-dot--visible, .annotation-hovercard, .annotation-hover-dot, .hotspot-map-source";
 
 // The complete municipal outline is the geographic frame for mobile. Using
 // bounds instead of a fixed zoom keeps the same Bologna extent in view across
@@ -117,7 +131,8 @@ export function HotspotMapScene() {
   );
   const [narrowFrame, setNarrowFrame] = useState(false);
   const [legendOpen, setLegendOpen] = useState(false);
-  const [legendDetailsOpen, setLegendDetailsOpen] = useState(false);
+  // Popup "Come leggere la mappa": mentre è aperto la sequenza è in pausa.
+  const [guideOpen, setGuideOpen] = useState(false);
   const [mobilePhase, setMobilePhase] = useState(0);
   const [renderedMobilePhase, setRenderedMobilePhase] = useState(0);
   const [renderedMobileStep, setRenderedMobileStep] = useState(0);
@@ -125,6 +140,7 @@ export function HotspotMapScene() {
   const [mobileLabelsSuppressed, setMobileLabelsSuppressed] = useState(false);
   const [mobileGestureHintVisible, setMobileGestureHintVisible] = useState(false);
   const [showAnnotations, setShowAnnotations] = useState(false);
+  const [visibleCardIds, setVisibleCardIds] = useState([]);
   const [exitActive, setExitActive] = useState(false);
   const [showSlider, setShowSlider] = useState(false);
   const [handoff, setHandoff] = useState(false);
@@ -297,7 +313,7 @@ export function HotspotMapScene() {
     getPlaybackSnapshot,
   } = useTimedSequence({
     count: hotspotSteps.length,
-    engaged: sceneReady && !legendOpen,
+    engaged: sceneReady && !legendOpen && !guideOpen,
     startDelay: reduceMotion ? START_DELAY_REDUCED : START_DELAY,
     readMs: mobileLayout ? mobileStepReadMs : hotspotStepReadMs,
     tailMs: TAIL_MS,
@@ -329,7 +345,7 @@ export function HotspotMapScene() {
         "--local-story-progress",
         withinStep.toFixed(4),
       );
-      if (!legendOpen && !sequenceComplete && selected == null) {
+      if (!legendOpen && !guideOpen && !sequenceComplete && selected == null) {
         frame = window.requestAnimationFrame(updateProgress);
       }
     };
@@ -341,6 +357,7 @@ export function HotspotMapScene() {
   }, [
     activeIndex,
     getPlaybackSnapshot,
+    guideOpen,
     legendOpen,
     mobileLayout,
     sceneReady,
@@ -434,6 +451,7 @@ export function HotspotMapScene() {
           sceneRect?.bottom <= 0 &&
           engagedRef.current &&
           !legendOpen &&
+          !guideOpen &&
           !sequenceComplete
         ) {
           forceComplete();
@@ -551,7 +569,10 @@ export function HotspotMapScene() {
         setNarrowFrame(false);
         engagedRef.current = nextMapEngaged;
         setMapEngaged(nextMapEngaged);
-        if (!nextMapEngaged) setLegendOpen(false);
+        if (!nextMapEngaged) {
+          setLegendOpen(false);
+          setGuideOpen(false);
+        }
         return;
       }
 
@@ -634,7 +655,10 @@ export function HotspotMapScene() {
       setNarrowFrame(window.innerWidth < NARROW_MAX_WIDTH);
       engagedRef.current = nextMapEngaged;
       setMapEngaged(nextMapEngaged);
-      if (!nextMapEngaged) setLegendOpen(false);
+      if (!nextMapEngaged) {
+        setLegendOpen(false);
+        setGuideOpen(false);
+      }
     };
 
     const requestUpdate = () => {
@@ -658,6 +682,7 @@ export function HotspotMapScene() {
     forceComplete,
     goTo,
     hotspotSteps.length,
+    guideOpen,
     legendOpen,
     mobileLayout,
   ]);
@@ -888,6 +913,11 @@ export function HotspotMapScene() {
   }, [map]);
 
   const narrativeVisible = mapEngaged;
+  // Schede dei luoghi visibili: stessa condizione passata ad AnnotationLayer.
+  const narrativeAnnotationsVisible =
+    mapEngaged &&
+    showAnnotations &&
+    (mobileLayout ? !mobileLabelsSuppressed : exitActive || !sliderTouched);
 
   const narrativeMinYears = showSlider
     ? sliderValue
@@ -910,6 +940,7 @@ export function HotspotMapScene() {
     },
     [goTo, hotspotSteps.length],
   );
+  const closeGuide = useCallback(() => setGuideOpen(false), []);
   const legendStyle = {
     "--legend-t": String(normalizeSliderValue(narrativeMinYears)),
     "--tier": activeTier,
@@ -933,34 +964,22 @@ export function HotspotMapScene() {
       <span className="hotspot-legend-caption">
         {hotspotMapCopy.legend.caption}
       </span>
-      {mobileLayout ? (
+      {mobileLayout && (
         <div className="hotspot-legend-details">
           <p>{hotspotMapCopy.legend.details.color}</p>
           <p>{hotspotMapCopy.legend.details.unhighlighted}</p>
         </div>
-      ) : (
-        <>
-          <button
-            type="button"
-            className="hotspot-legend-details-toggle"
-            aria-expanded={legendDetailsOpen}
-            aria-controls="hotspot-legend-details"
-            onClick={() => setLegendDetailsOpen((open) => !open)}
-          >
-            {legendDetailsOpen
-              ? hotspotMapCopy.legend.details.closeLabel
-              : hotspotMapCopy.legend.details.openLabel}
-          </button>
-          <div
-            id="hotspot-legend-details"
-            className="hotspot-legend-details"
-            hidden={!legendDetailsOpen}
-          >
-            <p>{hotspotMapCopy.legend.details.color}</p>
-            <p>{hotspotMapCopy.legend.details.unhighlighted}</p>
-          </div>
-        </>
       )}
+      <MapGuideButton
+        label={hotspotMapCopy.legend.details.openLabel}
+        open={guideOpen}
+        controls={hotspotMapCopy.legend.guide.id}
+        onClick={() => {
+          // Su mobile il popup prende il posto del pannello della legenda.
+          setLegendOpen(false);
+          setGuideOpen(true);
+        }}
+      />
       <a
         className="hotspot-legend-link"
         href={editorialLinks.hotspot.data}
@@ -1302,18 +1321,33 @@ export function HotspotMapScene() {
           </div>
         )}
 
+        {/* Nomi delle zone in stile carta geografica (su mobile solo con lo
+            zoom). Con una scheda aperta, fissa o al passaggio del mouse, si
+            nascondono la zona della scheda e le etichette che finirebbero
+            sotto schede e pallini. */}
+        <PlaceLabels
+          map={renderedMap}
+          places={bolognaZoneLabels}
+          // Desktop: le zone fanno parte della mappa di sfondo e si scoprono
+          // con lei, sotto il velo; su mobile arrivano dopo gli hotspot.
+          visible={narrativeVisible && (!mobileLayout || fillsReady)}
+          revealDelayMs={
+            reduceMotion || !mobileLayout ? 0 : ZONE_LABELS_DELAY_MS / playbackRate
+          }
+          hiddenIds={zonesHiddenByHotspotCards(visibleCardIds)}
+          zoomReveal={mobileLayout ? MOBILE_ZONE_LABELS_ZOOM : null}
+          variant="map"
+          avoidSelector={ZONE_LABELS_AVOID}
+          avoidKey={visibleCardIds.join(",")}
+        />
+
         <AnnotationLayer
           map={renderedMap}
           active={mapEngaged && showAnnotations}
-          showNarrative={
-            mapEngaged &&
-            showAnnotations &&
-            (mobileLayout
-              ? !mobileLabelsSuppressed
-              : exitActive || !sliderTouched)
-          }
+          showNarrative={narrativeAnnotationsVisible}
           ariaLabel={hotspotMapCopy.annotations.ariaLabel}
           mobile={mobileLayout}
+          onVisibleCardsChange={setVisibleCardIds}
         />
 
         {!mobileLayout && mapEngaged && sequencePanel}
@@ -1327,6 +1361,15 @@ export function HotspotMapScene() {
           <div className="hotspot-legend" style={legendStyle}>
             {legendBody}
           </div>
+        )}
+
+        {/* Fonte del dato in basso a destra (solo desktop: su mobile è nel
+            popup "Come leggere la mappa"). */}
+        {mapEngaged && legendReady && !handoff && !mobileLayout && (
+          <p className="hotspot-map-source">
+            {hotspotMapCopy.legend.guide.source.label}:{" "}
+            {hotspotMapCopy.legend.guide.source.text}
+          </p>
         )}
 
         {mapEngaged && legendReady && !handoff && mobileLayout && (
@@ -1370,6 +1413,13 @@ export function HotspotMapScene() {
         )}
 
         {!mobileLayout && showSlider && sliderControl}
+
+        <MapGuideDialog
+          open={guideOpen}
+          onClose={closeGuide}
+          guide={hotspotMapCopy.legend.guide}
+          href={editorialLinks.hotspot.data}
+        />
 
       </div>
 

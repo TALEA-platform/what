@@ -30,6 +30,51 @@ function requireArray(value, location) {
   return value;
 }
 
+// Popup "Come leggere la mappa", uguale per tutte le mappe: titolo, sezioni
+// (titolo + paragrafi), nota facoltativa, riga di fonte facoltativa e link
+// alla webapp di approfondimento.
+function validateMapGuide(value, location) {
+  const guide = requireObject(value, location);
+  const source =
+    guide.source == null
+      ? null
+      : requireObject(guide.source, `${location}.source`);
+  return {
+    id: requireString(guide.id, `${location}.id`),
+    title: requireString(guide.title, `${location}.title`),
+    ...(guide.note == null
+      ? {}
+      : { note: requireString(guide.note, `${location}.note`) }),
+    sections: requireArray(guide.sections, `${location}.sections`).map(
+      (rawSection, index) => {
+        const sectionLocation = `${location}.sections[${index}]`;
+        const section = requireObject(rawSection, sectionLocation);
+        return {
+          title: requireString(section.title, `${sectionLocation}.title`),
+          paragraphs: requireArray(
+            section.paragraphs,
+            `${sectionLocation}.paragraphs`,
+          ).map((paragraph, paragraphIndex) =>
+            requireString(
+              paragraph,
+              `${sectionLocation}.paragraphs[${paragraphIndex}]`,
+            ),
+          ),
+        };
+      },
+    ),
+    ...(source
+      ? {
+          source: {
+            label: requireString(source.label, `${location}.source.label`),
+            text: requireString(source.text, `${location}.source.text`),
+          },
+        }
+      : {}),
+    linkLabel: requireString(guide.linkLabel, `${location}.linkLabel`),
+  };
+}
+
 function validateSegments(value, location) {
   if (!Array.isArray(value) || value.length === 0) {
     throw new Error(`${location} must be a non-empty array`);
@@ -425,6 +470,7 @@ function validateHotspot(document, location) {
               `${location}.map.legend.details.unhighlighted`,
             ),
           },
+          guide: validateMapGuide(legend.guide, `${location}.map.legend.guide`),
           sourceLink: {
             id: requireString(sourceLink.id, `${location}.map.legend.sourceLink.id`),
             label: requireString(
@@ -571,6 +617,9 @@ function validatePhysicalDrivers(document, location) {
       id: requireString(lens.id, `${lensLocation}.id`),
       from: requireString(lens.from, `${lensLocation}.from`),
       to: requireString(lens.to, `${lensLocation}.to`),
+      ...(lens.guide == null
+        ? {}
+        : { guide: validateMapGuide(lens.guide, `${lensLocation}.guide`) }),
     };
   });
 
@@ -600,6 +649,10 @@ function validatePhysicalDrivers(document, location) {
       },
       legends: {
         id: requireString(legends.id, `${location}.legends.id`),
+        guideLabel: requireString(
+          legends.guideLabel,
+          `${location}.legends.guideLabel`,
+        ),
         lenses,
         hotspot: {
           id: requireString(hotspot.id, `${location}.legends.hotspot.id`),
@@ -714,6 +767,11 @@ function validateShadowFocus(document, location) {
           ),
           from: requireString(legend.from, `${location}.map.legend.from`),
           to: requireString(legend.to, `${location}.map.legend.to`),
+          guideLabel: requireString(
+            legend.guideLabel,
+            `${location}.map.legend.guideLabel`,
+          ),
+          guide: validateMapGuide(legend.guide, `${location}.map.legend.guide`),
           sourceLink: {
             id: requireString(
               sourceLink.id,
@@ -1252,6 +1310,11 @@ function validateClimateRelief(document, location) {
             ),
           },
           loadError: requireString(refugesMap.loadError, `${location}.refuges.map.loadError`),
+          guideLabel: requireString(
+            refugesMap.guideLabel,
+            `${location}.refuges.map.guideLabel`,
+          ),
+          guide: validateMapGuide(refugesMap.guide, `${location}.refuges.map.guide`),
           search: {
             id: requireString(search.id, `${location}.refuges.map.search.id`),
             promptLead: requireString(
@@ -1631,12 +1694,24 @@ function validateTalea(document, location) {
       "historic-centre-boldrini",
       "historic-centre-between-streets",
       "historic-centre-rosselli",
+      "historic-centre-before-fava",
+      "historic-centre-fava",
+      "historic-centre-before-porto",
+      "historic-centre-porto",
+      "historic-centre-before-cavaticcio",
+      "historic-centre-cavaticcio",
       "historic-centre-after-streets",
     ],
   ];
   const zoneEmphasisIds = [
     ["fossolo-place"],
-    ["historic-centre-boldrini", "historic-centre-rosselli"],
+    [
+      "historic-centre-boldrini",
+      "historic-centre-rosselli",
+      "historic-centre-fava",
+      "historic-centre-porto",
+      "historic-centre-cavaticcio",
+    ],
   ];
   const zoneItems = requireArray(zones.areas, `${location}.zones.areas`).map(
     (rawZone, index) => {
@@ -2550,6 +2625,10 @@ function validateLinks(raw) {
   if (links.schemaVersion !== 1) throw new Error("links.schemaVersion must be 1");
 
   const hotspot = requireObject(links.hotspot, "links.hotspot");
+  const physicalDrivers = requireObject(
+    links.physicalDrivers,
+    "links.physicalDrivers",
+  );
   const shadowFocus = requireObject(links.shadowFocus, "links.shadowFocus");
   const vulnerability = requireObject(links.vulnerability, "links.vulnerability");
   const climateRelief = requireObject(links.climateRelief, "links.climateRelief");
@@ -2559,6 +2638,13 @@ function validateLinks(raw) {
     schemaVersion: 1,
     hotspot: {
       data: requireHttpUrl(hotspot.data, "links.hotspot.data"),
+    },
+    physicalDrivers: {
+      green: requireHttpUrl(physicalDrivers.green, "links.physicalDrivers.green"),
+      materials: requireHttpUrl(
+        physicalDrivers.materials,
+        "links.physicalDrivers.materials",
+      ),
     },
     shadowFocus: {
       data: requireHttpUrl(shadowFocus.data, "links.shadowFocus.data"),

@@ -18,7 +18,7 @@ opening:
   body:
     - id: climate-relief-opening-body
       text: "This combination turns a place people simply pass through into somewhere to stop, cool down and catch their breath during the hottest hours."
-  close: "Let’s see how a street can become one, one element at a time."
+  close: "Let’s see how a square can become one, one element at a time."
 
 explainer:
   id: climate-refuge-explainer
@@ -147,6 +147,23 @@ refuges:
       id: climate-refuges-links
       municipalLabel: "The Municipality’s climate refuge map"
       taleaLabel: "Explore green space data"
+    guideLabel: "How to read the map"
+    guide:
+      id: refuges-guide
+      title: "How to read the map"
+      sections:
+        - title: "What it shows"
+          paragraphs:
+            - "The map shows the places in Bologna where people can shelter from the heat."
+            - "The recognised climate refuges are the places, indoor and outdoor, included in the Municipality’s official list."
+            - "The potentially suitable green spaces are parks and gardens assessed by considering vegetation, size, accessibility and facilities: the colour shows how suitable they are."
+        - title: "Searching for a place"
+          paragraphs:
+            - "When you search for a street or a park, the map shows the nearest recognised refuge and the reachable green spaces, with the walking time along the streets."
+      source:
+        label: "Sources"
+        text: "refuges, Municipality of Bologna · green spaces, TALEA (Climate Shelter Index)"
+      linkLabel: "Explore the green space data"
     loadError: "Climate refuge data is currently unavailable."
     search:
       id: climate-refuges-search
@@ -239,7 +256,7 @@ cityPlan:
     context:
       id: climate-relief-city-plan-context
       title: "Where relief is missing, it can be built"
-      note: "An illustrative neighbourhood scenario, not a map of construction projects"
+      note: "Illustrative scenario of a typical neighbourhood"
   beats:
     - id: quartiere
       lead: "Climate refuges are not always close to everyone."

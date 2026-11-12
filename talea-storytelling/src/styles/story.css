@@ -1524,9 +1524,87 @@
 }
 
 .causes-static-raster-content,
-.causes-static-hotspots {
+.causes-static-hotspots,
+.causes-static-raster .causes-static-labels {
   transform: translate(-5.5%, 3.8%) scale(2.65);
   transform-origin: 55.5% 46.2%;
+}
+
+/* Nomi delle zone sopra NDVI e albedo: stesse posizioni e dimensioni, alone
+   e testo adatti a ciascuna mappa. Il colore cambia insieme alla
+   dissolvenza tra le due mappe. */
+.causes-zone-labels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.causes-zone-labels .place-label-name,
+.causes-static-labels .place-label-name {
+  transition:
+    color 700ms var(--ease-cine),
+    -webkit-text-stroke-color 700ms var(--ease-cine);
+}
+
+/* NDVI: alone nel tono più chiaro della scala (non bianco, che sul verde
+   stona) e testo più scuro per leggerlo anche sopra la vegetazione fitta. */
+.causes-zone-labels--green {
+  --place-label-halo: #eef0d8;
+  --place-label-ink: var(--ink-deep);
+}
+
+/* Albedo: mappa scura in scala di grigi, quindi versione inversa (testo
+   chiaro della scala, alone scuro della scala). */
+.causes-zone-labels--materials {
+  --place-label-halo: #161616;
+  --place-label-ink: #f5f5f5;
+}
+
+/* Confronto: i nomi stanno sopra entrambe le mappe (sotto slider e legenda)
+   e seguono il taglio dello slider. */
+.causes-compare-zone-labels {
+  z-index: 5;
+}
+
+.causes-static-labels-clip {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  transition: clip-path 100ms linear;
+}
+
+.causes-static-labels-clip.is-dragging {
+  transition: none;
+}
+
+/* Nomi delle zone sopra l'immagine statica (mobile): il livello segue lo
+   stesso ingrandimento dell'immagine, ogni nome lo annulla (1 / 2.65) per
+   restare alla sua dimensione. */
+.causes-static-raster .causes-static-labels {
+  inset: 0;
+  overflow: visible;
+}
+
+.causes-static-raster .causes-static-labels .place-label {
+  transform: translate(-50%, calc(-50% + 4px)) scale(0.3774);
+}
+
+.causes-static-raster .causes-static-labels .place-label--on {
+  transform: translate(-50%, -50%) scale(0.3774);
+}
+
+/* NDVI, albedo e confronto su mobile: nomi ancora più discreti. */
+.causes-static-raster .causes-static-labels .place-label-name {
+  font-size: 7px;
+  letter-spacing: 0.1em;
+  -webkit-text-stroke-width: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .causes-static-raster .causes-static-labels .place-label {
+    transform: translate(-50%, -50%) scale(0.3774);
+  }
 }
 
 .causes-static-raster-image {
@@ -13769,5 +13847,214 @@
     .causes-hotspot-legend-label {
     font-size: 10px !important;
     line-height: 1.15;
+  }
+}
+
+/* Nomi delle zone sulla mappa delle ombre (scura): versione inversa con
+   alone del verde scuro della mappa. Sotto la cornice sfumata e i pannelli. */
+.sf-zone-labels {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  --place-label-halo: #0B2A18;
+  --place-label-ink: rgba(255, 255, 255, 0.86);
+}
+
+.sf-zone-labels .place-label-name {
+  transition: font-size 600ms var(--ease-cine);
+}
+
+.sf-zone-labels--far .place-labels--map .place-label-name {
+  font-size: 10px;
+}
+
+/* Nomi delle zone sulla mappa dei rifugi (ortofoto scura): stessa versione
+   inversa della mappa delle ombre. Dentro il contenitore della mappa:
+   sotto i popup, lo scrim, il velo e i controlli.
+   Su desktop la vista d'insieme è più lontana di quella degli hotspot, quindi
+   10px; su mobile resta la misura comune di 8px. */
+.relief-zone-labels {
+  position: absolute;
+  inset: 0;
+  /* Livello 0: i popup, aggiunti dopo nel DOM, restano sopra. */
+  z-index: 0;
+  pointer-events: none;
+  --place-label-halo: #0B2A18;
+  --place-label-ink: rgba(255, 255, 255, 0.86);
+}
+
+@media (min-width: 1280px) {
+  .relief-zone-labels .place-labels--map .place-label-name {
+    font-size: 10px;
+  }
+}
+
+/* Verde e materiali: pulsante "Come leggere la mappa" e fonte del dato.
+   Desktop: una riga sotto la mappa (pulsante a sinistra, fonte a destra).
+   Mobile: solo la "i", dentro la mappa in alto a sinistra. */
+.causes-crop .causes-map-guide-toggle {
+  position: absolute;
+  top: calc(100% + 14px);
+  left: 0;
+  z-index: 6;
+  width: auto;
+  margin: 0;
+  padding: 8px 16px 8px 10px;
+  animation: hotspot-ui-in 600ms var(--ease-cine) both;
+}
+
+.causes-map-source {
+  position: absolute;
+  top: calc(100% + 14px);
+  right: 0;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  min-height: 39px;
+  max-width: 60%;
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.74rem;
+  line-height: 1.4;
+  text-align: right;
+  pointer-events: none;
+  animation: hotspot-ui-in 600ms var(--ease-cine) both;
+}
+
+.map-guide-button--icon {
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 999px;
+}
+
+@media (max-width: 1279px) {
+  .causes-crop .causes-map-guide-toggle {
+    top: 9px;
+    left: 9px;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    background: color-mix(in srgb, var(--causes-cream) 86%, transparent);
+    backdrop-filter: blur(10px);
+  }
+
+  .causes-crop .causes-map-guide-toggle:hover {
+    background: var(--causes-cream);
+  }
+}
+
+/* Ombra: pulsante "Come leggere la mappa" nella legenda scura (stessa forma
+   delle altre mappe, colori invertiti) e fonte del dato in basso a destra. */
+.sf-scene-legend .map-guide-button {
+  background: rgba(242, 244, 237, 0.1);
+  color: #f2f4ed;
+}
+
+.sf-scene-legend .map-guide-button:hover {
+  background: rgba(242, 244, 237, 0.17);
+}
+
+.sf-scene-legend .map-guide-button:focus-visible {
+  outline-color: rgba(242, 244, 237, 0.6);
+}
+
+.sf-map-source {
+  position: absolute;
+  right: 24px;
+  bottom: 12px;
+  z-index: 4;
+  max-width: 46%;
+  margin: 0;
+  color: rgba(232, 239, 232, 0.72);
+  font-size: 0.74rem;
+  line-height: 1.4;
+  text-align: right;
+  text-shadow:
+    0 0 3px rgba(4, 24, 15, 0.9),
+    0 0 7px rgba(4, 24, 15, 0.8);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 520ms ease 260ms;
+}
+
+.sf-scene-map--engaged:not(.sf-scene-map--exiting) .sf-map-source {
+  opacity: 1;
+}
+
+/* Rifugi: fonti in basso a destra, sulla stessa riga dell'attribuzione
+   dell'ortofoto e alla sua sinistra (solo desktop). */
+.relief-map-source {
+  position: absolute;
+  right: 400px;
+  bottom: 13px;
+  z-index: 3;
+  max-width: calc(100% - 900px);
+  margin: 0;
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 0.74rem;
+  line-height: 1.4;
+  text-align: right;
+  text-shadow:
+    0 0 3px rgba(0, 0, 0, 0.75),
+    0 0 7px rgba(0, 0, 0, 0.55);
+  pointer-events: none;
+  animation: hotspot-ui-in 600ms var(--ease-cine) both;
+  transition: opacity 320ms ease;
+}
+
+.relief-map-source--gone {
+  opacity: 0;
+}
+
+@media (max-width: 1279px) {
+  .relief-map-source {
+    display: none;
+  }
+}
+
+/* Task 18: nota "scenario illustrativo" in alto al centro della scena del
+   quartiere tipo. Sotto i sipari (z-index 5), sopra illustrazione e testi. */
+.plan-context-note {
+  position: absolute;
+  top: calc(var(--header-height) + 12px);
+  left: 50%;
+  z-index: 4;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100% - 32px);
+  margin: 0;
+  padding: 4px 12px;
+  border: 1px solid rgba(49, 95, 66, 0.16);
+  border-radius: 999px;
+  background: rgba(244, 242, 233, 0.88);
+  color: var(--text-muted);
+  font-size: 0.74rem;
+  font-style: italic;
+  line-height: 1.35;
+  text-align: center;
+  text-wrap: balance;
+  pointer-events: none;
+}
+
+@media (max-width: 1279px) {
+  /* Mobile: allineata al pulsante di riapertura (top 12px, alto 40px) e
+     lasciando libero il suo spazio a destra. Sparisce quando l'header e i
+     fiori vengono riaperti. */
+  .plan-context-note {
+    top: 32px;
+    max-width: calc(100% - 128px);
+    transform: translate(-50%, -50%);
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 0.66rem;
+    transition: opacity 150ms var(--ease-ui), visibility 150ms var(--ease-ui);
+  }
+
+  body:has(.header:not(.header--hidden)) .plan-context-note {
+    opacity: 0;
+    visibility: hidden;
   }
 }

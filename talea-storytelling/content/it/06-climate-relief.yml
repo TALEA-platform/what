@@ -18,7 +18,7 @@ opening:
   body:
     - id: climate-relief-opening-body
       text: "Questa combinazione trasforma uno spazio di passaggio in un luogo dove fermarsi, rinfrescarsi e riprendere fiato nelle ore più calde."
-  close: "Vediamo come una strada può diventarlo, un elemento alla volta."
+  close: "Vediamo come una piazza può diventarlo, un elemento alla volta."
 
 explainer:
   id: climate-refuge-explainer
@@ -148,6 +148,23 @@ refuges:
       municipalLabel: "La mappa dei rifugi climatici del Comune"
       taleaLabel: "Esplora i dati sugli spazi verdi"
     loadError: "Dati dei rifugi climatici non caricati al momento."
+    guideLabel: "Come leggere la mappa"
+    guide:
+      id: refuges-guide
+      title: "Come leggere la mappa"
+      sections:
+        - title: "Cosa mostra"
+          paragraphs:
+            - "La mappa mostra i luoghi di Bologna dove ripararsi dal caldo."
+            - "I rifugi climatici riconosciuti sono i luoghi, al chiuso e all’aperto, inseriti nell’elenco ufficiale del Comune."
+            - "Gli spazi verdi potenzialmente adatti sono parchi e giardini valutati considerando vegetazione, dimensioni, accessibilità e dotazioni: il colore indica quanto sono adatti."
+        - title: "Cercare un luogo"
+          paragraphs:
+            - "Cercando una via o un parco, vengono indicati il rifugio riconosciuto più vicino e gli spazi verdi raggiungibili, con il tempo a piedi lungo le strade."
+      source:
+        label: "Fonti"
+        text: "rifugi, Comune di Bologna · spazi verdi, TALEA (Climate Shelter Index)"
+      linkLabel: "Esplora i dati sugli spazi verdi"
     search:
       id: climate-refuges-search
       promptLead: "Parti da un luogo che conosci"
@@ -239,7 +256,7 @@ cityPlan:
     context:
       id: climate-relief-city-plan-context
       title: "Dove manca, si costruisce"
-      note: "Scenario illustrativo di un quartiere tipo, non una mappa dei cantieri"
+      note: "Scenario illustrativo di un quartiere tipo"
   beats:
     - id: quartiere
       lead: "I rifugi climatici non sono sempre vicini a tutti."

@@ -26,6 +26,25 @@ map:
     description: "How long streets and parks remain in the sun between 12:00 and 15:00 on summer days."
     from: "More exposed to the sun"
     to: "More often in shade"
+    guideLabel: "How to read the map"
+    guide:
+      id: shadow-guide
+      title: "How to read the map"
+      sections:
+        - title: "What it shows"
+          paragraphs:
+            - "The map shows how much the streets and green areas of Bologna stay in the sun during the hottest hours of summer days, between 12:00 and 15:00."
+            - "The colour shows how often each street or green area is in shade during those hours: orange tones mark the places most exposed to the sun, blue tones those most often in shade."
+            - "It shows where the shade of buildings and trees offers the most shelter from direct sunlight."
+        - title: "How it is calculated"
+          paragraphs:
+            - "The shade is simulated from a three-dimensional model of the city, with a detail of 50 centimetres."
+            - "The simulation follows the position of the sun every 15 minutes, on every Sunday of the summer, from June to August: 14 days in total."
+            - "For each point, it is calculated how often it was in shade between 12:00 and 15:00. These values are then averaged over each street and green area: they are the ones shown on the map."
+      source:
+        label: "Source"
+        text: "TALEA shade simulation (Shadow Coverage Index) · summer, 12:00–15:00"
+      linkLabel: "Explore the shade data in detail"
     sourceLink:
       id: shadow-focus-data-link
       label: "Explore the shade data in detail"

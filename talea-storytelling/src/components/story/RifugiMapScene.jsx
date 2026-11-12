@@ -1,10 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { rifugiCounts } from "../../data/climateRelief";
 import { loadReliefSources } from "../../data/reliefData";
 import { editorialLinks, useContent } from "../../content";
 import { SearchSuggest } from "../ui/SearchSuggest";
+import { MapGuideButton, MapGuideDialog } from "../ui/MapGuide";
+import { PlaceLabels } from "../maps/PlaceLabels";
+import { bolognaZoneLabels } from "../../data/zoneLabels";
 import {
   createMapResizeController,
   isMapSizeSynchronized,
@@ -154,6 +158,37 @@ const serializableFeature = (feature) =>
       }
     : null;
 
+// Etichette delle 18 zone: servono per orientarsi nella vista d'insieme e
+// svaniscono dove compaiono i nomi dei rifugi (minzoom di
+// `${prefix}-ufficiali-label` in reliefMaps.js). Su mobile compaiono solo
+// dopo aver ingrandito la mappa.
+const ZONE_LABELS_HIDE_ZOOM = 13;
+const MOBILE_ZONE_LABELS_ZOOM = 1.5;
+// Sui tablet la vista iniziale è già vicina: +1.5 supererebbe lo zoom 13 e le
+// etichette non comparirebbero mai.
+const MOBILE_ZONE_LABELS_MAX_REVEAL = 12.3;
+// Le etichette stanno dentro il contenitore della mappa, prima dei popup:
+// i popup (anche quelli in hover) passano sopra e le coprono.
+const ZONE_LABELS_AVOID = [
+  ".maplibregl-ctrl-bottom-right",
+  ".relief-map-hint--visible:not(.relief-map-hint--suppressed)",
+  ".relief-map-info-toggle:not(.relief-map-mobile-control--gone)",
+  ".relief-map-search-toggle:not(.relief-map-mobile-control--gone)",
+  ".relief-map-mobile-gesture-hint",
+];
+// Su desktop ricerca e pannello restano sempre aperti; su mobile sono
+// trasparenti finché non vengono aperti.
+const DESKTOP_ZONE_LABELS_AVOID = [
+  ...ZONE_LABELS_AVOID,
+  ".relief-map-find:not(.relief-map-find--gone)",
+  ".relief-map-dock:not(.relief-map-dock--gone)",
+].join(", ");
+const MOBILE_ZONE_LABELS_AVOID = [
+  ...ZONE_LABELS_AVOID,
+  ".relief-map-find--open",
+  ".relief-map-dock--open",
+].join(", ");
+
 export function RifugiMapScene() {
   const { content, locale, uiContent } = useContent();
   const reliefMapContent = content.climateRelief.refuges.map;
@@ -218,7 +253,11 @@ export function RifugiMapScene() {
   const [messageKey, setMessageKey] = useState(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
+  // Popup "Come leggere la mappa" (su mobile prende il posto della legenda).
+  const [guideOpen, setGuideOpen] = useState(false);
+  const closeGuide = useCallback(() => setGuideOpen(false), []);
   const [mobileGestureHintVisible, setMobileGestureHintVisible] = useState(false);
+  const [zoneLabelsMap, setZoneLabelsMap] = useState(null);
   const message = messageKey ? reliefMapContent.search[messageKey] : "";
 
   useEffect(() => {
@@ -420,6 +459,7 @@ export function RifugiMapScene() {
       unregisterOwnership?.();
 
       mapRef.current = null;
+      setZoneLabelsMap(null);
       readyRef.current = false;
       revealTargetsRef.current = null;
       cameraResizePendingRef.current = false;
@@ -947,6 +987,7 @@ export function RifugiMapScene() {
           addWalkingRouteLayers(map, "main");
           addUfficialiLayers(map, withUfficialiLabels(ufficiali), "main");
           addUfficialeFocusLayer(map, "main");
+          setZoneLabelsMap({ map, mobile: mobileMap });
 
           revealTargetsRef.current = {
             officialHalo: map.getPaintProperty("main-ufficiali-halo", "circle-opacity"),
@@ -1391,8 +1432,40 @@ export function RifugiMapScene() {
           aria-label={reliefMapContent.ariaLabel}
         />
         <div className="relief-map-scrim" aria-hidden="true" />
+        {zoneLabelsMap && createPortal(
+          <div className="relief-zone-labels">
+            <PlaceLabels
+              map={zoneLabelsMap.map}
+              places={bolognaZoneLabels}
+              visible
+              variant="map"
+              zoomReveal={zoneLabelsMap.mobile ? MOBILE_ZONE_LABELS_ZOOM : null}
+              zoomRevealCap={MOBILE_ZONE_LABELS_MAX_REVEAL}
+              hideAboveZoom={ZONE_LABELS_HIDE_ZOOM}
+              avoidSelector={
+                zoneLabelsMap.mobile
+                  ? MOBILE_ZONE_LABELS_AVOID
+                  : DESKTOP_ZONE_LABELS_AVOID
+              }
+              avoidScope=".relief-map-sticky"
+              avoidKey={`${controlsReady}-${searchOpen}-${infoOpen}-${focused}-${engaged}-${exiting}-${mobileGestureHintVisible}-${detail}`}
+            />
+          </div>,
+          zoneLabelsMap.map.getContainer(),
+        )}
         <div className={`relief-map-veil${revealed ? " relief-map-veil--hidden" : ""}`} aria-hidden="true" />
         <div className="relief-map-veil-exit" aria-hidden="true" />
+
+        {/* Fonti in basso a destra, accanto all'attribuzione dell'ortofoto
+            (solo desktop, vedi CSS: su mobile sono nel popup). */}
+        {controlsReady && (
+          <p
+            className={`relief-map-source${controlsGone ? " relief-map-source--gone" : ""}`}
+          >
+            {reliefMapContent.guide.source.label}:{" "}
+            {reliefMapContent.guide.source.text}
+          </p>
+        )}
 
         <div
           className={`relief-map-hint relief-map-hint--${focused ? "return" : "invite"}${
@@ -1511,6 +1584,15 @@ export function RifugiMapScene() {
                       </a>
                     </div>
                   )}
+                  <MapGuideButton
+                    label={reliefMapContent.guideLabel}
+                    open={guideOpen}
+                    controls={reliefMapContent.guide.id}
+                    onClick={() => {
+                      setInfoOpen(false);
+                      setGuideOpen(true);
+                    }}
+                  />
                   {failed && (
                     <p className="relief-map-note relief-map-note--error">
                       {reliefMapContent.loadError}
@@ -1576,6 +1658,12 @@ export function RifugiMapScene() {
           </div>
         )}
       </div>
+      <MapGuideDialog
+        open={guideOpen}
+        onClose={closeGuide}
+        guide={reliefMapContent.guide}
+        href={editorialLinks.climateRelief.crafMap}
+      />
       <div className="relief-map-panels" aria-hidden="true">
         <div className="relief-map-explore-buffer" aria-hidden="true" />
       </div>

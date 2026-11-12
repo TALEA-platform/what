@@ -88,13 +88,40 @@ narrative:
 
 legends:
   id: physical-drivers-legends
+  guideLabel: "Come leggere la mappa"
   lenses:
     - id: green
       from: "meno vegetazione"
       to: "più vegetazione"
+      guide:
+        id: green-guide
+        title: "Come leggere la mappa"
+        sections:
+          - title: "Cosa mostra"
+            paragraphs:
+              - "La mappa mostra dove è presente vegetazione a Bologna e quanto è fitta."
+              - "Il colore indica la quantità di verde: più il verde è intenso, più la vegetazione è fitta e rigogliosa. I toni chiari indicano le zone dove la vegetazione è poca."
+              - "Viene mostrato come il verde è distribuito nella città, dalle aree più costruite fino ai parchi e alle colline."
+        source:
+          label: "Fonte"
+          text: "Satellite Sentinel-2 (Copernicus) · estate 2026 · risoluzione 10 m"
+        linkLabel: "Esplora i dati tecnici in dettaglio"
     - id: materials
       from: "assorbe il sole"
       to: "riflette il sole"
+      guide:
+        id: materials-guide
+        title: "Come leggere la mappa"
+        sections:
+          - title: "Cosa mostra"
+            paragraphs:
+              - "La mappa mostra quanta luce del sole viene riflessa dalle superfici di Bologna."
+              - "Il colore indica questa capacità: più il tono è scuro, più la superficie assorbe la luce del sole e tende a scaldarsi. I toni chiari indicano le superfici che riflettono di più la luce."
+              - "Viene mostrato dove, nella città, si concentrano le superfici che assorbono di più la luce del sole."
+        source:
+          label: "Fonte"
+          text: "Satellite Sentinel-2 (Copernicus) · estate 2026 · risoluzione 10 m"
+        linkLabel: "Esplora i dati tecnici in dettaglio"
   hotspot:
     id: physical-drivers-hotspot-legend
     label: "Hotspot nel 10% più caldo in almeno 9 estati su 14"

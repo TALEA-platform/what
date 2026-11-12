@@ -5,7 +5,7 @@ section:
   id: summer-trend
   ariaLabel: "Trend estati a Bologna"
   title: "La prima conferma arriva dall’aria."
-  lead: "Le temperature massime si stanno alzando sempre di più, e i picchi torridi, che un tempo erano rari stanno diventando la normalità."
+  lead: "Le temperature massime si stanno alzando sempre di più, e le estati torride, che un tempo erano rare, stanno diventando la normalità."
   bridge: "Questa tendenza, però, dice quanto fa caldo."
   punch:
     - id: trend-punch-negation

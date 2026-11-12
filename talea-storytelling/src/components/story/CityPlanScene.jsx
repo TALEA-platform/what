@@ -2531,6 +2531,11 @@ export function CityPlanScene() {
         <div className="plan-veil plan-veil--l" aria-hidden="true" />
         <div className="plan-veil plan-veil--r" aria-hidden="true" />
 
+        {/* Nota visibile: lo scenario è illustrativo (il testo per gli screen
+            reader è già nella trascrizione). Sta sotto i sipari, quindi entra
+            ed esce con la scena. */}
+        <p className="plan-context-note">{planContext.note}</p>
+
         <div className="plan-curtain plan-curtain--entry" aria-hidden="true" />
         <div className="plan-curtain plan-curtain--exit" aria-hidden="true" />
 

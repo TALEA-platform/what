@@ -21,6 +21,7 @@ export function AnnotationLayer({
   showNarrative,
   ariaLabel,
   mobile = false,
+  onVisibleCardsChange,
 }) {
   const { content } = useContent();
   const hotspotAnnotations = useMemo(
@@ -114,6 +115,25 @@ export function AnnotationLayer({
       setHoverId(null);
     };
   }, [map, active, hotspotAnnotations, mobile]);
+
+  // Schede visibili in questo momento (fisse e al passaggio del mouse), per
+  // chi sta sopra la mappa: es. le etichette delle zone che si nascondono.
+  const shownNarrative = narrativeIn && showNarrative;
+  const shownPriorityIds =
+    shownNarrative && (!mobile || !hoverId)
+      ? priorityZones.map((zone) => zone.id)
+      : [];
+  const hoverIsPriorityCard =
+    !mobile &&
+    shownNarrative &&
+    Boolean(hotspotAnnotations.find((zone) => zone.id === hoverId)?.narrative);
+  const visibleCardsKey =
+    active && positions.length > 0
+      ? [...shownPriorityIds, ...(hoverId && !hoverIsPriorityCard ? [hoverId] : [])].join(",")
+      : "";
+  useEffect(() => {
+    onVisibleCardsChange?.(visibleCardsKey ? visibleCardsKey.split(",") : []);
+  }, [visibleCardsKey, onVisibleCardsChange]);
 
   if (!active || positions.length === 0) return null;
 

@@ -145,7 +145,8 @@ function cameraPadding() {
 }
 
 function zoneBounds(zone) {
-  const latitudeDelta = (zone.radius_m * 1.16) / METRES_PER_LATITUDE_DEGREE;
+  const latitudeDelta =
+    ((zone.frame_m ?? zone.radius_m) * 1.16) / METRES_PER_LATITUDE_DEGREE;
   const longitudeDelta = latitudeDelta / Math.cos((zone.center[1] * Math.PI) / 180);
   return [
     [zone.center[0] - longitudeDelta, zone.center[1] - latitudeDelta],

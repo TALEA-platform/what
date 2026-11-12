@@ -26,6 +26,25 @@ map:
     description: "Quanto strade e parchi restano al sole nelle ore centrali delle giornate estive, fra le 12 e le 15."
     from: "Più esposto al sole"
     to: "Più spesso in ombra"
+    guideLabel: "Come leggere la mappa"
+    guide:
+      id: shadow-guide
+      title: "Come leggere la mappa"
+      sections:
+        - title: "Cosa mostra"
+          paragraphs:
+            - "La mappa mostra quanto strade e aree verdi di Bologna restano al sole nelle ore più calde delle giornate estive, tra le 12 e le 15."
+            - "Il colore indica quanto spesso ogni strada o area verde è in ombra in quelle ore: i toni arancioni indicano i luoghi più esposti al sole, i toni blu quelli più spesso in ombra."
+            - "Viene mostrato dove l’ombra di edifici e alberi ripara di più dal sole diretto."
+        - title: "Come è calcolato"
+          paragraphs:
+            - "L’ombra è simulata a partire da un modello tridimensionale della città, con un dettaglio di 50 centimetri."
+            - "La simulazione segue la posizione del sole ogni 15 minuti, in tutte le domeniche dell’estate, da giugno ad agosto: 14 giornate in tutto."
+            - "Per ogni punto si calcola quanto spesso, tra le 12 e le 15, è rimasto in ombra. Questi valori sono poi mediati su ogni strada e area verde: sono quelli rappresentati nella mappa."
+      source:
+        label: "Fonte"
+        text: "Simulazione delle ombre TALEA (Shadow Coverage Index) · estate, ore 12–15"
+      linkLabel: "Esplora i dati dell’ombra in dettaglio"
     sourceLink:
       id: shadow-focus-data-link
       label: "Esplora i dati dell’ombra in dettaglio"

@@ -9,9 +9,13 @@ import {
 } from "react";
 import maplibregl from "maplibre-gl";
 import { MapLibreCanvas } from "../maps/MapLibreCanvas";
+import { PlaceLabels } from "../maps/PlaceLabels";
+import { StaticPlaceLabels } from "../maps/StaticPlaceLabels";
+import { bolognaZoneLabels } from "../../data/zoneLabels";
 import { SectionDivider } from "./SectionDivider";
 import { assetUrl } from "../../lib/assetUrl";
-import { useContent } from "../../content";
+import { editorialLinks, useContent } from "../../content";
+import { MapGuideButton, MapGuideDialog } from "../ui/MapGuide";
 import {
   causeStages as causeStageTechnical,
   lensLegendBars,
@@ -160,6 +164,38 @@ function CausesStaticRaster({
           </div>
         </div>
       ) : null}
+      {compare ? (
+        // Confronto: stessi nomi su entrambe le metà, ognuna tagliata dallo
+        // slider come la sua immagine e con l'alone di quella mappa.
+        [
+          { lensId: "green", clip: `inset(0 ${100 - sliderValue}% 0 0)` },
+          { lensId: "materials", clip: `inset(0 0 0 ${sliderValue}%)` },
+        ].map(({ lensId, clip }) => (
+          <div
+            key={lensId}
+            className={`causes-static-labels-clip${dragging ? " is-dragging" : ""}`}
+            style={{ clipPath: clip }}
+          >
+            <StaticPlaceLabels
+              className={`causes-static-labels causes-zone-labels--${lensId}`}
+              places={bolognaZoneLabels}
+              frame={STATIC_FRAME}
+              visible
+              avoidSelector=".causes-hotspot-legend"
+              avoidScope=".causes-compare-crop"
+            />
+          </div>
+        ))
+      ) : (
+        <StaticPlaceLabels
+          className={`causes-static-labels causes-zone-labels--${lens}`}
+          places={bolognaZoneLabels}
+          frame={STATIC_FRAME}
+          visible={lens === "green" || lens === "materials"}
+          avoidSelector=".causes-maplegend, .causes-map-guide-toggle"
+          avoidScope=".causes-crop"
+        />
+      )}
       {compare && hotspotPath && (
         <svg
           className="causes-static-hotspots"
@@ -444,6 +480,19 @@ function CausesCropMap({ lens, expanded, showHotspots, onBaseMapReady, onDrawnCh
         minZoom={11}
         maxZoom={15}
       />
+      {/* Nomi delle zone in stile carta geografica su NDVI e albedo; l'alone
+          cambia con la mappa (story.css). */}
+      <div className={`causes-zone-labels causes-zone-labels--${lens}`}>
+        <PlaceLabels
+          map={map}
+          places={bolognaZoneLabels}
+          visible={lens === "green" || lens === "materials"}
+          variant="map"
+          avoidSelector=".causes-maplegend"
+          avoidScope=".causes-crop"
+          avoidKey={lens}
+        />
+      </div>
     </div>
   );
 }
@@ -770,6 +819,37 @@ function CausesCompareMap({
         engaged={visible && !exiting}
       />
 
+      {/* Nomi delle zone: stessi punti su entrambe le metà, ognuna tagliata
+          dallo slider come la sua mappa e con l'alone di quella mappa. */}
+      <div
+        className="causes-zone-labels causes-zone-labels--green causes-compare-zone-labels"
+        style={{ clipPath: `inset(0 ${100 - sliderValue}% 0 0)` }}
+      >
+        <PlaceLabels
+          map={baseMap}
+          places={bolognaZoneLabels}
+          visible={reveal}
+          variant="map"
+          avoidSelector=".causes-hotspot-legend"
+          avoidScope=".causes-compare-crop"
+          avoidKey={String(active && reveal)}
+        />
+      </div>
+      <div
+        className="causes-zone-labels causes-zone-labels--materials causes-compare-zone-labels"
+        style={{ clipPath: `inset(0 0 0 ${sliderValue}%)` }}
+      >
+        <PlaceLabels
+          map={baseMap}
+          places={bolognaZoneLabels}
+          visible={reveal}
+          variant="map"
+          avoidSelector=".causes-hotspot-legend"
+          avoidScope=".causes-compare-crop"
+          avoidKey={String(active && reveal)}
+        />
+      </div>
+
       {active && reveal && (
         <CompareSlider
           value={sliderValue}
@@ -1035,6 +1115,7 @@ export function PhysicalDriversSection() {
     apertureClose,
     comparisonAriaLabel,
     greenTopicWord,
+    guideLabel,
     handleHint,
     hotspotLegendLabel,
     lensLegends,
@@ -1058,6 +1139,7 @@ export function PhysicalDriversSection() {
       apertureClose: physicalDrivers.intro.close.text,
       handleHint: physicalDrivers.comparison.handleHint,
       hotspotLegendLabel: physicalDrivers.legends.hotspot.label,
+      guideLabel: physicalDrivers.legends.guideLabel,
       comparisonAriaLabel: physicalDrivers.comparison.ariaLabel,
       greenTopicWord: topicWords.get("green"),
       materialsTopicWord: topicWords.get("materials"),
@@ -1094,6 +1176,9 @@ export function PhysicalDriversSection() {
     };
   });
   const [lensDrawn, setLensDrawn] = useState(false);
+  // Popup "Come leggere la mappa" della mappa visibile (verde o materiali).
+  const [guideOpen, setGuideOpen] = useState(false);
+  const closeGuide = useCallback(() => setGuideOpen(false), []);
   const [mobileLayout, setMobileLayout] = useState(
     () =>
       typeof window !== "undefined" &&
@@ -1622,6 +1707,15 @@ export function PhysicalDriversSection() {
   const materialsTopicActive =
     visualStage.lens === "materials" || compareTopicsActive;
   const baseCropLeaving = compareTextActive || isComparing;
+  // Pulsante e fonte della mappa visibile: solo per le mappe che hanno già il
+  // loro popup, e non durante il confronto.
+  const activeGuide = lensLegends[visualStage.lens]?.guide ?? null;
+  const guideHref = editorialLinks.physicalDrivers[visualStage.lens] ?? null;
+  const guideToggleVisible =
+    Boolean(activeGuide && guideHref) &&
+    (lensDrawn || mobileLayout) &&
+    !baseCropLeaving &&
+    !isComparing;
   const connectorStage = stages.find((s) => s.id === activeTextStageId);
   const connectorVisible =
     Boolean(connectorStage) && activeTextStageId !== "compare" && !isComparing;
@@ -1821,6 +1915,21 @@ export function PhysicalDriversSection() {
                 </span>
               </div>
             )}
+            {guideToggleVisible && (
+              <MapGuideButton
+                label={guideLabel}
+                open={guideOpen}
+                controls={activeGuide.id}
+                iconOnly={mobileLayout}
+                className="causes-map-guide-toggle"
+                onClick={() => setGuideOpen(true)}
+              />
+            )}
+            {guideToggleVisible && !mobileLayout && activeGuide.source && (
+              <p className="causes-map-source">
+                {activeGuide.source.label}: {activeGuide.source.text}
+              </p>
+            )}
           </div>
 
           {!mobileLayout && (
@@ -1940,6 +2049,15 @@ export function PhysicalDriversSection() {
       </div>
 
       <div className="causes-exit" aria-hidden="true" />
+
+      {activeGuide && guideHref && (
+        <MapGuideDialog
+          open={guideOpen}
+          onClose={closeGuide}
+          guide={activeGuide}
+          href={guideHref}
+        />
+      )}
     </section>
   );
 }

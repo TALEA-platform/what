@@ -37,6 +37,10 @@ const MOBILE_LEAVES = [
   { at: 0.88, rotate: 38 },
 ];
 
+// Desktop: area cliccabile invisibile attorno ai fiori. Si estende fino a
+// metà strada dal fiore vicino, così nei gruppi stretti non si sovrappone.
+const HIT_HALF = 22;
+
 const clamp01 = (value) => Math.min(1, Math.max(0, value));
 
 function getNarrativeMetrics() {
@@ -179,6 +183,7 @@ export function ScrollStem({
   const [openCount, setOpenCount] = useState(0);
   const [mobileOpenCount, setMobileOpenCount] = useState(0);
   const [hintVisible, setHintVisible] = useState(false);
+  const [peek, setPeek] = useState(null);
   const nodesRef = useRef(EVEN_SPREAD);
 
   const path = useMemo(() => branchPath(height), [height]);
@@ -660,7 +665,7 @@ export function ScrollStem({
                   key={node.id}
                   node={node}
                   index={i}
-                  open={i < openCount}
+                  open={i < openCount || i === peek}
                   active={i === active}
                 />
               ),
@@ -675,8 +680,15 @@ export function ScrollStem({
             key={node.id}
             type="button"
             className={`scroll-stem-node${i === active ? " is-active" : ""}`}
-            style={{ left: `${node.x.toFixed(2)}px`, top: `${node.y.toFixed(2)}px` }}
+            style={{
+              left: `${node.x.toFixed(2)}px`,
+              top: `${node.y.toFixed(2)}px`,
+              "--hit-up": `${(i > 0 ? Math.min(HIT_HALF, (node.y - placed[i - 1].y) / 2) : HIT_HALF).toFixed(1)}px`,
+              "--hit-down": `${(i < placed.length - 1 ? Math.min(HIT_HALF, (placed[i + 1].y - node.y) / 2) : HIT_HALF).toFixed(1)}px`,
+            }}
             onClick={() => goTo(node.selector)}
+            onPointerEnter={() => setPeek(i)}
+            onPointerLeave={() => setPeek((current) => (current === i ? null : current))}
           >
             <span className="scroll-stem-node-label">{chapterLabels.get(node.id)}</span>
           </button>

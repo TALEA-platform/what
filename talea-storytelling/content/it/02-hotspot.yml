@@ -147,6 +147,24 @@ map:
       closeLabel: "Nascondi spiegazione"
       color: "Più il colore tende al rosso, maggiore è la ricorrenza."
       unhighlighted: "Nelle aree non evidenziate, la temperatura superficiale non è mai rientrata nel 10% dei valori più elevati, oppure vi è rientrata in meno estati rispetto alla soglia selezionata."
+    guide:
+      id: hotspot-guide
+      title: "Come leggere la mappa"
+      sections:
+        - title: "Cosa mostra"
+          paragraphs:
+            - "La mappa mostra quanto spesso un’area di Bologna è stata tra le superfici più calde della città."
+            - "In ogni estate, dal 2013 al 2026, sono state individuate le aree con le temperature di superficie più alte, cioè quelle che rientrano nel 10% più caldo di quell’estate."
+            - "Per ogni area è stato poi calcolato in quante delle 14 estati è rientrata in questo 10% più caldo."
+            - "Il colore indica questo numero: più il rosso è intenso, in più estati l’area è rientrata nel 10% più caldo. Le aree non colorate ci sono rientrate meno volte di quanto indica la legenda, oppure mai."
+            - "Viene mostrato quanto spesso una zona entra tra le più calde di Bologna: dove succede in più anni, il calore è una caratteristica ricorrente di quel luogo."
+        - title: "Come è calcolato"
+          paragraphs:
+            - "La temperatura di superficie è rilevata da satellite. Per ogni estate, da giugno ad agosto, si ricava un valore rappresentativo per ogni area di 30 × 30 metri, escludendo le rilevazioni coperte dalle nuvole. Il 10% più caldo è calcolato su Bologna e dintorni."
+      source:
+        label: "Fonte"
+        text: "Satelliti Landsat 8 e 9 (NASA/USGS) · estati 2013–2026 · risoluzione 30 m"
+      linkLabel: "Esplora i dati tecnici in dettaglio"
     sourceLink:
       id: hotspot-source-link
       label: "Esplora i dati tecnici in dettaglio"
